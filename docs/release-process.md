@@ -1,4 +1,7 @@
 <a id="top"></a>
+
+> **Upstream history:** This page is retained from Catch2 for provenance and compatibility. It does not describe Catch3 release policy or Progmasoft support. See [Catch3 documentation](Readme.md#top) for current guidance.
+
 # How to release
 
 When enough changes have accumulated, it is time to release new version of Catch. This document describes the process in doing so, that no steps are forgotten. Note that all referenced scripts can be found in the `tools/scripts/` directory.

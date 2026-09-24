@@ -52,7 +52,11 @@ target("ProgmasoftPropertyTests")
     add_files(
         "tests/Progmasoft/Property.tests.cpp",
         "tests/Progmasoft/Results.tests.cpp",
-        "tests/Progmasoft/Snapshot.tests.cpp"
+        "tests/Progmasoft/Snapshot.tests.cpp",
+        "src/catch2/internal/catch_main.cpp"
     )
     add_includedirs("src", generated_include)
-    add_deps("ProgmasoftCatch3", "catch2_main")
+    -- MSVC's linker does not discover an otherwise unreferenced main() in a
+    -- static archive. Compile the compatibility entry point into this test
+    -- executable while retaining catch2_main for downstream consumers.
+    add_deps("ProgmasoftCatch3")

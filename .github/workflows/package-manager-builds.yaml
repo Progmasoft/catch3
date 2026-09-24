@@ -7,6 +7,7 @@ jobs:
     name: Conan ${{matrix.conan_version}}
     runs-on: ${{matrix.os}}
     strategy:
+      fail-fast: false
       matrix:
         # Conan's detected MSVC runtime targets the VS 2022 (v143) toolset.
         os: [macos-15, windows-2022]
@@ -22,11 +23,21 @@ jobs:
     - name: Detect a Clang-based Conan profile
       run: conan profile detect --force
       env:
-        CC: clang
-        CXX: clang++
+        CC: ${{ runner.os == 'Windows' && 'clang-cl' || 'clang' }}
+        CXX: ${{ runner.os == 'Windows' && 'clang-cl' || 'clang++' }}
 
-    - name: Run conan package create
+    - name: Run conan package create on macOS
+      if: runner.os == 'macOS'
       run: conan create . -tf .conan/test_package
       env:
         CC: clang
         CXX: clang++
+
+    - name: Run conan package create with Visual Studio ClangCL
+      if: runner.os == 'Windows'
+      # The VS 2022 image ships the v144 CRT. Conan's generic clang profile
+      # otherwise picks v143 and MinGW Makefiles, which cannot link that CRT.
+      run: conan create . -tf .conan/test_package -s compiler.runtime_version=v144 -c "tools.cmake.cmaketoolchain:generator=Visual Studio 17 2022"
+      env:
+        CC: clang-cl
+        CXX: clang-cl

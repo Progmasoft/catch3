@@ -1,5 +1,8 @@
 <a id="top"></a>
-# Comparing floating point numbers with Catch2
+
+> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+
+# Comparing floating point numbers with Catch3's compatibility API
 
 If you are not deeply familiar with them, floating point numbers can be
 unintuitive. This also applies to comparing floating point numbers for

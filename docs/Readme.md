@@ -1,8 +1,19 @@
 <a id="top"></a>
-# Reference
+# Catch3 documentation
 
-To get the most out of Catch2, start with the [tutorial](tutorial.md#top).
-Once you're up and running consider the following reference material.
+Catch3 combines the upstream Catch2-compatible runner and API with
+Progmasoft's C++20 extensions. Start with the [tutorial](tutorial.md#top),
+then read [what Catch3 adds](progmasoft-catch3.md) and
+[why the two API families remain distinct](why-catch3.md). The compatibility
+pages below retain real `catch2/` include paths, `Catch2::` CMake targets,
+and upstream version history; renaming those would make examples incorrect.
+
+The Progmasoft extension API lives under `Progmasoft/Catch3/...` and the
+`Progmasoft::Catch3` namespace. Its built library is separate from the
+upstream-compatible engine. The compatibility pages are about the bundled
+engine, not a claim that Catch3 is an official Catch2 release.
+
+## Reference
 
 **Writing tests:**
 * [Assertion macros](assertions.md#top)
@@ -33,13 +44,13 @@ Once you're up and running consider the following reference material.
 * [CMake integration](cmake-integration.md#top)
 * [Tooling integration (CI, test runners, other)](ci-and-misc.md#top)
 * [Known limitations](limitations.md#top)
-* [Thread safety in Catch2](thread-safety.md#top)
+* [Thread safety of the compatibility engine](thread-safety.md#top)
 
 **Other:**
-* [Why Catch2?](why-catch.md#top)
+* [Why the Catch2 compatibility base?](why-catch.md#top)
 * [Migrating from v2 to v3](migrate-v2-to-v3.md#top)
-* [Open Source Projects using Catch2](opensource-users.md#top)
-* [Commercial Projects using Catch2](commercial-users.md#top)
-* [Contributing](contributing.md#top)
-* [Release Notes](release-notes.md#top)
-* [Deprecations and incoming changes](deprecations.md#top)
+* [Historical Catch2 open-source users](opensource-users.md#top)
+* [Historical Catch2 commercial users](commercial-users.md#top)
+* [Upstream contribution guide (historical)](contributing.md#top)
+* [Upstream release notes (historical)](release-notes.md#top)
+* [Upstream deprecations (historical)](deprecations.md#top)

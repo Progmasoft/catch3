@@ -1,5 +1,8 @@
 <a id="top"></a>
-# Best practices and other tips on using Catch2
+
+> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+
+# Best practices for the Catch3 compatibility API
 
 ## Running tests
 

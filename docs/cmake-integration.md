@@ -1,4 +1,7 @@
 <a id="top"></a>
+
+> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+
 # CMake integration
 
 **Contents**<br>
@@ -6,59 +9,45 @@
 [Automatic test registration](#automatic-test-registration)<br>
 [CMake project options](#cmake-project-options)<br>
 [`CATCH_CONFIG_*` customization options in CMake](#catch_config_-customization-options-in-cmake)<br>
-[Installing Catch2 from git repository](#installing-catch2-from-git-repository)<br>
-[Installing Catch2 from vcpkg](#installing-catch2-from-vcpkg)<br>
-[Installing Catch2 from Bazel](#installing-catch2-from-bazel)<br>
+[Using Progmasoft Catch3 from a checkout](#using-progmasoft-catch3-from-a-checkout)<br>
+[Using an installed Catch3 package](#using-an-installed-catch3-package)<br>
+[Upstream Catch2 packages](#upstream-catch2-packages)<br>
 
-Because we use CMake to build Catch2, we also provide a couple of
-integration points for our users.
+Catch3 builds its Progmasoft C++20 extension library alongside the
+Catch2-compatible C++14 engine. CMake exposes both API families:
 
-1) Catch2 exports a (namespaced) CMake target
-2) Catch2's repository contains CMake scripts for automatic registration
-of `TEST_CASE`s in CTest
+1. `Progmasoft::Catch3` contains the new compiled extensions and depends on
+   `Catch2::Catch2`.
+2. `Catch2::Catch2WithMain` supplies the existing test runner and `main`.
+3. The bundled Catch2 scripts register `TEST_CASE`s with CTest.
+
+Do not use the upstream `catchorg/Catch2` checkout or its vcpkg/Bazel package
+when you need `Progmasoft::Catch3`; those packages do not contain this fork's
+extensions.
 
 ## CMake targets
 
-Catch2's CMake build exports two targets, `Catch2::Catch2`, and
-`Catch2::Catch2WithMain`. If you do not need custom `main` function,
-you should be using the latter (and only the latter). Linking against
-it will add the proper include paths and link your target together with
-2 static libraries that implement Catch2 and its main respectively.
-If you need custom `main`, you should link only against `Catch2::Catch2`.
+The fork exports `Progmasoft::Catch3`, `Catch2::Catch2`, and
+`Catch2::Catch2WithMain`. Link the Progmasoft target when using extension
+headers; link `Catch2::Catch2WithMain` unless you provide a custom `main`.
+For a CMake-installed fork:
 
-This means that if Catch2 has been installed on the system, it should
-be enough to do
 ```cmake
-find_package(Catch2 3 REQUIRED)
-# These tests can use the Catch2-provided main
+find_package(Catch2 3.16 CONFIG REQUIRED)
+find_package(ProgmasoftCatch3 3.16 CONFIG REQUIRED)
 add_executable(tests test.cpp)
-target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(tests PRIVATE Progmasoft::Catch3 Catch2::Catch2WithMain)
 
-# These tests need their own main
 add_executable(custom-main-tests test.cpp test-main.cpp)
-target_link_libraries(custom-main-tests PRIVATE Catch2::Catch2)
+target_link_libraries(custom-main-tests PRIVATE Progmasoft::Catch3)
 ```
 
-These targets are also provided when Catch2 is used as a subdirectory.
-Assuming Catch2 has been cloned to `lib/Catch2`, you only need to replace
-the `find_package` call with `add_subdirectory(lib/Catch2)` and the snippet
-above still works.
+If the fork is checked out in `external/catch3`, build it as a subdirectory:
 
-
-Another possibility is to use [FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html):
 ```cmake
-Include(FetchContent)
-
-FetchContent_Declare(
-  Catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.8.1 # or a later release
-)
-
-FetchContent_MakeAvailable(Catch2)
-
+add_subdirectory(external/catch3)
 add_executable(tests test.cpp)
-target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(tests PRIVATE Progmasoft::Catch3 Catch2::Catch2WithMain)
 ```
 
 
@@ -397,56 +386,27 @@ To summarize the configuration option behaviour with an example:
 
 
 
-## Installing Catch2 from git repository
+## Using Progmasoft Catch3 from a checkout
 
-If you cannot install Catch2 from a package manager (e.g. Ubuntu 16.04
-provides catch only in version 1.2.0) you might want to install it from
-the repository instead. Assuming you have enough rights, you can just
-install it to the default location, like so:
-```
-$ git clone https://github.com/catchorg/Catch2.git
-$ cd Catch2
-$ cmake -B build -S . -DBUILD_TESTING=OFF
-$ sudo cmake --build build/ --target install
-```
+Clone [Progmasoft/catch3](https://github.com/Progmasoft/catch3) and use
+`add_subdirectory` as shown above. This builds the compatible runner and the
+compiled Progmasoft extension library together. Keep the fork at a reviewed
+commit or release tag in production builds.
 
-If you do not have superuser rights, you will also need to specify
-[CMAKE_INSTALL_PREFIX](https://cmake.org/cmake/help/latest/variable/CMAKE_INSTALL_PREFIX.html)
-when configuring the build, and then modify your calls to
-[find_package](https://cmake.org/cmake/help/latest/command/find_package.html)
-accordingly.
+## Using an installed Catch3 package
 
-## Installing Catch2 from vcpkg
+Configure and install the fork with CMake, then point `CMAKE_PREFIX_PATH` at
+the install prefix when consuming it. Both `Catch2` and
+`ProgmasoftCatch3` package configurations must come from the same Catch3
+build. Do not mix a separately installed upstream Catch2 library with this
+fork's extension library.
 
-Alternatively, you can build and install Catch2 using [vcpkg](https://github.com/microsoft/vcpkg/) dependency manager:
-```
-git clone https://github.com/Microsoft/vcpkg.git
-cd vcpkg
-./bootstrap-vcpkg.sh
-./vcpkg integrate install
-./vcpkg install catch2
-```
+## Upstream Catch2 packages
 
-The catch2 port in vcpkg is kept up to date by microsoft team members and community contributors.
-If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
-
-## Installing Catch2 from Bazel
-
-Catch2 is now a supported module in the Bazel Central Registry. You only need to add one line to your MODULE.bazel file;
-please see https://registry.bazel.build/modules/catch2 for the latest supported version.
-
-You can then add `catch2_main` to each of your C++ test build rules as follows:
-
-```
-cc_test(
-    name = "example_test",
-    srcs = ["example_test.cpp"],
-    deps = [
-        ":example",
-        "@catch2//:catch2_main",
-    ],
-)
-```
+The upstream Catch2 vcpkg port and Bazel Central Registry module install only
+the compatibility engine. They do not provide `Progmasoft::Catch3`,
+`Progmasoft/Catch3.hpp`, snapshots, properties, or result/XML extensions.
+Use them only for applications that intentionally need the upstream API alone.
 
 ---
 

@@ -1,4 +1,7 @@
 <a id="top"></a>
+
+> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+
 # Frequently Asked Questions (FAQ)
 
 **Contents**<br>
@@ -36,9 +39,10 @@ as needed later.
 
 ## What is Catch2's ABI stability policy?
 
-Catch2 provides no ABI stability guarantees whatsoever. Catch2 provides
-rich C++ interface, and trying to freeze its ABI would take a lot of
-pointless work.
+The bundled Catch2-compatible engine provides no ABI stability guarantee.
+Its C++ interfaces should be compiled with a consistent compiler and build
+configuration. The Progmasoft C++20 extension library does not currently
+promise a stable binary ABI either.
 
 Catch2 is not designed to be distributed as dynamic library, and you
 should really be able to compile everything with the same compiler binary.
@@ -46,9 +50,11 @@ should really be able to compile everything with the same compiler binary.
 
 ## What is Catch2's API stability policy?
 
-Catch2 follows [semver](https://semver.org/) to the best of our ability.
-This means that we will not knowingly make backwards-incompatible changes
-without incrementing the major version number.
+The historical Catch2 compatibility API retains its upstream names and
+semantics where this fork has not explicitly documented a difference. Catch3
+does not claim that its independently developed Progmasoft extensions inherit
+Catch2's upstream release or API-stability policy. Verify the extension API
+against the Catch3 version you build.
 
 
 ## Does Catch2 support running tests in parallel?

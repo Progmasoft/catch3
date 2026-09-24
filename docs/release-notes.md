@@ -1,5 +1,8 @@
 <a id="top"></a>
 
+> **Upstream history:** This page is retained from Catch2 for provenance and compatibility. It does not describe Catch3 release policy or Progmasoft support. See [Catch3 documentation](Readme.md#top) for current guidance.
+
+
 # Release notes
 **Contents**<br>
 [3.16.0](#3160)<br>

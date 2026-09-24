@@ -1,5 +1,8 @@
 <a id="top"></a>
-# Thread safety in Catch2
+
+> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+
+# Thread safety of the Catch3 compatibility engine
 
 **Contents**<br>
 [Using assertion macros from spawned threads](#using-assertion-macros-from-spawned-threads)<br>

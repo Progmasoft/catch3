@@ -1,4 +1,7 @@
 <a id="top"></a>
+
+> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+
 # Migrating from v2 to v3
 
 v3 is the next major version of Catch2 and brings three significant changes:

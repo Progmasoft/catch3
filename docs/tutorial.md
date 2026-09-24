@@ -1,8 +1,11 @@
 <a id="top"></a>
+
+> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+
 # Tutorial
 
 **Contents**<br>
-[Getting Catch2](#getting-catch2)<br>
+[Getting Catch3](#getting-catch3)<br>
 [Writing tests](#writing-tests)<br>
 [Test cases and sections](#test-cases-and-sections)<br>
 [BDD style testing](#bdd-style-testing)<br>
@@ -10,13 +13,14 @@
 [Next steps](#next-steps)<br>
 
 
-## Getting Catch2
+## Getting Catch3
 
-Ideally you should be using Catch2 through its [CMake integration](cmake-integration.md#top).
-Catch2 also provides pkg-config files and two file (header + cpp)
-distribution, but this documentation will assume you are using CMake. If
-you are using the two file distribution instead, remember to replace
-the included header with `catch_amalgamated.hpp` ([step by step instructions](migrate-v2-to-v3.md#how-to-migrate-projects-from-v2-to-v3)).
+Clone or consume [Progmasoft/catch3](https://github.com/Progmasoft/catch3),
+then use its [CMake integration](cmake-integration.md#top) or another supported
+build system. The examples in this tutorial exercise the bundled
+Catch2-compatible API, so their actual include paths remain `catch2/...`.
+For property tests, snapshots, and the result/XML writer, continue with the
+[Progmasoft extensions](progmasoft-catch3.md).
 
 
 ## Writing tests
