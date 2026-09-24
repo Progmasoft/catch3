@@ -19,7 +19,7 @@ jobs:
           xmake-version: '3.1.1'
 
       - name: Configure Clang build
-        run: xmake f --toolchain=clang -m debug -y
+        run: xmake f --toolchain=${{ runner.os == 'Windows' && 'clang-cl' || 'clang' }} -m debug -y
 
       - name: Build
         run: xmake -j 4
@@ -41,6 +41,11 @@ jobs:
       - uses: abel0b/setup-premake@v2.4
         with:
           version: '5.0.0-beta7'
+
+      - uses: microsoft/setup-msbuild@v3
+        if: runner.os == 'Windows'
+        with:
+          msbuild-architecture: x64
 
       - name: Generate and build Visual Studio projects
         if: runner.os == 'Windows'

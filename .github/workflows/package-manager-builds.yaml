@@ -8,7 +8,8 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [macos-15, windows-2025]
+        # Conan's detected MSVC runtime targets the VS 2022 (v143) toolset.
+        os: [macos-15, windows-2022]
         conan_version:
           - '2.31.1'
 

@@ -13,6 +13,7 @@ workspace "Catch3"
 
     filter "system:windows"
         architecture "x86_64"
+        toolset "clang"
     filter {}
 
     filter "system:macosx"
