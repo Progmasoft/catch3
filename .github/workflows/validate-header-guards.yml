@@ -14,7 +14,7 @@ jobs:
       - name: Setup Dependencies
         uses: actions/setup-python@v6
         with:
-            python-version: '3.7'
+            python-version: '3.12'
       - name: Install checkguard
         run: pip install guardonce
 

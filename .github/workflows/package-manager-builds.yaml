@@ -14,9 +14,10 @@ jobs:
           - '2.1'
 
         include:
-          # Conan 1 has default profiles installed
           - conan_version: '1.63'
-            profile_generate: 'false'
+            profile_command: 'conan profile new default --detect --force'
+          - conan_version: '2.1'
+            profile_command: 'conan profile detect --force'
 
     steps:
     - uses: actions/checkout@v6
@@ -24,9 +25,14 @@ jobs:
     - name: Install conan
       run: pip install conan==${{matrix.conan_version}}
 
-    - name: Setup conan profiles
-      if: matrix.profile_generate != 'false'
-      run: conan profile detect
+    - name: Detect a Clang-based Conan profile
+      run: ${{ matrix.profile_command }}
+      env:
+        CC: clang
+        CXX: clang++
 
     - name: Run conan package create
       run: conan create . -tf .conan/test_package
+      env:
+        CC: clang
+        CXX: clang++
