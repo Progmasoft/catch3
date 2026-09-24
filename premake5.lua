@@ -54,6 +54,25 @@ project "Catch2WithMain"
     includedirs { "src", generated_include }
     links { "Catch2" }
 
+project "ProgmasoftCatch3"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "build/premake/bin/%{cfg.buildcfg}"
+    objdir "build/premake/obj/ProgmasoftCatch3/%{cfg.buildcfg}"
+    files {
+        "src/Progmasoft/Results.cpp",
+        "src/Progmasoft/Results.hpp",
+        "src/Progmasoft/Snapshot.cpp",
+        "src/Progmasoft/Snapshot.hpp",
+        "src/Progmasoft/XmlWriter.cpp",
+        "src/Progmasoft/XmlWriter.hpp",
+        "src/Progmasoft/Catch3/**.hpp",
+        "src/Progmasoft/Catch3.hpp",
+    }
+    includedirs { "src", generated_include }
+    links { "Catch2" }
+
 project "ProgmasoftPropertyTests"
     kind "ConsoleApp"
     language "C++"
@@ -62,7 +81,9 @@ project "ProgmasoftPropertyTests"
     objdir "build/premake/obj/ProgmasoftPropertyTests/%{cfg.buildcfg}"
     files {
         "tests/Progmasoft/Property.tests.cpp",
+        "tests/Progmasoft/Results.tests.cpp",
+        "tests/Progmasoft/Snapshot.tests.cpp",
         "src/Progmasoft/**.hpp",
     }
     includedirs { "src", generated_include }
-    links { "Catch2WithMain", "Catch2" }
+    links { "ProgmasoftCatch3", "Catch2WithMain", "Catch2" }

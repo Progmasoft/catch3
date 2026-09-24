@@ -11,3 +11,6 @@
 #include <Progmasoft/Catch3/Generators/Integer.hpp>
 #include <Progmasoft/Catch3/Property.hpp>
 #include <Progmasoft/Catch3/Random.hpp>
+#include <Progmasoft/Catch3/Results.hpp>
+#include <Progmasoft/Catch3/Snapshot.hpp>
+#include <Progmasoft/Catch3/XmlWriter.hpp>

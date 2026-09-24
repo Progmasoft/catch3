@@ -360,18 +360,22 @@ if(CATCH_ENABLE_REPRODUCIBLE_BUILD)
 endif()
 add_library(Catch2::Catch2 ALIAS Catch2)
 
-# Progmasoft's C++20 additions are a separate target so the Catch2
-# compatibility engine can keep its existing, broader C++14 baseline.
-add_library(ProgmasoftCatch3 INTERFACE)
+# Progmasoft's compiled C++20 utilities are separate from Catch2's
+# compatibility engine, which retains its existing C++14 baseline.
+add_library(ProgmasoftCatch3 STATIC
+  "${CATCH_DIR}/src/Progmasoft/Results.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Snapshot.cpp"
+  "${CATCH_DIR}/src/Progmasoft/XmlWriter.cpp"
+)
 add_library(Progmasoft::Catch3 ALIAS ProgmasoftCatch3)
 set_target_properties(ProgmasoftCatch3 PROPERTIES EXPORT_NAME Catch3)
-target_link_libraries(ProgmasoftCatch3 INTERFACE Catch2::Catch2)
+target_link_libraries(ProgmasoftCatch3 PUBLIC Catch2::Catch2)
 target_include_directories(ProgmasoftCatch3
-  INTERFACE
+  PUBLIC
     $<BUILD_INTERFACE:${CATCH_DIR}/src>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_compile_features(ProgmasoftCatch3 INTERFACE cxx_std_20)
+target_compile_features(ProgmasoftCatch3 PUBLIC cxx_std_20)
 
 if(ANDROID)
   target_link_libraries(Catch2 PRIVATE log)

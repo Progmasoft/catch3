@@ -58,9 +58,48 @@ state-machine commands, parallel trials, and adaptive shrinking are deliberately
 not implied by this first module; they need their own deterministic contracts and
 tests before being added.
 
+## Snapshots
+
+`<Progmasoft/Catch3/Snapshot.hpp>` provides file-backed text snapshots through
+`CompareSnapshot(name, actual, options)`. The directory is supplied explicitly;
+names are restricted to portable ASCII filename characters and cannot contain
+path separators. CRLF and CR are normalized to LF by default, with no trimming
+or other content rewriting.
+
+Ordinary comparisons never write files. `SnapshotUpdateMode::kCreateMissing`
+creates only absent snapshots, while `kAlways` explicitly permits replacement.
+The result reports a match, create/update, mismatch with a one-based first
+difference location, invalid input, or I/O failure. `CATCH3_CHECK_SNAPSHOT`
+combines this result with Catch2's normal assertion reporting. Keep snapshots
+under a directory owned by the test suite and enable replacement only for an
+intentional update run.
+
+```cpp
+const Progmasoft::Catch3::SnapshotOptions options{
+    .Directory = "tests/snapshots",
+};
+CATCH3_CHECK_SNAPSHOT("rendered-report", RenderReport(), options);
+```
+
+## Structured results and XML
+
+`<Progmasoft/Catch3/Results.hpp>` defines a runner-neutral hierarchy of
+`TestRunResult`, `TestSuiteResult`, and `TestCaseResult`. `SummarizeTestRun`
+validates finite, non-negative durations and computes pass/failure/error/skip
+counts. `<Progmasoft/Catch3/XmlWriter.hpp>` serializes that model as deterministic
+JUnit-style XML through `JUnitXmlWriter::Write` or `ToString`. It escapes XML
+markup, replaces malformed UTF-8 and XML-forbidden control characters, and
+omits timestamps so identical results produce identical output. Catch2's own
+`--reporter xml` and `--reporter junit` remain the direct reporters for results
+produced by its runner; this writer is for Progmasoft's explicit result model.
+
+The snapshot and result/XML APIs have compiled C++ implementations in the
+`Progmasoft::Catch3` library target. Generator templates and convenience macros
+remain in headers where their types or call-site expansion require it.
+
 ## Build and integration
 
-The CMake build exposes `Progmasoft::Catch3`, a C++20 interface target linked to
+The CMake build exposes `Progmasoft::Catch3`, a compiled C++20 library linked to
 `Catch2::Catch2`. The existing Catch2 target retains its C++14 baseline. After
 installation, consumers can use:
 

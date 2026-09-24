@@ -81,7 +81,11 @@ test('SelfTest', self_test)
 # language requirement or the upstream SelfTest compilation mode.
 progmasoft_property_tests = executable(
   'ProgmasoftPropertyTests',
-  'Progmasoft/Property.tests.cpp',
+  [
+    'Progmasoft/Property.tests.cpp',
+    'Progmasoft/Results.tests.cpp',
+    'Progmasoft/Snapshot.tests.cpp',
+  ],
   include_directories: '../src',
   dependencies: [progmasoft_catch3_dep, catch2_with_main_dep],
   override_options: ['cpp_std=c++20'],

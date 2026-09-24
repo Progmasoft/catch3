@@ -33,17 +33,26 @@ target("catch2_main")
     add_deps("catch2")
     add_includedirs("src", generated_include, {public = true})
 
--- This is a header-only C++20 layer over the compatibility engine.
+-- Compile Progmasoft's implementation separately from the compatibility engine.
 target("ProgmasoftCatch3")
-    set_kind("headeronly")
+    set_kind("static")
     set_languages("cxx20")
     add_headerfiles("src/Progmasoft/**.hpp", {prefixdir = ""})
+    add_files(
+        "src/Progmasoft/Results.cpp",
+        "src/Progmasoft/Snapshot.cpp",
+        "src/Progmasoft/XmlWriter.cpp"
+    )
     add_includedirs("src", {public = true})
     add_deps("catch2", {public = true})
 
 target("ProgmasoftPropertyTests")
     set_kind("binary")
     set_languages("cxx20")
-    add_files("tests/Progmasoft/Property.tests.cpp")
+    add_files(
+        "tests/Progmasoft/Property.tests.cpp",
+        "tests/Progmasoft/Results.tests.cpp",
+        "tests/Progmasoft/Snapshot.tests.cpp"
+    )
     add_includedirs("src", generated_include)
     add_deps("ProgmasoftCatch3", "catch2_main")

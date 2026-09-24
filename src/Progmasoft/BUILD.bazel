@@ -6,6 +6,11 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "catch3",
+    srcs = [
+        "Results.cpp",
+        "Snapshot.cpp",
+        "XmlWriter.cpp",
+    ],
     hdrs = [
         "Catch3.hpp",
         "Catch3/Assertions.hpp",
@@ -14,7 +19,14 @@ cc_library(
         "Catch3/Generators/Integer.hpp",
         "Catch3/Property.hpp",
         "Catch3/Random.hpp",
+        "Catch3/Results.hpp",
+        "Catch3/Snapshot.hpp",
+        "Catch3/XmlWriter.hpp",
     ],
+    copts = select({
+        "@platforms//os:windows": ["/std:c++20"],
+        "//conditions:default": ["-std=c++20"],
+    }),
     strip_include_prefix = "/src",
     deps = ["//:catch2"],
 )

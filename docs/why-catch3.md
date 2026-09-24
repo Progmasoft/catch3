@@ -40,7 +40,10 @@ future Catch2 upstream change will be adopted unchanged or that all downstream
 projects have already been validated.
 
 The split also applies to implementation and packaging: Catch2 remains the
-engine dependency, while Progmasoft's header-only API is a separate target.
+engine dependency, while Progmasoft's compiled C++20 library is a separate
+target. Template-based generators and call-site assertion macros remain in
+headers; snapshot I/O, result aggregation, and XML serialization are compiled
+implementations.
 Keep tests for the two areas independently identifiable so additions do not
 silently alter the upstream compatibility baseline.
 
