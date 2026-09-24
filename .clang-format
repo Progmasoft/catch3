@@ -1,45 +1,123 @@
+# SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com>
+# SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
 ---
+# Visual X# C++20 format profile, pinned to LLVM/Clang 23.1.0.
+# Naming is intentionally outside clang-format and remains governed by the
+# existing Visual X# PascalCase/camelCase conventions.
 Language: Cpp
-Standard: c++14
+BasedOnStyle: LLVM
+Standard: c++20
 
-# Note that we cannot use IncludeIsMainRegex functionality, because it
-# does not support includes in angle brackets (<>)
-SortIncludes: true
-IncludeBlocks: Regroup
-IncludeCategories:
-  - Regex: <catch2/.*\.hpp>
-    Priority: 1
-  - Regex: <.*/.*\.hpp>
-    Priority: 2
-  - Regex: <.*>
-    Priority: 3
-
-AllowShortBlocksOnASingleLine: Always
-AllowShortEnumsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: All
-AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortLambdasOnASingleLine: Inline
-
-AccessModifierOffset: "-4"
-AlignEscapedNewlines: Left
-AllowAllConstructorInitializersOnNextLine: "true"
-BinPackArguments: "false"
-BinPackParameters: "false"
-BreakConstructorInitializers: AfterColon
-ConstructorInitializerAllOnOneLineOrOnePerLine: "true"
-DerivePointerAlignment: "false"
-FixNamespaceComments: "true"
-IndentCaseLabels: "false"
-IndentPPDirectives: AfterHash
-IndentWidth: "4"
-NamespaceIndentation: All
-PointerAlignment: Left
-SpaceBeforeCtorInitializerColon: "false"
-SpaceInEmptyParentheses: "false"
-SpacesInParentheses: "true"
-TabWidth: "4"
 UseTab: Never
-AlwaysBreakTemplateDeclarations: Yes
-SpaceAfterTemplateKeyword: true
-SortUsingDeclarations: true
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+AccessModifierOffset: -4
+IndentAccessModifiers: false
+
+# Keep formatted C++ source within the agreed 80-column width.
+ColumnLimit: 80
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterExternBlock: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: None
+AllowShortLoopsOnASingleLine: false
+AllowShortNamespacesOnASingleLine: false
+AllowShortRecordOnASingleLine: Never
+
+# Function declarations and definitions keep the return type on its own line.
+BreakAfterReturnType: All
+
+PackArguments:
+  BinPack: OnePerLine
+PackParameters:
+  BinPack: OnePerLine
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+BreakBeforeBinaryOperators: All
+BreakBeforeTernaryOperators: true
+AlignOperands: Align
+
+BreakConstructorInitializers: BeforeComma
+PackConstructorInitializers: Never
+BreakInheritanceList: BeforeComma
+
+PointerAlignment: Right
+DerivePointerAlignment: false
+QualifierAlignment: Leave
+
+SpaceBeforeParens: ControlStatements
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeCtorInitializerColon: false
+SpaceBeforeInheritanceColon: false
+SpaceBeforeCpp11BracedList: false
+SpacesInAngles: Never
+SpacesInSquareBrackets: false
+SpacesInParens: Never
+SpaceInEmptyBraces: Never
+
+Cpp11BracedListStyle: Block
+
+SpaceAfterTemplateKeyword: false
+BreakTemplateDeclarations: Yes
+
+IndentCaseLabels: true
+IndentCaseBlocks: false
+
+NamespaceIndentation: All
+FixNamespaceComments: true
+ShortNamespaceLines: 0
+CompactNamespaces: false
+
+IndentPPDirectives: AfterHash
+PPIndentWidth: 4
+
+# System headers precede project headers, with alphabetical ordering per group.
+IncludeBlocks: Regroup
+SortIncludes: CaseSensitive
+IncludeIsMainRegex: '$^'
+IncludeCategories:
+  - Regex: '^<.*>$'
+    Priority: 1
+    SortPriority: 1
+  - Regex: '^".*"$'
+    Priority: 2
+    SortPriority: 2
+
+MaxEmptyLinesToKeep: 1
+KeepEmptyLines:
+  AtStartOfBlock: false
+
 ReflowComments: true
+SortUsingDeclarations: Lexicographic
+
+# Match the dominant line-ending convention of each input file.
+LineEnding: DeriveLF
+InsertNewlineAtEOF: true
+...

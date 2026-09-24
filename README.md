@@ -1,94 +1,97 @@
 <a id="top"></a>
-![Catch2 logo](data/artwork/catch2-logo-full-with-background.svg)
 
-> **Progmasoft Catch3 is an independently maintained Catch2-derived project.**
-> It currently keeps Catch2 3.16.0's test runner and compatibility API as its
-> engine, and adds a separate C++20 property-testing layer. Catch2-originated
-> files retain their upstream license; new Progmasoft APIs use the terms stated
-> in each file. Catch3 is not an official Catch2 release or endorsed by Catch2's
-> maintainers. [Why Catch3 exists and how it differs](docs/why-catch3.md).
+![Progmasoft Catch3](data/artwork/catch3-logo-full-with-background.svg)
 
+# Progmasoft Catch3
 
-## What is Catch2?
+An independently maintained C++ test framework: Catch3 keeps the practical,
+expressive test-writing model that developers expect, while adding a separately
+owned C++20 library for property checks, snapshots, structured results, and XML
+serialization.
 
-Catch2 is mainly a unit testing framework for C++, but it also
-provides basic micro-benchmarking features, and simple BDD macros.
+> Catch3 is not an official Catch2 release and is not endorsed by Catch2's
+> maintainers. Its current compatibility engine is based on Catch2 3.16.0;
+> upstream-originated files keep their upstream license. Progmasoft-authored
+> additions have their own licensing terms. See [the project scope and
+> compatibility notes](docs/why-catch3.md).
 
-Catch2's main advantage is that using it is both simple and natural.
-Test names do not have to be valid identifiers, assertions look like
-normal C++ boolean expressions, and sections provide a nice and local way
-to share set-up and tear-down code in tests.
+## What Catch3 provides
 
-**Example unit test**
+- **Familiar test authoring and execution.** The existing test runner,
+  assertions, sections, reporters, benchmarks, and command-line behavior remain
+  available through the Catch2 compatibility surface.
+- **Deterministic property testing.** Generate values from a reproducible seed,
+  check a predicate over multiple trials, and shrink a failing input to a
+  smaller counterexample.
+- **Text snapshots.** Compare generated output against explicitly located
+  snapshot files, with opt-in creation or replacement modes.
+- **Structured results and XML output.** Build a runner-neutral result model and
+  serialize it as deterministic JUnit-style XML.
+- **A compiled library, not a header-only package.** Snapshot I/O and result/XML
+  serialization are compiled C++20 implementations; templates and assertion
+  macros remain in headers where needed.
+
+Catch3 is in an early development stage. The Catch2-compatible runner is still
+its execution engine; Catch3 does not yet provide an independent runner. The
+property API currently checks one generated value per property and uses bounded,
+deterministic greedy shrinking. See [current capabilities and limitations](docs/why-catch3.md)
+before adopting it in a production project.
+
+## Property-test example
+
 ```cpp
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3.hpp>
 
-#include <cstdint>
-
-uint32_t factorial( uint32_t number ) {
-    return number <= 1 ? number : factorial(number-1) * number;
-}
-
-TEST_CASE( "Factorials are computed", "[factorial]" ) {
-    REQUIRE( factorial( 1) == 1 );
-    REQUIRE( factorial( 2) == 2 );
-    REQUIRE( factorial( 3) == 6 );
-    REQUIRE( factorial(10) == 3'628'800 );
+TEST_CASE("generated integers stay within their requested domain", "[property]") {
+    CATCH3_CHECK_PROPERTY(
+        Progmasoft::Catch3::Integer<int>(1, 100),
+        [](int value) { return value > 0; },
+        Progmasoft::Catch3::PropertyOptions{
+            .Trials = 250,
+            .Seed = 0xC0FFEE,
+            .MaxShrinkSteps = 200});
 }
 ```
 
-**Example microbenchmark**
-```cpp
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/benchmark/catch_benchmark.hpp>
+The root seed and trial-index derivation are stable, so a reported failing trial
+can be replayed. Generators can provide their own generation and shrinking
+behavior. See the [property-testing guide](docs/progmasoft-catch3.md#property-testing)
+for the API, seed guarantees, and shrinking contract.
 
-#include <cstdint>
+## Build and test
 
-uint64_t fibonacci(uint64_t number) {
-    return number < 2 ? number : fibonacci(number - 1) + fibonacci(number - 2);
-}
+Bazel is the primary build and validation path. From the repository root:
 
-TEST_CASE("Benchmark Fibonacci", "[!benchmark]") {
-    REQUIRE(fibonacci(5) == 5);
-
-    REQUIRE(fibonacci(20) == 6'765);
-    BENCHMARK("fibonacci 20") {
-        return fibonacci(20);
-    };
-
-    REQUIRE(fibonacci(25) == 75'025);
-    BENCHMARK("fibonacci 25") {
-        return fibonacci(25);
-    };
-}
+```sh
+bazel test //tests/Progmasoft:property_tests
 ```
 
-_Note that benchmarks are not run by default, so you need to run it explicitly
-with the `[!benchmark]` tag._
+The same suite is also available through the maintained CMake, Meson, Xmake,
+and Premake project files. Their setup details and toolchain requirements are
+in the [build guide](docs/progmasoft-catch3.md#build-quick-start).
 
+For a CMake consumer of the installed libraries:
 
-## Project status
+```cmake
+find_package(Catch2 3.16 CONFIG REQUIRED)
+find_package(ProgmasoftCatch3 3.16 CONFIG REQUIRED)
 
-This repository is based on Catch2's v3 development line and currently identifies
-its compatibility engine as version 3.16.0. It is an early-stage fork: existing
-Catch2 functionality remains the foundation, while Progmasoft additions are
-being introduced in their own namespace and include tree. See the
-[compatibility and difference notes](docs/why-catch3.md) before treating this as
-a drop-in replacement in production.
+target_link_libraries(MyTests PRIVATE
+    Progmasoft::Catch3
+    Catch2::Catch2WithMain)
+```
 
+The Catch2 target supplies the compatibility runner and `main`; link
+`Progmasoft::Catch3` for the compiled Catch3 additions. The two targets retain
+their separate language baselines and licensing boundaries.
 
-## How to use it
-This documentation comprises these three parts:
+## Documentation
 
-* [Why do we need yet another C++ Test Framework?](docs/why-catch.md#top)
-* [Tutorial](docs/tutorial.md#top) - getting started
-* [Reference section](docs/Readme.md#top) - all the details
+- [Catch3 additions: properties, snapshots, results, and XML](docs/progmasoft-catch3.md)
+- [Project scope, compatibility policy, and limitations](docs/why-catch3.md)
+- [Catch2-compatible runner tutorial](docs/tutorial.md)
+- [Catch2-compatible API reference](docs/Readme.md)
+- [Catch2 upstream project and source history](https://github.com/catchorg/Catch2)
 
-
-## More
-* Catch3 differences and current limitations: [docs/why-catch3.md](docs/why-catch3.md)
-* Progmasoft property-testing API and integration: [docs/progmasoft-catch3.md](docs/progmasoft-catch3.md)
-* Catch2 upstream history and migration reference: [Catch2's repository](https://github.com/catchorg/Catch2)
-* Issues and bugs for this fork can be raised on the [Progmasoft/Catch3 issue tracker](https://github.com/Progmasoft/catch3/issues)
-* Catch2's upstream documentation on [open-source users](docs/opensource-users.md#top)
-or [commercially](docs/commercial-users.md#top).
+Issues and feature requests for Progmasoft Catch3 belong in the
+[Progmasoft/Catch3 issue tracker](https://github.com/Progmasoft/catch3/issues).

@@ -9,7 +9,7 @@
    id="svg1"
    xml:space="preserve"
    inkscape:version="1.4-beta (62f545ba5e, 2024-04-22)"
-   sodipodi:docname="catch2-logo-full-with-background.svg"
+   sodipodi:docname="catch3-logo-full-with-background.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -70,10 +70,14 @@
        id="path16"
        sodipodi:nodetypes="ccccccccccccc" /><path
        d="m 164.85789,130.59556 c 0.4642,-0.42537 1.08982,-0.66203 1.62919,-1.08343 1.9002,-1.4847 5.14786,-4.48328 4.44823,-6.80658 -0.26492,-0.87983 -1.26145,-1.35951 -2.21547,-1.29658 -0.98523,0.0649 -1.98724,0.50977 -2.64007,0.84484 -0.6864,0.35231 -1.37265,0.32755 -1.59243,0.87281 -0.30817,0.76454 0.49873,1.79683 1.28659,1.69784 0.23602,-0.0295 0.4698,-0.14082 0.56812,-0.35185 0.21882,-0.46933 0.58753,-0.58023 1.34113,-0.93846 0.73235,-0.34812 1.52921,-0.50494 1.03038,0.7483 -0.71596,1.79868 -3.74234,3.95101 -5.65111,5.2911 0,0 -0.87845,0.57891 -1.09797,0.6564 -0.47551,0.16781 -0.91536,0.19794 -0.84393,0.67269 0.0807,0.5363 0.64891,1.04684 1.12086,1.12458 1.12086,0.18468 1.25286,0.0172 3.02378,0.34516 0.68608,0.12686 1.73627,0.72085 2.01516,0.71659 0.4288,-0.006 0.91785,-2e-4 1.19241,-0.36589 0.38604,-0.51416 0.0632,-1.40966 -0.46279,-1.70348 -0.7765,-0.43372 -2.62935,-0.31806 -3.15208,-0.42404"
-       style="display:inline;fill:#ff2500;fill-opacity:1;stroke:none;stroke-width:0.384847"
+       style="display:none;fill:#ff2500;fill-opacity:1;stroke:none;stroke-width:0.384847"
        id="path1-4"
        inkscape:label="path2"
-       sodipodi:nodetypes="csssssssssssssssssc" /><circle
+       sodipodi:nodetypes="csssssssssssssssssc" /><path
+       d="M 163.4,121.8 C 165.5,120.4 169.5,120.7 170.7,122.3 C 172,124 169.8,126 167.2,127 C 169.5,127 171.1,128.4 170.9,130.3 C 170.5,132.8 167.6,133.6 164.9,132.9 C 163.2,132.4 162.2,131.6 162.7,130.7 C 163.1,130 163.9,130.4 164.7,130.8 C 166.5,131.7 168.9,131.4 169.2,130 C 169.5,128.6 167.4,128.1 164.9,128.7 C 164,128.9 163.5,128.1 164.4,127.4 C 166.2,126.3 169.2,124.8 169,123.5 C 168.8,122.2 166.9,122 165.1,122.9 C 164.1,123.4 163.5,124 162.8,123.5 C 162.1,123 162.6,122.3 163.4,121.8 Z"
+       style="display:inline;fill:#ff2500;fill-opacity:1;stroke:none;stroke-width:0.384847"
+       id="catch3-digit"
+       inkscape:label="3" /><circle
        style="display:inline;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.0366197;stroke-linecap:round"
        id="path20"
        cx="88.551903"
