@@ -1,14 +1,12 @@
 <a id="top"></a>
 ![Catch2 logo](data/artwork/catch2-logo-full-with-background.svg)
 
-[![Github Releases](https://img.shields.io/github/release/catchorg/catch2.svg)](https://github.com/catchorg/catch2/releases)
-[![Linux build status](https://github.com/catchorg/Catch2/actions/workflows/linux-simple-builds.yml/badge.svg)](https://github.com/catchorg/Catch2/actions/workflows/linux-simple-builds.yml)
-[![Linux build status](https://github.com/catchorg/Catch2/actions/workflows/linux-other-builds.yml/badge.svg)](https://github.com/catchorg/Catch2/actions/workflows/linux-other-builds.yml)
-[![MacOS build status](https://github.com/catchorg/Catch2/actions/workflows/mac-builds.yml/badge.svg)](https://github.com/catchorg/Catch2/actions/workflows/mac-builds.yml)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/catchorg/Catch2?svg=true&branch=devel)](https://ci.appveyor.com/project/catchorg/catch2)
-[![Code Coverage](https://codecov.io/gh/catchorg/Catch2/branch/devel/graph/badge.svg)](https://codecov.io/gh/catchorg/Catch2)
-[![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://godbolt.org/z/EdoY15q9G)
-[![Join the chat in Discord: https://discord.gg/4CWS9zD](https://img.shields.io/badge/Discord-Chat!-brightgreen.svg)](https://discord.gg/4CWS9zD)
+> **Progmasoft Catch3 is an independently maintained Catch2-derived project.**
+> It currently keeps Catch2 3.16.0's test runner and compatibility API as its
+> engine, and adds a separate C++20 property-testing layer. Catch2-originated
+> files retain their upstream license; new Progmasoft APIs use the terms stated
+> in each file. Catch3 is not an official Catch2 release or endorsed by Catch2's
+> maintainers. [Why Catch3 exists and how it differs](docs/why-catch3.md).
 
 
 ## What is Catch2?
@@ -69,23 +67,14 @@ _Note that benchmarks are not run by default, so you need to run it explicitly
 with the `[!benchmark]` tag._
 
 
-## Catch2 v3 has been released!
+## Project status
 
-You are on the `devel` branch, where the v3 version is being developed.
-v3 brings a bunch of significant changes, the big one being that Catch2
-is no longer a single-header library. Catch2 now behaves as a normal
-library, with multiple headers and separately compiled implementation.
-
-The documentation is slowly being updated to take these changes into
-account, but this work is currently still ongoing.
-
-For migrating from the v2 releases to v3, you should look at [our
-documentation](docs/migrate-v2-to-v3.md#top). It provides a simple
-guidelines on getting started, and collects most common migration
-problems.
-
-For the previous major version of Catch2 [look into the `v2.x` branch
-here on GitHub](https://github.com/catchorg/Catch2/tree/v2.x).
+This repository is based on Catch2's v3 development line and currently identifies
+its compatibility engine as version 3.16.0. It is an early-stage fork: existing
+Catch2 functionality remains the foundation, while Progmasoft additions are
+being introduced in their own namespace and include tree. See the
+[compatibility and difference notes](docs/why-catch3.md) before treating this as
+a drop-in replacement in production.
 
 
 ## How to use it
@@ -97,7 +86,9 @@ This documentation comprises these three parts:
 
 
 ## More
-* Issues and bugs can be raised on the [Issue tracker on GitHub](https://github.com/catchorg/Catch2/issues)
-* For discussion or questions please use [our Discord](https://discord.gg/4CWS9zD)
-* See who else is using Catch2 in [Open Source Software](docs/opensource-users.md#top)
+* Catch3 differences and current limitations: [docs/why-catch3.md](docs/why-catch3.md)
+* Progmasoft property-testing API and integration: [docs/progmasoft-catch3.md](docs/progmasoft-catch3.md)
+* Catch2 upstream history and migration reference: [Catch2's repository](https://github.com/catchorg/Catch2)
+* Issues and bugs for this fork can be raised on the [Progmasoft/Catch3 issue tracker](https://github.com/Progmasoft/catch3/issues)
+* Catch2's upstream documentation on [open-source users](docs/opensource-users.md#top)
 or [commercially](docs/commercial-users.md#top).

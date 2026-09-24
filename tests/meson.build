@@ -76,3 +76,15 @@ self_test = executable(
 )
 
 test('SelfTest', self_test)
+
+# Validate Progmasoft's C++20 extension without changing Catch2's library
+# language requirement or the upstream SelfTest compilation mode.
+progmasoft_property_tests = executable(
+  'ProgmasoftPropertyTests',
+  'Progmasoft/Property.tests.cpp',
+  include_directories: '../src',
+  dependencies: [progmasoft_catch3_dep, catch2_with_main_dep],
+  override_options: ['cpp_std=c++20'],
+)
+
+test('Progmasoft_PropertyTests', progmasoft_property_tests)

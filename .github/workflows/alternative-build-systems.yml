@@ -1,0 +1,64 @@
+name: Alternative Build Systems
+
+on: [push, pull_request]
+
+jobs:
+  xmake:
+    name: Xmake on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, macos-15]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: '3.1.1'
+
+      - name: Configure Clang build
+        run: xmake f --toolchain=clang -m debug -y
+
+      - name: Build
+        run: xmake -j 4
+
+      - name: Run property tests
+        run: xmake run ProgmasoftPropertyTests
+
+  premake:
+    name: Premake on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, macos-15]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: abel0b/setup-premake@v2.4
+        with:
+          version: '5.0.0-beta7'
+
+      - name: Generate and build Visual Studio projects
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          premake5 vs2022
+          msbuild build/premake/Catch3.sln /m /p:Configuration=Debug /p:Platform=x64 /nologo
+
+      - name: Run property tests on Windows
+        if: runner.os == 'Windows'
+        run: build/premake/bin/Debug/ProgmasoftPropertyTests.exe
+
+      - name: Generate and build Clang Makefiles
+        if: runner.os == 'macOS'
+        run: |
+          premake5 gmake
+          make -C build/premake config=debug -j 4
+
+      - name: Run property tests on macOS
+        if: runner.os == 'macOS'
+        run: build/premake/bin/Debug/ProgmasoftPropertyTests

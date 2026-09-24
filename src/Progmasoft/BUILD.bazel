@@ -1,0 +1,20 @@
+# Copyright (c) 2026 Progmasoft.
+# SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "catch3",
+    hdrs = [
+        "Catch3.hpp",
+        "Catch3/Assertions.hpp",
+        "Catch3/Generator.hpp",
+        "Catch3/Generators/Boolean.hpp",
+        "Catch3/Generators/Integer.hpp",
+        "Catch3/Property.hpp",
+        "Catch3/Random.hpp",
+    ],
+    strip_include_prefix = "/src",
+    deps = ["//:catch2"],
+)

@@ -7,13 +7,13 @@ package(
 )
 
 exports_files([
-    "LICENSE.MIT",
+    "LICENSE.txt",
 ])
 
 license(
     name = "license",
     license_kinds = ["@rules_license//licenses/spdx:BSL-1.0"],
-    license_text = "LICENSE.MIT",
+    license_text = "LICENSE.txt",
 )
 
 expand_template(

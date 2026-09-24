@@ -1,0 +1,7 @@
+# Copyright (c) 2026 Progmasoft.
+# SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(Catch2 @PROJECT_VERSION@ CONFIG REQUIRED)
+include("${CMAKE_CURRENT_LIST_DIR}/ProgmasoftCatch3Targets.cmake")

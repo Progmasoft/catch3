@@ -1,0 +1,19 @@
+# Copyright (c) 2026 Progmasoft.
+# SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_test(
+    name = "property_tests",
+    srcs = ["Property.tests.cpp"],
+    copts = select({
+        "@platforms//os:windows": ["/std:c++20"],
+        "//conditions:default": ["-std=c++20"],
+    }),
+    deps = [
+        "//:catch2",
+        "//:catch2_main",
+        "//src/Progmasoft:catch3",
+    ],
+)

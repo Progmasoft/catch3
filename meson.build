@@ -10,10 +10,12 @@ project(
   'cpp',
   version: '3.16.0', # CML version placeholder, don't delete
   license: 'BSL-1.0',
-  meson_version: '>=0.54.1',
+  # Meson 1.1 added clang-cl support for the C++20 mode used by Progmasoft tests.
+  meson_version: '>=1.1.0',
 )
 
 subdir('src/catch2')
+subdir('src/Progmasoft')
 if get_option('tests')
   subdir('tests')
 endif

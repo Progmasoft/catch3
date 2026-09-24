@@ -360,6 +360,19 @@ if(CATCH_ENABLE_REPRODUCIBLE_BUILD)
 endif()
 add_library(Catch2::Catch2 ALIAS Catch2)
 
+# Progmasoft's C++20 additions are a separate target so the Catch2
+# compatibility engine can keep its existing, broader C++14 baseline.
+add_library(ProgmasoftCatch3 INTERFACE)
+add_library(Progmasoft::Catch3 ALIAS ProgmasoftCatch3)
+set_target_properties(ProgmasoftCatch3 PROPERTIES EXPORT_NAME Catch3)
+target_link_libraries(ProgmasoftCatch3 INTERFACE Catch2::Catch2)
+target_include_directories(ProgmasoftCatch3
+  INTERFACE
+    $<BUILD_INTERFACE:${CATCH_DIR}/src>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_compile_features(ProgmasoftCatch3 INTERFACE cxx_std_20)
+
 if(ANDROID)
   target_link_libraries(Catch2 PRIVATE log)
 endif()
@@ -435,6 +448,36 @@ if(NOT_SUBPROJECT)
       "${CMAKE_INSTALL_INCLUDEDIR}"
     FILES_MATCHING
       PATTERN "*.hpp"
+  )
+
+  # Keep the independently licensed Progmasoft headers beside Catch2's public
+  # headers while preserving a separate CMake target and package namespace.
+  install(
+    DIRECTORY "${CATCH_DIR}/src/Progmasoft"
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    FILES_MATCHING PATTERN "*.hpp"
+  )
+  install(TARGETS ProgmasoftCatch3 EXPORT ProgmasoftCatch3Targets)
+  install(
+    EXPORT ProgmasoftCatch3Targets
+    NAMESPACE Progmasoft::
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/ProgmasoftCatch3"
+  )
+  configure_package_config_file(
+    "${CATCH_DIR}/src/Progmasoft/ProgmasoftCatch3Config.cmake.in"
+    "${PROJECT_BINARY_DIR}/ProgmasoftCatch3Config.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/ProgmasoftCatch3"
+  )
+  write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/ProgmasoftCatch3ConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY SameMajorVersion
+  )
+  install(
+    FILES
+      "${PROJECT_BINARY_DIR}/ProgmasoftCatch3Config.cmake"
+      "${PROJECT_BINARY_DIR}/ProgmasoftCatch3ConfigVersion.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/ProgmasoftCatch3"
   )
 endif()
 

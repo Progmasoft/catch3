@@ -154,6 +154,13 @@ include(CTest)
 add_executable(SelfTest ${TEST_SOURCES} ${TEST_HEADERS})
 target_include_directories(SelfTest PRIVATE ${SELF_TEST_DIR})
 target_link_libraries(SelfTest PRIVATE Catch2WithMain)
+
+# Exercise the C++20 Progmasoft layer independently so the upstream Catch2
+# SelfTest continues to compile at its supported baseline language level.
+add_executable(ProgmasoftSelfTest Progmasoft/Property.tests.cpp)
+target_link_libraries(ProgmasoftSelfTest PRIVATE Progmasoft::Catch3 Catch2WithMain)
+target_compile_features(ProgmasoftSelfTest PRIVATE cxx_std_20)
+add_test(NAME Progmasoft::PropertyTests COMMAND $<TARGET_FILE:ProgmasoftSelfTest>)
 if(BUILD_SHARED_LIBS AND WIN32)
   add_custom_command(TARGET SelfTest PRE_LINK
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Catch2>
