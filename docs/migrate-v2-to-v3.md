@@ -37,8 +37,8 @@ To migrate to v3, there are two basic approaches to do so.
 1. Use `catch_amalgamated.hpp` and `catch_amalgamated.cpp`.
 2. Build Catch2 as a proper (static) library, and move to piecewise headers
 
-Doing 1 means downloading the [amalgamated header](/extras/catch_amalgamated.hpp)
-and the [amalgamated sources](/extras/catch_amalgamated.cpp) from `extras`,
+Doing 1 means downloading the [amalgamated header](../extras/catch_amalgamated.hpp)
+and the [amalgamated sources](../extras/catch_amalgamated.cpp) from `extras`,
 dropping them into your test project, and rewriting your includes from
 `<catch2/catch.hpp>` to `"catch_amalgamated.hpp"` (or something similar,
 based on how you set up your paths).

@@ -2020,7 +2020,7 @@ Cygwin issue with `gettimeofday` - `#define` was not early enough
   * _More changes are coming_
 * Added [TAP (Test Anything Protocol)](https://testanything.org/) and [Automake](https://www.gnu.org/software/automake/manual/html_node/Log-files-generation-and-test-results-recording.html#Log-files-generation-and-test-results-recording) reporters.
   * These are not present in the default single-include header and need to be downloaded from GitHub separately.
-  * For details see [documentation about integrating with build systems](build-systems.md#top).
+  * For the current fork, see [tooling integration](ci-and-misc.md#top).
 *  XML reporter now reports filename as part of the `Section` and `TestCase` tags.
 * `Approx` now supports an optional margin of absolute error
   * It has also received [new documentation](assertions.md#top).
