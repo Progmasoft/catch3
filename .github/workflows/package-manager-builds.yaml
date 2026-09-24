@@ -10,14 +10,7 @@ jobs:
       matrix:
         os: [macos-15, windows-2025]
         conan_version:
-          - '1.63'
-          - '2.1'
-
-        include:
-          - conan_version: '1.63'
-            profile_command: 'conan profile new default --detect --force'
-          - conan_version: '2.1'
-            profile_command: 'conan profile detect --force'
+          - '2.31.1'
 
     steps:
     - uses: actions/checkout@v6
@@ -26,7 +19,7 @@ jobs:
       run: pip install conan==${{matrix.conan_version}}
 
     - name: Detect a Clang-based Conan profile
-      run: ${{ matrix.profile_command }}
+      run: conan profile detect --force
       env:
         CC: clang
         CXX: clang++
