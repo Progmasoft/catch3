@@ -2,6 +2,7 @@
 
 import sys
 import glob
+from pathlib import Path
 
 correct_licence = """\
 
@@ -13,11 +14,20 @@ correct_licence = """\
 // SPDX-License-Identifier: BSL-1.0
 """
 
-def check_licence_in_file(filename: str) -> bool:
-    with open(filename, 'r') as f:
-        file_preamble = ''.join(f.readlines()[:7])
+progmasoft_licence = """\
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+"""
 
-    if correct_licence != file_preamble:
+def check_licence_in_file(filename: str) -> bool:
+    # Keep upstream files on BSL-1.0 while checking the fork's own source
+    # and tests against their separate MPL exception header.
+    expected = (progmasoft_licence if 'Progmasoft' in Path(filename).parts
+                else correct_licence)
+    with open(filename, 'r', encoding='utf-8') as f:
+        file_preamble = f.read(len(expected))
+
+    if expected != file_preamble:
         print('File {} does not have proper licence'.format(filename))
         return False
     return True
@@ -33,8 +43,8 @@ def check_licences_in_path(path: str) -> int:
 
 def check_licences():
     failed = 0
-    # Add 'extras' after the amalgamted files are regenerated with the new script (past 3.4.0)
-    roots = ['src/catch2', 'tests', 'examples', 'fuzzing']
+    # Add 'extras' after the amalgamated files are regenerated with the new script (past 3.4.0)
+    roots = ['src/catch2', 'src/Progmasoft', 'tests', 'examples', 'fuzzing']
     for root in roots:
         failed += check_licences_in_path(root)
     
