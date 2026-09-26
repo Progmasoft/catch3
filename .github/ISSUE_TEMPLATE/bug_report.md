@@ -1,29 +1,41 @@
 ---
 name: Bug report
-about: Create an issue that documents a bug
-title: ''
-labels: ''
-assignees: ''
-
+about: Report a reproducible problem in Progmasoft Catch3
+title: "[Bug] "
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+<!-- SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com> -->
+<!-- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1 -->
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+Before filing, check the latest code and [current limitations](https://github.com/Progmasoft/catch3/blob/devel/docs/why-catch3.md). Catch3 is an independent project, not an official Catch2 release. Please do not post credentials or private test data. Send security vulnerabilities privately to support@progmasoft.com.
 
-**Reproduction steps**
-Steps to reproduce the bug.
-<!-- Usually this means a small and self-contained piece of code that uses Catch and specifying compiler flags if relevant. -->
+### Affected surface
 
+- [ ] Catch3 addition (property checks, snapshots, results, or XML)
+- [ ] Catch2-compatible runner, assertion, or reporter
+- [ ] Build, installation, or packaging
+- [ ] Documentation
 
-**Platform information:**
-<!-- Fill in any extra information that might be important for your issue. -->
- - OS: **Windows NT**
- - Compiler+version: **GCC v2.9.5**
- - Catch version: **v1.2.3**
+### What happened?
 
+Describe the observed behavior and include the exact failure message. If the issue concerns the compatibility engine, say whether it also reproduces with upstream Catch2.
 
-**Additional context**
-Add any other context about the problem here.
+### What did you expect?
+
+Describe the expected behavior and the contract or documentation that supports it.
+
+### Minimal reproduction
+
+Provide a small C++20 test, the command used to build and run it, and the test-runner arguments. For a property failure, include the root seed, replay seed, trial number, and minimized counterexample when available. For a snapshot failure, describe the snapshot mode and file location without pasting private content.
+
+### Environment
+
+- Catch3 commit or release:
+- OS and architecture:
+- Compiler and version:
+- Build system and version (Bazel, CMake, Meson, Xmake, or Premake):
+- Relevant flags or configuration:
+
+### Additional context
+
+Attach sanitized logs or screenshots if they help. State whether the problem reproduces on a clean checkout.

@@ -1,19 +1,16 @@
-# Security Policy
+<!-- SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com> -->
+<!-- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1 -->
 
-## Supported Versions
+# Security policy
 
-* Versions 1.x (branch Catch1.x) are no longer supported.
-* Versions 2.x (branch v2.x) are currently supported.
-* `devel` branch serves for stable-ish development and is supported,
-  but branches `devel-*` are considered short lived and are not supported separately.
+Progmasoft Catch3 is an independent fork, not an official Catch2 release. Security reports for this repository must go to Progmasoft, not to upstream Catch2 maintainers.
 
+## Supported code
 
-## Reporting a Vulnerability
+We triage reports against the current `devel` branch and the latest tagged Catch3 release. Older tags and upstream Catch2 branches are not separately maintained here. A fix may be released or documented without a backport to every earlier tag.
 
-Due to its nature as a _unit_ test framework, Catch2 shouldn't interact
-with untrusted inputs and there shouldn't be many security vulnerabilities
-in it.
+## Private reporting
 
-However, if you find one you send email to martin <dot> horenovsky <at>
-gmail <dot> com. If you want to encrypt the email, my pgp key is
-`E29C 46F3 B8A7 5028 6079 3B7D ECC9 C20E 314B 2360`.
+Email **support@progmasoft.com** with a concise description, affected revision, minimal reproduction, impact, and a safe way to reach you. Do not include credentials, private test fixtures, or exploit details in a public issue. We will coordinate disclosure after validating the report and preparing a fix or mitigation.
+
+If the same flaw independently affects unmodified upstream Catch2, report it to its maintainers through their current security policy as a separate disclosure. Do not assume a Catch3 report reaches upstream.
