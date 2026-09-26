@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com>
+# SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+name: Native coverage
+
+on:
+  push:
+    branches: [devel]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  clang:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure Clang coverage build
+        run: >-
+          cmake --preset basic-tests -G Ninja
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_FLAGS='-fprofile-instr-generate -fcoverage-mapping'
+          -DCMAKE_EXE_LINKER_FLAGS='-fprofile-instr-generate'
+          -DCMAKE_SHARED_LINKER_FLAGS='-fprofile-instr-generate'
+      - run: cmake --build build --parallel 4 --target SelfTest ProgmasoftSelfTest
+      - name: Run framework and Progmasoft tests
+        env:
+          LLVM_PROFILE_FILE: catch3-%p.profraw
+        run: ctest --test-dir build --output-on-failure -R '^(RunTests|Progmasoft::PropertyTests)$'
+      - name: Export LLVM source coverage
+        run: |
+          xcrun llvm-profdata merge -sparse build/tests/catch3-*.profraw -o catch3.profdata
+          xcrun llvm-cov export \
+            -instr-profile=catch3.profdata \
+            -format=lcov \
+            build/tests/SelfTest \
+            -object=build/tests/ProgmasoftSelfTest \
+            > catch3.lcov
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          use_oidc: true
+          files: catch3.lcov
+          flags: catch3-native
+          fail_ci_if_error: true

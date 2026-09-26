@@ -1,28 +1,26 @@
 <!--
-Please do not submit pull requests changing the `version.hpp`
-or the single-include `catch.hpp` file, these are changed
-only when a new release is made.
-
-Before submitting a PR you should probably read the contributor documentation
-at docs/contributing.md. It will tell you how to properly test your changes.
+SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com>
+SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 -->
 
+## What changes
 
-## Description
-<!--
-Describe the what and the why of your pull request. Remember that these two
-are usually a bit different. As an example, if you have made various changes
-to decrease the number of new strings allocated, that's what. The why probably
-was that you have a large set of tests and found that this speeds them up.
--->
+Describe the test-framework behavior, compatibility surface, or build integration affected by this PR.
 
-## GitHub Issues
-<!-- 
-If this PR was motivated by some existing issues, reference them here.
+## Upstream compatibility and provenance
 
-If it is a simple bug-fix, please also add a line like 'Closes #123'
-to your commit message, so that it is automatically closed.
-If it is not, don't, as it might take several iterations for a feature
-to be done properly. If in doubt, leave it open and reference it in the
-PR itself, so that maintainers can decide.
--->
+Explain whether the change preserves Catch2 compatibility or adds a Progmasoft-owned Catch3 feature. Identify copied
+upstream code and its original license separately from new Progmasoft code.
+
+## Verification
+
+- [ ] SelfTest and relevant Progmasoft property/snapshot/XML tests were run.
+- [ ] The affected Bazel, CMake, Meson, Xmake, or Premake build path was checked.
+- [ ] Public headers and compiled-library behavior were considered; this PR does not accidentally make Catch3 header-only.
+- [ ] I checked formatting, licenses, generated files, and `git diff --check`.
+
+Commands and results (including anything not run):
+
+```text
+
+```
