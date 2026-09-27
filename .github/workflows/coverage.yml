@@ -11,14 +11,15 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  clang:
+  coverage:
     runs-on: macos-latest
     timeout-minutes: 40
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Configure Clang coverage build
         run: >-
           cmake --preset basic-tests -G Ninja
@@ -40,9 +41,32 @@ jobs:
             build/tests/SelfTest \
             -object=build/tests/ProgmasoftSelfTest \
             > catch3.lcov
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+
+      - name: Upload coverage artifact for Codecov
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: catch3-native-coverage
+          path: catch3.lcov
+          if-no-files-found: error
+          retention-days: 1
+
+  codecov:
+    needs: coverage
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Download coverage artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: catch3-native-coverage
+          path: coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           use_oidc: true
-          files: catch3.lcov
+          files: coverage/catch3.lcov
           flags: catch3-native
           fail_ci_if_error: true

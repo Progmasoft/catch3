@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch v3.16.0
-//  Generated: 2026-08-25 09:29:22.652020
+//  Generated: 2026-09-28 00:12:28.337654
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -2957,7 +2957,7 @@ namespace Catch {
 
 #if defined( CATCH_CONFIG_ENABLE_OPTIONAL_STRINGMAKER ) && \
     defined( CATCH_CONFIG_CPP17_OPTIONAL ) &&              \
-    /* P3168 turned optional into a range, making this ambigous with the range support */ \
+    /* P3168 turned optional into a range, making this ambiguous with the range support */ \
     !defined( __cpp_lib_optional_range_support )
 #include <optional>
 namespace Catch {
@@ -3530,10 +3530,9 @@ namespace Catch
     public:
 
         WildcardPattern( std::string const& pattern, CaseSensitive caseSensitivity );
-        bool matches( std::string const& str ) const;
+        bool matches( StringRef str ) const;
 
     private:
-        std::string normaliseString( std::string const& str ) const;
         CaseSensitive m_caseSensitivity;
         WildcardPosition m_wildcard = NoWildcard;
         std::string m_pattern;
@@ -4742,8 +4741,9 @@ namespace Catch {
                     -> ParserResult override {
                     T temp;
                     auto result = convertInto( arg, temp );
-                    if ( result )
-                        m_ref.push_back( temp );
+                    if ( result ) {
+                        m_ref.push_back( CATCH_MOVE( temp ) );
+                    }
                     return result;
                 }
             };
@@ -5285,21 +5285,40 @@ namespace Catch {
 #    pragma clang diagnostic ignored "-Wfloat-equal"
 #endif
 
+        // To avoid instantiating all of `is_foo_comparable<T, T&>`,
+        // `is_foo_comparable<T&, T&>`, `is_foo_comparable<T, T>`, ...
+        // we force the type into simple T ref. This does not cause behaviour
+        // change, because the decomposer already only uses lvalues.
+        //
+        // Note that we do not strip away constness, as that would make
+        // the comparability of `const T` dependent on comparability of `T`,
+        // which could lead to behavior change from the current implementation.
+        template <typename T>
+        using IsComparableNormalized_t = std::remove_reference_t<T>&;
+
 #define CATCH_DEFINE_COMPARABLE_TRAIT( id, op )                               \
     template <typename, typename, typename = void>                            \
-    struct is_##id##_comparable : std::false_type {};                         \
+    struct is_##id##_comparable_impl : std::false_type {};                    \
     template <typename T, typename U>                                         \
-    struct is_##id##_comparable<                                              \
+    struct is_##id##_comparable_impl<                                         \
         T,                                                                    \
         U,                                                                    \
         void_t<decltype( std::declval<T>() op std::declval<U>() )>>           \
         : std::true_type {};                                                  \
+    template <typename T, typename U>                                         \
+    using is_##id##_comparable =                                              \
+        is_##id##_comparable_impl<IsComparableNormalized_t<T>,                \
+                                  IsComparableNormalized_t<U>>;               \
     template <typename, typename = void>                                      \
-    struct is_##id##_0_comparable : std::false_type {};                       \
+    struct is_##id##_0_comparable_impl : std::false_type {};                  \
     template <typename T>                                                     \
-    struct is_##id##_0_comparable<T,                                          \
-                                  void_t<decltype( std::declval<T>() op 0 )>> \
-        : std::true_type {};
+    struct is_##id##_0_comparable_impl<                                       \
+        T,                                                                    \
+        void_t<decltype( std::declval<T>() op 0 )>>                           \
+        : std::true_type {};                                                  \
+    template <typename T>                                                     \
+    using is_##id##_0_comparable =                                            \
+        is_##id##_0_comparable_impl<IsComparableNormalized_t<T>>;
 
         // We need all 6 pre-spaceship comparison ops: <, <=, >, >=, ==, !=
         CATCH_DEFINE_COMPARABLE_TRAIT( lt, < )
@@ -6282,7 +6301,22 @@ struct NameAndTags {
 };
 
 struct AutoReg : Detail::NonCopyable {
-    AutoReg( Detail::unique_ptr<ITestInvoker> invoker, SourceLineInfo const& lineInfo, StringRef classOrMethod, NameAndTags const& nameAndTags ) noexcept;
+    AutoReg( Detail::unique_ptr<ITestInvoker> invoker,
+             SourceLineInfo const& lineInfo,
+             StringRef classOrMethod,
+             NameAndTags const& nameAndTags ) noexcept;
+
+    /**
+     * Overload that takes the simple function pointer directly.
+     *
+     * Useful to keep compilation costs low; the unique_ptr overload
+     * combined with `makeTestInvoker` causes quadratic compilation times
+     * with GCC + optimizations (and super-linear with Clang + optims).
+     */
+    AutoReg( void ( *testAsFunction )(),
+             SourceLineInfo const& lineInfo,
+             StringRef classOrMethod,
+             NameAndTags const& nameAndTags ) noexcept;
 };
 
 } // end namespace Catch
@@ -6308,7 +6342,7 @@ struct AutoReg : Detail::NonCopyable {
         CATCH_INTERNAL_START_WARNINGS_SUPPRESSION \
         CATCH_INTERNAL_SUPPRESS_GLOBALS_WARNINGS \
         CATCH_INTERNAL_SUPPRESS_UNUSED_VARIABLE_WARNINGS \
-        namespace{ const Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME( autoRegistrar )( Catch::makeTestInvoker( &TestName ), CATCH_INTERNAL_LINEINFO, Catch::StringRef(), Catch::NameAndTags{ __VA_ARGS__ } ); } /* NOLINT */ \
+        namespace{ const Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME( autoRegistrar )( &TestName, CATCH_INTERNAL_LINEINFO, Catch::StringRef(), Catch::NameAndTags{ __VA_ARGS__ } ); } /* NOLINT */ \
         CATCH_INTERNAL_STOP_WARNINGS_SUPPRESSION \
         static void TestName()
     #define INTERNAL_CATCH_TESTCASE( ... ) \
@@ -6411,7 +6445,7 @@ static int catchInternalSectionHint = 0;
             CATCH_INTERNAL_START_WARNINGS_SUPPRESSION \
             CATCH_INTERNAL_SUPPRESS_GLOBALS_WARNINGS \
             CATCH_INTERNAL_SUPPRESS_UNUSED_VARIABLE_WARNINGS \
-            Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME( autoRegistrar )( Catch::makeTestInvoker( Function ), CATCH_INTERNAL_LINEINFO, Catch::StringRef(), Catch::NameAndTags{ __VA_ARGS__ } ); /* NOLINT */ \
+            Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME( autoRegistrar )( Function, CATCH_INTERNAL_LINEINFO, Catch::StringRef(), Catch::NameAndTags{ __VA_ARGS__ } ); /* NOLINT */ \
             CATCH_INTERNAL_STOP_WARNINGS_SUPPRESSION \
         } while(false)
 
@@ -7108,7 +7142,7 @@ namespace Catch {
                     constexpr char const* tmpl_types[] = {CATCH_REC_LIST(INTERNAL_CATCH_STRINGIZE_WITHOUT_PARENS, INTERNAL_CATCH_REMOVE_PARENS(TmplTypes))};\
                     constexpr char const* types_list[] = {CATCH_REC_LIST(INTERNAL_CATCH_STRINGIZE_WITHOUT_PARENS, INTERNAL_CATCH_REMOVE_PARENS(TypesList))};\
                     constexpr auto num_types = sizeof(types_list) / sizeof(types_list[0]);\
-                    (void)expander{(Catch::AutoReg( Catch::makeTestInvoker( &TestFuncName<Types> ), CATCH_INTERNAL_LINEINFO, Catch::StringRef(), Catch::NameAndTags{ Name " - " + std::string(tmpl_types[index / num_types]) + '<' + types_list[index % num_types] + '>', Tags } ), index++)... };/* NOLINT */\
+                    (void)expander{(Catch::AutoReg( &TestFuncName<Types>, CATCH_INTERNAL_LINEINFO, Catch::StringRef(), Catch::NameAndTags{ Name " - " + std::string(tmpl_types[index / num_types]) + '<' + types_list[index % num_types] + '>', Tags } ), index++)... };/* NOLINT */\
                 }                                                     \
             };                                                        \
             static const int INTERNAL_CATCH_UNIQUE_NAME( globalRegistrar ) = [](){ \
@@ -7154,7 +7188,7 @@ namespace Catch {
             void reg_tests() {                                          \
                 size_t index = 0;                                    \
                 using expander = size_t[];                           \
-                (void)expander{(Catch::AutoReg( Catch::makeTestInvoker( &TestFunc<Types> ), CATCH_INTERNAL_LINEINFO, Catch::StringRef(), Catch::NameAndTags{ Name " - " INTERNAL_CATCH_STRINGIZE(TmplList) " - " + std::to_string(index), Tags } ), index++)... };/* NOLINT */\
+                (void)expander{(Catch::AutoReg( &TestFunc<Types>, CATCH_INTERNAL_LINEINFO, Catch::StringRef(), Catch::NameAndTags{ Name " - " INTERNAL_CATCH_STRINGIZE(TmplList) " - " + std::to_string(index), Tags } ), index++)... };/* NOLINT */\
             }                                                     \
         };\
         static const int INTERNAL_CATCH_UNIQUE_NAME( globalRegistrar ) = [](){ \
@@ -7485,7 +7519,9 @@ namespace Catch {
         //! Orders by name, classname and tags
         friend bool operator<( TestCaseInfo const& lhs,
                                TestCaseInfo const& rhs );
-
+        //! Compares name, classname and tags
+        friend bool operator==( TestCaseInfo const& lhs,
+                                TestCaseInfo const& rhs );
 
         std::string tagsAsString() const;
 
@@ -11197,9 +11233,10 @@ namespace Catch {
 namespace Catch {
 
     template<typename Container>
-    Container createShard(Container const& container, std::size_t const shardCount, std::size_t const shardIndex) {
+    Container createShard(Container container, std::size_t const shardCount, std::size_t const shardIndex) {
         assert(shardCount > shardIndex);
 
+        // Single shard means there is nothing to do
         if (shardCount == 1) {
             return container;
         }
@@ -11215,7 +11252,10 @@ namespace Catch {
         auto startIterator = std::next(container.begin(), static_cast<std::ptrdiff_t>(startIndex));
         auto endIterator = std::next(container.begin(), static_cast<std::ptrdiff_t>(endIndex));
 
-        return Container(startIterator, endIterator);
+        container.erase(endIterator, container.end());
+        container.erase(container.begin(), startIterator);
+
+        return container;
     }
 
 }
@@ -11322,7 +11362,12 @@ namespace Catch {
     bool contains( std::string const& s, std::string const& infix );
     void toLowerInPlace( std::string& s );
     std::string toLower( std::string const& s );
-    char toLower( char c );
+    //! ASCII only.
+    constexpr char toLower( char c ) {
+        const uint32_t as_number = static_cast<unsigned char>( c );
+        const bool isUpper = ( as_number - static_cast<uint32_t>( 'A' ) ) < 26u;
+        return static_cast<char>( as_number | ( isUpper << 5 ) );
+    }
     //! Returns a new string without whitespace at the start/end
     std::string trim( std::string const& str );
     //! Returns a substring of the original ref without whitespace. Beware lifetimes!
@@ -11554,25 +11599,30 @@ namespace Catch {
          * escape sequences are considered.
          *
          * Internal representation:
-         * An escape sequence looks like \033[39;49m
-         * We need bidirectional iteration and the unbound length of escape
-         * sequences poses a problem for operator-- To make this work we'll
-         * replace the last `m` with a 0xff (this is a codepoint that won't have
-         * any utf-8 meaning).
+         * * An escape sequence looks like \033[39;49m
+         * * The string is stored unmodified
+         * * Index ranges of escape sequences are stored in separate vector
          */
         class AnsiSkippingString {
+        public:
+            //! Byte offsets of an escape sequence: [start, end)
+            struct EscapeRange {
+                std::ptrdiff_t start;
+                std::ptrdiff_t end;
+            };
+
+        private:
             std::string m_string;
             std::size_t m_size = 0;
+            // Sorted, non-overlapping. Empty -> no escapes in input
+            std::vector<EscapeRange> m_escapes;
 
-            // perform 0xff replacement and calculate m_size
+            // find escape sequences and calculate m_size
             void preprocessString();
 
         public:
             class const_iterator;
             using iterator = const_iterator;
-            // note: must be u-suffixed or this will cause a "truncation of
-            // constant value" warning on MSVC
-            static constexpr char sentinel = static_cast<char>( 0xffu );
 
             explicit AnsiSkippingString( std::string const& text );
             explicit AnsiSkippingString( std::string&& text );
@@ -11581,22 +11631,28 @@ namespace Catch {
             const_iterator end() const;
 
             size_t size() const { return m_size; }
+            bool hasEscapes() const { return !m_escapes.empty(); }
 
-            std::string substring( const_iterator begin,
-                                   const_iterator end ) const;
+            std::string substring( const_iterator first,
+                                   const_iterator last ) const;
+            // Support for appending without extra allocations
+            void appendSubstringTo( std::string& out,
+                                    const_iterator first,
+                                    const_iterator last ) const;
         };
 
         class AnsiSkippingString::const_iterator {
             friend AnsiSkippingString;
             struct EndTag {};
 
-            const std::string* m_string;
+            const AnsiSkippingString* m_string;
             std::string::const_iterator m_it;
 
-            explicit const_iterator( const std::string& string, EndTag ):
-                m_string( &string ), m_it( string.end() ) {}
+            explicit const_iterator( const AnsiSkippingString& string, EndTag ):
+                m_string( &string ), m_it( string.m_string.end() ) {}
 
-            void tryParseAnsiEscapes();
+            void jumpForwardOverEscapes();
+            void jumpBackOverEscapes();
             void advance();
             void unadvance();
 
@@ -11607,9 +11663,9 @@ namespace Catch {
             using reference = value_type&;
             using iterator_category = std::bidirectional_iterator_tag;
 
-            explicit const_iterator( const std::string& string ):
-                m_string( &string ), m_it( string.begin() ) {
-                tryParseAnsiEscapes();
+            explicit const_iterator( const AnsiSkippingString& string ):
+                m_string( &string ), m_it( string.m_string.begin() ) {
+                if ( m_string->hasEscapes() ) { jumpForwardOverEscapes(); }
             }
 
             char operator*() const { return *m_it; }
@@ -14044,6 +14100,7 @@ namespace Catch {
         };
         struct SectionNode {
             explicit SectionNode(SectionStats const& _stats) : stats(_stats) {}
+            explicit SectionNode(SectionStats&& _stats) : stats(CATCH_MOVE(_stats)) {}
 
             bool operator == (SectionNode const& other) const {
                 return stats.sectionInfo.lineInfo == other.stats.sectionInfo.lineInfo;

@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com>
+# SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+name: Bazel Builds
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Bazel on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, macos-15]
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          repository-cache: true
+
+      - name: Run Progmasoft property tests on Windows
+        if: runner.os == 'Windows'
+        run: bazel test tests/Progmasoft:property_tests
+        shell: bash
+        env:
+          BAZEL_SH: C:\Program Files\Git\bin\bash.exe
+
+      - name: Run Progmasoft property tests on macOS
+        if: runner.os == 'macOS'
+        run: bazel test tests/Progmasoft:property_tests

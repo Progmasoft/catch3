@@ -2,6 +2,9 @@ name: Mac Sanitizer Builds
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 env:
   CTEST_OUTPUT_ON_FAILURE: 1
   CTEST_NO_TESTS_ACTION: error
@@ -25,12 +28,13 @@ jobs:
             filter:
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-    - name: Configure
-
+    - name: Configure with the selected sanitizers
+      env:
+        CXXFLAGS: -fsanitize=${{ matrix.sanitizer }},undefined
+        LDFLAGS: -fsanitize=${{ matrix.sanitizer }},undefined
       run: |
-        CFXXFLAGS=-fsanitize=${{matrix.sanitizer}},undefined
         cmake --preset ${{matrix.preset}} -GNinja \
               -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
               -DCMAKE_CXX_STANDARD=${{matrix.std}} \

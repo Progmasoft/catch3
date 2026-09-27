@@ -64,26 +64,40 @@ namespace Detail {
     }
 
     std::string formatTimeT(std::time_t time) {
-#ifdef _MSC_VER
         std::tm timeInfo = {};
+#ifdef _MSC_VER
         const auto err = gmtime_s( &timeInfo, &time );
         if ( err ) {
             return "gmtime from provided timepoint has failed. This "
                    "happens e.g. with pre-1970 dates using Microsoft libc";
         }
+#elif defined( __MINGW32__ )
+        if ( gmtime_s( &timeInfo, &time ) != 0 ) {
+            return "gmtime from provided timepoint has failed";
+        }
+#elif defined( CATCH_PLATFORM_PLAYSTATION )
+        gmtime_s( &time, &timeInfo );
+#elif defined( __IAR_SYSTEMS_ICC__ )
+        // This toolchain does not provide gmtime_r. Copy the result immediately
+        // so the formatter does not retain the C library's static buffer.
+        const std::tm* const converted = std::gmtime( &time );
+        if ( converted == nullptr ) {
+            return "gmtime from provided timepoint has failed";
+        }
+        timeInfo = *converted;
 #else
-        std::tm* timeInfo = std::gmtime( &time );
+        if ( gmtime_r( &time, &timeInfo ) == nullptr ) {
+            return "gmtime from provided timepoint has failed";
+        }
 #endif
 
         auto const timeStampSize = sizeof( "2017-01-16T17:06:45Z" );
-        char timeStamp[timeStampSize];
+        char timeStamp[timeStampSize] = {};
         const char* const fmt = "%Y-%m-%dT%H:%M:%SZ";
 
-#ifdef _MSC_VER
-        std::strftime( timeStamp, timeStampSize, fmt, &timeInfo );
-#else
-        std::strftime( timeStamp, timeStampSize, fmt, timeInfo );
-#endif
+        if ( std::strftime( timeStamp, timeStampSize, fmt, &timeInfo ) == 0 ) {
+            return "gmtime from provided timepoint has failed";
+        }
         return std::string( timeStamp, timeStampSize - 1 );
     }
 

@@ -27,10 +27,22 @@
 #include <catch2/internal/catch_istream.hpp>
 
 #include <cassert>
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <iomanip>
+
+#if defined( _WIN32 )
+#    include <fcntl.h>
+#    include <io.h>
+#    include <sys/stat.h>
+#else
+#    include <fcntl.h>
+#    include <sys/stat.h>
+#    include <unistd.h>
+#endif
 
 namespace Catch {
 
@@ -150,29 +162,93 @@ namespace Catch {
             getMutableRegistryHub().getMutableTestCaseRegistry().enableFilenameTags();
         }
 
-        // Creates empty file at path. The path must be writable, we do not
-        // try to create directories in path because that's hard in C++14.
+        std::FILE* openGuardFile( std::string const& guardFilePath,
+                                  int& error ) {
+#if defined( _MSC_VER )
+            std::FILE* file = nullptr;
+            error = fopen_s( &file, guardFilePath.c_str(), "w" );
+            return error ? nullptr : file;
+#elif defined( _WIN32 )
+            const int descriptor = _open( guardFilePath.c_str(),
+                                          _O_WRONLY | _O_CREAT | _O_TRUNC |
+                                              _O_BINARY | _O_NOINHERIT,
+                                          _S_IREAD | _S_IWRITE );
+            if ( descriptor == -1 ) {
+                error = errno;
+                return nullptr;
+            }
+            std::FILE* const file = _fdopen( descriptor, "w" );
+            if ( file == nullptr ) {
+                error = errno;
+                _close( descriptor );
+            }
+            return file;
+#else
+            int flags = O_WRONLY | O_CREAT | O_TRUNC;
+#    if defined( O_NONBLOCK )
+            flags |= O_NONBLOCK;
+#    endif
+#    if defined( O_CLOEXEC )
+            flags |= O_CLOEXEC;
+#    endif
+#    if defined( O_NOFOLLOW )
+            // Do not let a stale guard-file symlink redirect this write.
+            flags |= O_NOFOLLOW;
+#    endif
+            const int descriptor =
+                ::open( guardFilePath.c_str(), flags, S_IRUSR | S_IWUSR );
+            if ( descriptor == -1 ) {
+                error = errno;
+                return nullptr;
+            }
+
+            struct stat fileStatus = {};
+            if ( ::fstat( descriptor, &fileStatus ) != 0 ) {
+                error = errno;
+                ::close( descriptor );
+                return nullptr;
+            }
+            if ( !S_ISREG( fileStatus.st_mode ) ) {
+                error = EINVAL;
+                ::close( descriptor );
+                return nullptr;
+            }
+            // The creation mode is already owner-only; also tighten an
+            // existing regular guard file before it is reused.
+            if ( ::fchmod( descriptor, S_IRUSR | S_IWUSR ) != 0 ) {
+                error = errno;
+                ::close( descriptor );
+                return nullptr;
+            }
+
+            std::FILE* const file = ::fdopen( descriptor, "w" );
+            if ( file == nullptr ) {
+                error = errno;
+                ::close( descriptor );
+            }
+            return file;
+#endif
+        }
+
+        // Creates an owner-only guard file. The path must be writable; we do
+        // not create its parent directories.
         void setUpGuardFile( std::string const& guardFilePath ) {
             if ( !guardFilePath.empty() ) {
-#if defined( _MSC_VER )
-                std::FILE* file = nullptr;
-                if ( fopen_s( &file, guardFilePath.c_str(), "w" ) ) {
-                    char msgBuffer[100];
-                    const auto err = errno;
+                int err = 0;
+                std::FILE* const file = openGuardFile( guardFilePath, err );
+                if ( file == nullptr ) {
+                    char msgBuffer[100] = {};
                     std::string errMsg;
+#if defined( _MSC_VER )
                     if ( !strerror_s( msgBuffer, err ) ) {
                         errMsg = msgBuffer;
                     } else {
                         errMsg = "Could not translate errno to a string";
                     }
-
 #else
-                std::FILE* file = std::fopen( guardFilePath.c_str(), "w" );
-                if ( !file ) {
-                    const auto err = errno;
-                    const char* errMsg = std::strerror( err );
+                    const char* const message = std::strerror( err );
+                    errMsg = message ? message : "Unknown error";
 #endif
-
                     CATCH_RUNTIME_ERROR( "Could not open the exit guard file '"
                                          << guardFilePath << "' because '"
                                          << errMsg << "' (" << err << ')' );

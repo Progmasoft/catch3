@@ -8,6 +8,7 @@
 # SPDX-License-Identifier: BSL-1.0
 
 import os
+import stat
 import sys
 import subprocess
 
@@ -43,12 +44,43 @@ def test_bazel_env_vars(bin_path, guard_path):
     run_common([bin_path], env)
 
 def test_cli_parameter(bin_path, guard_path):
+    # Reuse a deliberately permissive stale guard file to verify that the
+    # implementation tightens its permissions before truncating it.
+    if os.name != 'nt':
+        with open(guard_path, 'w'):
+            pass
+        os.chmod(guard_path, 0o666)
     cmd = [
       bin_path,
       '--premature-exit-guard-file',
       guard_path
     ]
     run_common(cmd)
+
+    if os.name != 'nt':
+        target_path = guard_path + '.target'
+        symlink_path = guard_path + '.symlink'
+        sentinel = 'do not truncate a symlink target\n'
+        with open(target_path, 'w') as target:
+            target.write(sentinel)
+        os.symlink(target_path, symlink_path)
+        try:
+            result = subprocess.run(
+                [bin_path, '--premature-exit-guard-file', symlink_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+            )
+            assert result.returncode != 0, (
+                'A symlink was accepted as a premature-exit guard file'
+            )
+            with open(target_path, 'r') as target:
+                assert target.read() == sentinel, (
+                    'Opening the guard-file symlink modified its target'
+                )
+        finally:
+            os.remove(symlink_path)
+            os.remove(target_path)
 
 def test_no_crash(bin_path, guard_path):
     cmd = [
@@ -77,6 +109,11 @@ check_func, file_should_exist = checks[test_kind]
 check_func(bin_path, guard_file_path)
 
 assert os.path.exists(guard_file_path) == file_should_exist
+if file_should_exist and os.name != 'nt':
+    guard_mode = stat.S_IMODE(os.stat(guard_file_path).st_mode)
+    assert guard_mode & 0o077 == 0, (
+        f'Guard file permissions are accessible to group/others: {guard_mode:o}'
+    )
 # With randomly generated file suffix, we should not run into name conflicts.
 # However, we try to cleanup anyway, to avoid having infinity files in
 # long living build directories.
