@@ -1,0 +1,58 @@
+name: Diagnostic report
+description: Report a reproducible Catch3 build, test, or reporter failure.
+title: "[Diagnostic]: "
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Include a minimal test case and complete diagnostic output. Remove credentials and private data before
+        submitting.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected area
+      options:
+        - Assertions or matchers
+        - Test discovery or execution
+        - Reporter or output format
+        - Build or linking
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Failure summary
+      description: State the observed failure and the first actionable diagnostic.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal test and reproduction steps
+      description: Include the test source and exact build or invocation commands.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS/version, compiler/version, C++ standard, build system, and Catch3 revision.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Complete diagnostics or logs
+      description: Preserve compiler error codes and context; redact secrets.
+      render: text
+    validations:
+      required: true
