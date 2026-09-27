@@ -237,7 +237,9 @@ namespace Catch {
                 int err = 0;
                 std::FILE* const file = openGuardFile( guardFilePath, err );
                 if ( file == nullptr ) {
+#if defined( _MSC_VER )
                     char msgBuffer[100] = {};
+#endif
                     std::string errMsg;
 #if defined( _MSC_VER )
                     if ( !strerror_s( msgBuffer, err ) ) {
