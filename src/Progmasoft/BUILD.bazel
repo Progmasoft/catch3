@@ -14,6 +14,7 @@ cc_library(
     hdrs = [
         "Catch3.hpp",
         "Catch3/Assertions.hpp",
+        "Catch3/Detail/InvalidArgument.hpp",
         "Catch3/Generator.hpp",
         "Catch3/Generators/Boolean.hpp",
         "Catch3/Generators/Integer.hpp",
