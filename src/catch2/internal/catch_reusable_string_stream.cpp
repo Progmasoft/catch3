@@ -11,6 +11,7 @@
 #include <catch2/internal/catch_unique_ptr.hpp>
 
 #include <cstdio>
+#include <list>
 #include <sstream>
 #include <tuple>
 #include <vector>
@@ -20,7 +21,10 @@ namespace Catch {
     // This class encapsulates the idea of a pool of ostringstreams that can be reused.
     struct StringStreams {
         std::vector<Detail::unique_ptr<std::ostringstream>> m_streams;
-        std::vector<std::size_t> m_unused;
+        // The library can be linked into ASan-instrumented clients without
+        // instrumenting Catch3 itself. A list avoids mixed-mode libc++ vector
+        // container annotations for the reusable-index pool.
+        std::list<std::size_t> m_unused;
         std::ostringstream m_referenceStream; // Used for copy state/ flags from
         Detail::Mutex m_mutex;
 
