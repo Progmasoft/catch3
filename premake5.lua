@@ -81,6 +81,7 @@ project "ProgmasoftPropertyTests"
     targetdir "build/premake/bin/%{cfg.buildcfg}"
     objdir "build/premake/obj/ProgmasoftPropertyTests/%{cfg.buildcfg}"
     files {
+        "tests/Progmasoft/Generators.tests.cpp",
         "tests/Progmasoft/Property.tests.cpp",
         "tests/Progmasoft/Results.tests.cpp",
         "tests/Progmasoft/Snapshot.tests.cpp",

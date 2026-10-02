@@ -8,7 +8,11 @@
 #include <Progmasoft/Catch3/Assertions.hpp>
 #include <Progmasoft/Catch3/Generator.hpp>
 #include <Progmasoft/Catch3/Generators/Boolean.hpp>
+#include <Progmasoft/Catch3/Generators/Element.hpp>
 #include <Progmasoft/Catch3/Generators/Integer.hpp>
+#include <Progmasoft/Catch3/Generators/Text.hpp>
+#include <Progmasoft/Catch3/Generators/Tuple.hpp>
+#include <Progmasoft/Catch3/Generators/Vector.hpp>
 #include <Progmasoft/Catch3/Property.hpp>
 #include <Progmasoft/Catch3/Random.hpp>
 #include <Progmasoft/Catch3/Results.hpp>

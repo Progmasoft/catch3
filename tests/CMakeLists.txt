@@ -158,6 +158,7 @@ target_link_libraries(SelfTest PRIVATE Catch2WithMain)
 # Exercise the C++20 Progmasoft layer independently so the upstream Catch2
 # SelfTest continues to compile at its supported baseline language level.
 add_executable(ProgmasoftSelfTest
+  Progmasoft/Generators.tests.cpp
   Progmasoft/Property.tests.cpp
   Progmasoft/Results.tests.cpp
   Progmasoft/Snapshot.tests.cpp

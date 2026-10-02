@@ -82,6 +82,7 @@ test('SelfTest', self_test)
 progmasoft_property_tests = executable(
   'ProgmasoftPropertyTests',
   [
+    'Progmasoft/Generators.tests.cpp',
     'Progmasoft/Property.tests.cpp',
     'Progmasoft/Results.tests.cpp',
     'Progmasoft/Snapshot.tests.cpp',
