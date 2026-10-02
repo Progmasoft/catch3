@@ -33,7 +33,10 @@ The current property API is split into these headers:
   bounded sampling, inclusive integer ranges, and per-trial seed derivation.
 - `<Progmasoft/Catch3/Generator.hpp>`: user-defined generation/shrinking pair.
 - `<Progmasoft/Catch3/Generators/Integer.hpp>` and `Boolean.hpp`: built-in
-  strategies with deterministic shrink candidates.
+  scalar strategies with deterministic shrink candidates.
+- `<Progmasoft/Catch3/Generators/Vector.hpp>`, `Tuple.hpp`, `Element.hpp` and
+  `Text.hpp`: composite strategies described under
+  [Composite generators](#composite-generators).
 - `<Progmasoft/Catch3/Property.hpp>`: trial execution and structured results.
 - `<Progmasoft/Catch3/Assertions.hpp>`: `CATCH3_CHECK_PROPERTY`, which reports
   the failing trial, replay seed, reason, and minimized counterexample through
@@ -53,10 +56,63 @@ minimal value. A false predicate or an exception from the predicate fails the
 property. Exceptions from generation or shrinking are reported as execution
 errors, distinct from an ordinary failing property.
 
-The API currently accepts one generated value per property. Tuple strategies,
-state-machine commands, parallel trials, and adaptive shrinking are deliberately
-not implied by this first module; they need their own deterministic contracts and
-tests before being added.
+A failing report ends with the line
+`replay: set PropertyOptions::ReplayTrialSeed to <seed>`. Setting that option
+runs exactly one trial with the given seed, including its shrinking, and
+ignores `Seed` and `Trials`; the reported trial number is then 1. This
+reproduces a failure from a CI log without rerunning the trials before it.
+
+```cpp
+Progmasoft::Catch3::PropertyOptions{ .ReplayTrialSeed = 1234567890123456789ULL }
+```
+
+### Composite generators
+
+A property still receives one generated value. Several arguments are passed
+as one tuple:
+
+```cpp
+using namespace Progmasoft::Catch3;
+
+CATCH3_CHECK_PROPERTY(
+    Tuple(Vector(Integer<int>(0, 100), 0, 20), Text("abc", 1, 8)),
+    [](const std::tuple<std::vector<int>, std::string> &input) {
+        return Accepts(std::get<0>(input), std::get<1>(input));
+    },
+    PropertyOptions{ .Trials = 500 });
+```
+
+- `Tuple(generators...)` draws its components strictly left to right from the
+  trial's random source and shrinks one component at a time: every candidate
+  of the first component, then every candidate of the second, and so on.
+- `Vector(element, minimumSize, maximumSize)` draws a length in the inclusive
+  range and then the elements in index order. `Text(alphabet, minimumLength,
+  maximumLength)` does the same for byte strings over the given alphabet;
+  `PrintableAscii()` is the default alphabet. Both shrink in a fixed order:
+  the shortest allowed prefix, the first and second half, the value with one
+  element removed, and finally the value with one element simplified. A
+  shrunk value is never shorter than its minimum, each step offers at most
+  256 candidates, and a size limit above 1,048,576 elements is rejected.
+- `Element(values)` picks uniformly from a fixed non-empty list. The list
+  order is the simplicity order: a value shrinks to the values listed before
+  it. `Text` treats its alphabet the same way, so put the simplest value or
+  character first.
+
+Counterexamples of tuples, pairs and vectors are printed element by element,
+for example `{ 7, { true, false }, "text" }`. This does not depend on Catch2's
+optional tuple or range string makers, so the report is the same whatever
+configuration macros a client defines. Scalars still use `Catch::StringMaker`,
+including user specializations.
+
+Invalid factory arguments, such as an empty alphabet or a minimum above its
+maximum, throw `std::invalid_argument`; a client built without exceptions
+gets the message on standard error followed by `std::abort`.
+
+State-machine commands, parallel trials, mapped or filtered generators, and
+adaptive shrinking are deliberately not implied by this module; they need
+their own deterministic contracts and tests before being added. Shrinking a
+composite value is greedy and local like scalar shrinking: it finds a small
+counterexample, not a provably smallest one.
 
 ## Snapshots
 

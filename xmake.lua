@@ -50,6 +50,7 @@ target("ProgmasoftPropertyTests")
     set_kind("binary")
     set_languages("cxx20")
     add_files(
+        "tests/Progmasoft/Generators.tests.cpp",
         "tests/Progmasoft/Property.tests.cpp",
         "tests/Progmasoft/Results.tests.cpp",
         "tests/Progmasoft/Snapshot.tests.cpp",

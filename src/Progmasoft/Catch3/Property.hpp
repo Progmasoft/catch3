@@ -12,8 +12,10 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace Progmasoft::Catch3
 {
@@ -24,6 +26,11 @@ namespace Progmasoft::Catch3
         std::size_t Trials = 100;
         std::uint64_t Seed = 0xC47C4A53ULL;
         std::size_t MaxShrinkSteps = 1000;
+        /// When set, runs exactly one trial with this seed instead of
+        /// deriving Trials seeds from Seed. Use the "replay seed" of a
+        /// reported failure to reproduce that single trial, including its
+        /// shrinking, without rerunning the trials before it.
+        std::optional<std::uint64_t> ReplayTrialSeed = std::nullopt;
     };
 
     enum class PropertyStatus : std::uint8_t
@@ -88,7 +95,9 @@ namespace Progmasoft::Catch3
                        << Failure->TrialSeed << ", shrink checks "
                        << Failure->ShrinkSteps
                        << "\ncounterexample: " << Failure->Counterexample
-                       << "\nreason: " << Failure->Reason;
+                       << "\nreason: " << Failure->Reason
+                       << "\nreplay: set PropertyOptions::ReplayTrialSeed to "
+                       << Failure->TrialSeed;
             }
             return output.str();
         }
@@ -99,9 +108,85 @@ namespace Progmasoft::Catch3
 
         template<typename ValueType>
         [[nodiscard]] std::string
+        StringifyPropertyValue(const ValueType &value);
+
+        /// Renders one counterexample. Scalars use Catch2's StringMaker, so
+        /// user specializations apply. Tuples, pairs and vectors are
+        /// rendered here, element by element, because Catch2 only prints
+        /// tuples when a configuration macro is defined before its headers
+        /// and a counterexample must not degrade to "{?}" depending on
+        /// include order.
+        template<typename ValueType>
+        struct PropertyValuePrinter final
+        {
+            [[nodiscard]] static std::string
+            Print(const ValueType &value)
+            {
+                return Catch::StringMaker<ValueType>::convert(value);
+            }
+        };
+
+        template<typename... ValueTypes>
+        struct PropertyValuePrinter<std::tuple<ValueTypes...>> final
+        {
+            [[nodiscard]] static std::string
+            Print(const std::tuple<ValueTypes...> &value)
+            {
+                std::string text = "{";
+                bool first = true;
+                std::apply(
+                    [&text, &first](const ValueTypes &...component) {
+                        const auto append = [&text, &first](std::string item) {
+                            text += first ? " " : ", ";
+                            text += item;
+                            first = false;
+                        };
+                        (append(StringifyPropertyValue(component)), ...);
+                    },
+                    value);
+                text += first ? "}" : " }";
+                return text;
+            }
+        };
+
+        template<typename FirstType, typename SecondType>
+        struct PropertyValuePrinter<std::pair<FirstType, SecondType>> final
+        {
+            [[nodiscard]] static std::string
+            Print(const std::pair<FirstType, SecondType> &value)
+            {
+                return "{ " + StringifyPropertyValue(value.first) + ", "
+                       + StringifyPropertyValue(value.second) + " }";
+            }
+        };
+
+        template<typename ElementType, typename AllocatorType>
+        struct PropertyValuePrinter<std::vector<ElementType, AllocatorType>>
+            final
+        {
+            [[nodiscard]] static std::string
+            Print(const std::vector<ElementType, AllocatorType> &value)
+            {
+                std::string text = "{";
+                bool first = true;
+                for (const auto &element : value)
+                {
+                    text += first ? " " : ", ";
+                    // The cast turns std::vector<bool>'s proxy into a value.
+                    text += StringifyPropertyValue(
+                        static_cast<ElementType>(element));
+                    first = false;
+                }
+                text += first ? "}" : " }";
+                return text;
+            }
+        };
+
+        template<typename ValueType>
+        [[nodiscard]] std::string
         StringifyPropertyValue(const ValueType &value)
         {
-            return Catch::StringMaker<std::remove_cvref_t<ValueType>>::convert(
+            return PropertyValuePrinter<std::remove_cvref_t<ValueType>>::Print(
                 value);
         }
 
@@ -178,11 +263,15 @@ namespace Progmasoft::Catch3
         }
 
         PropertyResult result;
-        for (std::size_t trial = 0; trial < options.Trials; ++trial)
+        const std::size_t trials
+            = options.ReplayTrialSeed.has_value() ? 1 : options.Trials;
+        for (std::size_t trial = 0; trial < trials; ++trial)
         {
             result.TrialsRun = trial + 1;
             const std::uint64_t trialSeed
-                = Random::DeriveSeed(options.Seed, trial);
+                = options.ReplayTrialSeed.has_value()
+                      ? *options.ReplayTrialSeed
+                      : Random::DeriveSeed(options.Seed, trial);
             Random random(trialSeed);
             std::optional<ValueType> sample;
 

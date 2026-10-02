@@ -7,6 +7,7 @@ package(default_visibility = ["//visibility:public"])
 cc_test(
     name = "property_tests",
     srcs = [
+        "Generators.tests.cpp",
         "Property.tests.cpp",
         "Results.tests.cpp",
         "Snapshot.tests.cpp",

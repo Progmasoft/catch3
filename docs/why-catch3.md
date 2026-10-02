@@ -25,7 +25,7 @@ Catch2 runner.
 
 The current property runner handles one generated value per property. Shrinking
 is deterministic and bounded, but greedy rather than globally minimal. There is
-not yet built-in support for state-machine properties, generated tuples,
+not yet built-in support for state-machine properties, mapped or filtered generators,
 discard/classification policies, parallel execution, or a standalone Catch3
 runner. Those features are not implied by the initial API.
 
