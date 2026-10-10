@@ -22,6 +22,8 @@ jobs:
         std: [14, 17]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
 
       - name: Configure build
         run: |
@@ -30,9 +32,9 @@ jobs:
                 -DCMAKE_CXX_STANDARD=${{matrix.std}} `
 
       - name: Build tests
-        run: cmake --build build --config ${{matrix.build_type}} --parallel %NUMBER_OF_PROCESSORS%
-        shell: cmd
+        run: cmake --build build --config ${{matrix.build_type}} --parallel $env:NUMBER_OF_PROCESSORS
+        shell: pwsh
 
       - name: Run tests
-        run: ctest --test-dir build -C ${{matrix.build_type}} -j %NUMBER_OF_PROCESSORS%
-        shell: cmd
+        run: ctest --test-dir build -C ${{matrix.build_type}} -j $env:NUMBER_OF_PROCESSORS
+        shell: pwsh
