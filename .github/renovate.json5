@@ -28,9 +28,9 @@
   prConcurrentLimit: 2,
   prHourlyLimit: 2,
 
-  // One issue lists what is pending, so an update need not be a pull request
-  // to be seen.
-  dependencyDashboard: true,
+  // The dashboard is an issue, and this repository has issues turned off.
+  // What is pending shows as pull requests only.
+  dependencyDashboard: false,
 
   // Security fixes come from Dependabot security updates. Renovate does not
   // open its own for the same advisory.
