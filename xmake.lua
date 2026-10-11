@@ -2,7 +2,7 @@
 -- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 
 set_project("Catch3")
-set_version("3.16.0")
+set_version("3.16.1")
 set_languages("cxx14")
 set_warnings("all")
 

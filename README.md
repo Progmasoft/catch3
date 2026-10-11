@@ -10,7 +10,7 @@ owned C++20 library for property checks, snapshots, structured results, and XML
 serialization.
 
 > Catch3 is not an official Catch2 release and is not endorsed by Catch2's
-> maintainers. Its current compatibility engine is based on Catch2 3.16.0;
+> maintainers. Its current compatibility engine is based on Catch2 3.16.1;
 > upstream-originated files keep their upstream license. Progmasoft-authored
 > additions have their own licensing terms. See [the project scope and
 > compatibility notes](docs/why-catch3.md).
