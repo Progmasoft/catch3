@@ -6,8 +6,8 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-//  Catch v3.16.0
-//  Generated: 2026-09-28 00:12:28.744397
+//  Catch v3.16.1
+//  Generated: 2026-10-11 02:09:25.622664
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -1458,7 +1458,9 @@ namespace Catch {
                 int err = 0;
                 std::FILE* const file = openGuardFile( guardFilePath, err );
                 if ( file == nullptr ) {
+#if defined( _MSC_VER )
                     char msgBuffer[100] = {};
+#endif
                     std::string errMsg;
 #if defined( _MSC_VER )
                     if ( !strerror_s( msgBuffer, err ) ) {
@@ -1677,7 +1679,17 @@ namespace Catch {
             getCurrentMutableContext().setConfig(m_config.get());
 
             // Create reporter(s) so we can route listings through them
-            auto reporter = prepareReporters(m_config.get());
+            IEventListenerPtr reporter;
+            CATCH_TRY {
+                auto reporter_ = prepareReporters( m_config.get() );
+                swap( reporter, reporter_ );
+            }
+#if !defined( CATCH_CONFIG_DISABLE_EXCEPTIONS )
+            catch ( std::exception& ex ) {
+                Catch::cerr() << "Error when creating reporter: " << ex.what() << '\n' << std::flush;
+                return ReporterConstructionErrorExitCode;
+            }
+#endif
 
             auto const& invalidSpecs = m_config->testSpec().getInvalidSpecs();
             if ( !invalidSpecs.empty() ) {
@@ -2586,7 +2598,7 @@ namespace Catch {
     }
 
     Version const& libraryVersion() {
-        static Version version( 3, 16, 0, "", 0 );
+        static Version version( 3, 16, 1, "", 0 );
         return version;
     }
 
@@ -2922,7 +2934,7 @@ namespace Catch {
         }
     }
 
-    void AssertionHandler::handleUnexpectedInflightException() {
+    void AssertionHandler::handleUnexpectedInflightException() noexcept {
         m_resultCapture.handleUnexpectedInflightException( m_assertionInfo, Catch::translateActiveException(), m_reaction );
     }
 
@@ -4233,13 +4245,6 @@ namespace Catch {
 
 
 namespace Catch {
-
-    void ITransientExpression::streamReconstructedExpression(
-        std::ostream& os ) const {
-        // We can't make this function pure virtual to keep ITransientExpression
-        // constexpr, so we write error message instead
-        os << "Some class derived from ITransientExpression without overriding streamReconstructedExpression";
-    }
 
     void formatReconstructedExpression( std::ostream &os, std::string const& lhs, StringRef op, std::string const& rhs ) {
         if( lhs.size() + rhs.size() < 40 &&
@@ -6056,6 +6061,7 @@ ReporterSpec::ReporterSpec(
 
 
 #include <cstdio>
+#include <list>
 #include <sstream>
 #include <tuple>
 #include <vector>
@@ -6065,7 +6071,10 @@ namespace Catch {
     // This class encapsulates the idea of a pool of ostringstreams that can be reused.
     struct StringStreams {
         std::vector<Detail::unique_ptr<std::ostringstream>> m_streams;
-        std::vector<std::size_t> m_unused;
+        // The library can be linked into ASan-instrumented clients without
+        // instrumenting Catch3 itself. A list avoids mixed-mode libc++ vector
+        // container annotations for the reusable-index pool.
+        std::list<std::size_t> m_unused;
         std::ostringstream m_referenceStream; // Used for copy state/ flags from
         Detail::Mutex m_mutex;
 
@@ -9530,11 +9539,19 @@ namespace Catch {
 
 
 
+
 #include <ostream>
 
 namespace Catch {
 
     AutomakeReporter::~AutomakeReporter() = default;
+
+    AutomakeReporter::AutomakeReporter( ReporterConfig&& _config ):
+        StreamingReporterBase( CATCH_MOVE( _config ) ) {
+        rejectSuperfluousConfigKeys( m_customOptions, {} );
+
+        m_preferences.shouldReportAllAssertionStarts = false;
+    }
 
     void AutomakeReporter::testCaseEnded(TestCaseStats const& _testCaseStats) {
         // Possible values to emit are PASS, XFAIL, SKIP, FAIL, XPASS and ERROR.
@@ -9837,6 +9854,13 @@ private:
         }
 
         CompactReporter::~CompactReporter() = default;
+        CompactReporter::CompactReporter( ReporterConfig&& _config ):
+            StreamingReporterBase( CATCH_MOVE( _config ) ) {
+            rejectSuperfluousConfigKeys( m_customOptions, {} );
+
+            m_preferences.shouldReportAllAssertionStarts = false;
+        }
+
 
 } // end namespace Catch
 
@@ -10224,6 +10248,7 @@ ConsoleReporter::ConsoleReporter(ReporterConfig&& config):
             };
         }
     }())) {
+    rejectSuperfluousConfigKeys( m_customOptions, {} );
     m_preferences.shouldReportAllAssertionStarts = false;
 }
 
@@ -11037,6 +11062,18 @@ namespace Catch {
         printSummaryRow( stream, streamColour, "assertions"_sr, columns, 1 );
     }
 
+    void rejectSuperfluousConfigKeys(
+        std::map<std::string, std::string> const& options,
+        std::initializer_list<StringRef> knownKeys ) {
+        for ( auto const& option : options ) {
+            StringRef key( option.first );
+            CATCH_ENFORCE( std::find( knownKeys.begin(),
+                                      knownKeys.end(),
+                                      key ) != knownKeys.end(),
+                           "Unknown reporter argument: " << key );
+        }
+    }
+
 } // namespace Catch
 
 
@@ -11075,6 +11112,7 @@ namespace Catch {
 
     JsonReporter::JsonReporter( ReporterConfig&& config ):
         StreamingReporterBase{ CATCH_MOVE( config ) } {
+        rejectSuperfluousConfigKeys( m_customOptions, {} );
 
         m_preferences.shouldRedirectStdOut = true;
         // TBD: Do we want to report all assertions? XML reporter does
@@ -11480,11 +11518,13 @@ namespace Catch {
         :   CumulativeReporterBase( CATCH_MOVE(_config) ),
             xml( m_stream )
         {
+            rejectSuperfluousConfigKeys( m_customOptions, {} );
+
             m_preferences.shouldRedirectStdOut = true;
             m_preferences.shouldReportAllAssertions = false;
             m_preferences.shouldReportAllAssertionStarts = false;
             m_shouldStoreSuccesfulAssertions = false;
-        }
+    }
 
     std::string JunitReporter::getDescription() {
         return "Reports test results in an XML format that looks like Ant's junitreport target";
@@ -11947,6 +11987,16 @@ namespace Catch {
         }
     }
 
+    SonarQubeReporter::SonarQubeReporter( ReporterConfig&& config ):
+        CumulativeReporterBase( CATCH_MOVE( config ) ), xml( m_stream ) {
+        rejectSuperfluousConfigKeys( m_customOptions, {} );
+
+        m_preferences.shouldRedirectStdOut = true;
+        m_preferences.shouldReportAllAssertions = false;
+        m_preferences.shouldReportAllAssertionStarts = false;
+        m_shouldStoreSuccesfulAssertions = false;
+    }
+
     void SonarQubeReporter::testRunStarting(TestRunInfo const& testRunInfo) {
         CumulativeReporterBase::testRunStarting(testRunInfo);
 
@@ -12275,6 +12325,14 @@ namespace Catch {
 
     } // End anonymous namespace
 
+    TAPReporter::TAPReporter( ReporterConfig&& config ):
+        StreamingReporterBase( CATCH_MOVE( config ) ) {
+        rejectSuperfluousConfigKeys( m_customOptions, {} );
+
+        m_preferences.shouldReportAllAssertions = true;
+        m_preferences.shouldReportAllAssertionStarts = false;
+    }
+
     void TAPReporter::testRunStarting( TestRunInfo const& ) {
         if ( m_config->testSpec().hasFilters() ) {
             m_stream << "# filters: " << m_config->testSpec() << '\n';
@@ -12345,6 +12403,14 @@ namespace Catch {
         }
     } // end anonymous namespace
 
+
+    TeamCityReporter::TeamCityReporter( ReporterConfig&& _config ):
+        StreamingReporterBase( CATCH_MOVE( _config ) ) {
+        rejectSuperfluousConfigKeys( m_customOptions, {} );
+
+        m_preferences.shouldRedirectStdOut = true;
+        m_preferences.shouldReportAllAssertionStarts = false;
+    }
 
     TeamCityReporter::~TeamCityReporter() = default;
 
@@ -12492,6 +12558,8 @@ namespace Catch {
     :   StreamingReporterBase( CATCH_MOVE(_config) ),
         m_xml(m_stream)
     {
+        rejectSuperfluousConfigKeys( m_customOptions, {} );
+
         m_preferences.shouldRedirectStdOut = true;
         m_preferences.shouldReportAllAssertions = true;
         m_preferences.shouldReportAllAssertionStarts = false;

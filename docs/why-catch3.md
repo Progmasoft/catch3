@@ -7,7 +7,7 @@ namespace, build-target, and licensing boundary.
 
 The name does **not** mean that this is an official Catch2 v3 release, a new
 upstream version, or a project endorsed by Catch2's maintainers. The current
-compatibility engine is based on Catch2's 3.16.0 development line. The project
+compatibility engine is based on Catch2's 3.16.1 development line. The project
 is still early-stage and does not yet replace or independently reimplement the
 Catch2 runner.
 
@@ -35,7 +35,7 @@ Catch2's `Catch` namespace, established headers, macros, command-line behavior,
 reporters, and coding style remain the compatibility surface. Progmasoft
 features should be added under `Progmasoft::Catch3` and must not require users
 to rename existing Catch2 tests. The first compatibility goal is source-level
-continuity with the included Catch2 3.16.0 base; this is not a promise that every
+continuity with the included Catch2 3.16.1 base; this is not a promise that every
 future Catch2 upstream change will be adopted unchanged or that all downstream
 projects have already been validated.
 
