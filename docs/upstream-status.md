@@ -41,5 +41,6 @@ also brought it up to date with fork changes it had not yet picked up. No
 fork-owned file under `src/Progmasoft` needed a change.
 
 These are compatibility fixes, not a claim that every future upstream change
-is automatically incorporated. The existing Windows/macOS build and test
-workflows remain the verification gate for the fork.
+is automatically incorporated. The build and test workflows remain the
+verification gate for the fork: Windows, macOS 15 and 26, Ubuntu 26.04 and
+Fedora 43.

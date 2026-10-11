@@ -1,0 +1,86 @@
+name: Linux Builds
+
+# The Linux hosts are those of the Visual X# compiler, which is the first
+# user of this framework: the current Ubuntu LTS, and Fedora in a container.
+# Both build with Clang, the compiler that project uses everywhere.
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: 1
+  CTEST_NO_TESTS_ACTION: error
+
+jobs:
+  ubuntu:
+    name: Ubuntu 26.04, C++${{matrix.std}}, ${{matrix.build_type}}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+        std: [14, 17]
+
+    steps:
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      with:
+        persist-credentials: false
+
+    - name: Install Clang, CMake and Ninja
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang cmake ninja-build python3
+
+    - name: Configure
+      run: |
+        cmake --preset basic-tests -GNinja \
+              -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+              -DCMAKE_CXX_COMPILER=clang++ \
+              -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+              -DCATCH_BUILD_EXAMPLES=ON \
+              -DCATCH_BUILD_EXTRA_TESTS=ON
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test
+      run: ctest --test-dir build -j
+
+  fedora:
+    name: Fedora 43, C++${{matrix.std}}, ${{matrix.build_type}}
+    runs-on: ubuntu-26.04
+    container: fedora:43
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+        std: [14, 17]
+
+    steps:
+    # Git comes first: without it the checkout falls back to an archive of
+    # the repository, which is not a checkout the tests can ask questions of.
+    - name: Install Git, Clang, CMake and Ninja
+      run: dnf install -y git clang gcc-c++ cmake ninja-build python3
+
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      with:
+        persist-credentials: false
+
+    - name: Configure
+      run: |
+        cmake --preset basic-tests -GNinja \
+              -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+              -DCMAKE_CXX_COMPILER=clang++ \
+              -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+              -DCATCH_BUILD_EXAMPLES=ON \
+              -DCATCH_BUILD_EXTRA_TESTS=ON
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test
+      run: ctest --test-dir build -j
