@@ -243,6 +243,25 @@ the size of your diffs reasonable, you should only use clang-format
 on the newly changed code.
 
 
+### Progmasoft-authored code
+
+The code under `src/Progmasoft/` and `tests/Progmasoft/` is not derived
+from Catch2 and follows
+[Progmasoft C++ Style](https://github.com/Progmasoft/progmasoft-cpp):
+its naming, its formatting profile, its language and documentation
+rules. The code derived from Catch2 keeps the upstream style described
+on this page, so that changes from upstream still apply cleanly.
+
+Progmasoft-authored code deviates from the guide where the Catch2 API
+requires it:
+
+* It lives in the namespace `Progmasoft::Catch3`, with helpers in
+  `Progmasoft::Catch3::Detail`.
+* It may throw, because a failed assertion is reported by an exception,
+  as everywhere in Catch2. Exceptions stay inside the library and never
+  cross into the code under test.
+
+
 ### Code constructs to watch out for
 
 This section is a (sadly incomplete) listing of various constructs that
