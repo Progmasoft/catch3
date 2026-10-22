@@ -160,8 +160,11 @@ target_link_libraries(SelfTest PRIVATE Catch2WithMain)
 add_executable(ProgmasoftSelfTest
   Progmasoft/Generators.tests.cpp
   Progmasoft/Property.tests.cpp
+  Progmasoft/ForAll.tests.cpp
   Progmasoft/Results.tests.cpp
   Progmasoft/Snapshot.tests.cpp
+  Progmasoft/Stateful.tests.cpp
+  Progmasoft/Strategy.tests.cpp
 )
 target_link_libraries(ProgmasoftSelfTest PRIVATE Progmasoft::Catch3 Catch2WithMain)
 target_compile_features(ProgmasoftSelfTest PRIVATE cxx_std_20)

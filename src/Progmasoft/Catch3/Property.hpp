@@ -31,6 +31,30 @@ namespace Progmasoft::Catch3
         /// reported failure to reproduce that single trial, including its
         /// shrinking, without rerunning the trials before it.
         std::optional<std::uint64_t> ReplayTrialSeed = std::nullopt;
+
+        // The fields below are read by ForAll and the other strategy-based
+        // checks; CheckProperty with a Generator ignores them.
+
+        /// A replay token from a failure report: runs exactly the reported,
+        /// minimized counterexample and nothing else.
+        std::optional<std::string> Replay = std::nullopt;
+        /// Trials that may be discarded, by a filter that found nothing or
+        /// by CATCH3_PROPERTY_ASSUME, per requested trial before the
+        /// property gives up.
+        std::size_t MaxDiscardRatio = 10;
+        /// Extra trials that search for a higher score after the regular
+        /// ones, when the property calls Target. 0 disables the search.
+        std::size_t TargetSteps = 500;
+        /// Directory of the example database. Failing examples are stored
+        /// there and replayed first on the next run. Empty: the directory
+        /// named by CATCH3_PROPERTY_DATABASE, or no database when that is
+        /// unset.
+        std::string DatabasePath;
+        /// Names the property in the database. The CATCH3_ macros fill it
+        /// with the test case name and the source line.
+        std::string Name;
+        /// Adds the Classify and Cover statistics to a passing report.
+        bool ShowStatistics = false;
     };
 
     enum class PropertyStatus : std::uint8_t
@@ -39,6 +63,20 @@ namespace Progmasoft::Catch3
         kFailed,
         kErrored,
         kInvalidConfiguration,
+        /// A Cover requirement was not met.
+        kInsufficientCoverage,
+        /// Too many trials were discarded to trust the result.
+        kGaveUp,
+    };
+
+    /// How often one Classify or Cover label held.
+    struct LabelStatistic final
+    {
+        std::string Label;
+        std::size_t Count = 0;
+        double Percentage = 0.0;
+        /// The percentage a Cover call requires; 0 for Classify.
+        double Required = 0.0;
     };
 
     struct PropertyFailure final
@@ -49,6 +87,11 @@ namespace Progmasoft::Catch3
         std::size_t ShrinkSteps = 0;
         std::string Counterexample;
         std::string Reason;
+        /// Replay token of the minimized counterexample; empty for
+        /// CheckProperty with a Generator, whose replay is TrialSeed.
+        std::string Replay;
+        /// What the property recorded with Note for the counterexample.
+        std::vector<std::string> Notes;
     };
 
     /// Stable, machine-readable outcome with a deterministic human-readable
@@ -59,6 +102,10 @@ namespace Progmasoft::Catch3
         std::size_t TrialsRun = 0;
         std::optional<PropertyFailure> Failure;
         std::string Error;
+        std::size_t Discarded = 0;
+        std::vector<LabelStatistic> Statistics;
+        /// Set when Statistics should be part of a passing report.
+        bool ShowStatistics = false;
 
         [[nodiscard]] bool
         Succeeded() const noexcept
@@ -74,6 +121,23 @@ namespace Progmasoft::Catch3
             {
                 case PropertyStatus::kPassed:
                     output << "property passed: " << TrialsRun << " trials";
+                    if (Discarded != 0)
+                    {
+                        output << ", " << Discarded << " discarded";
+                    }
+                    if (ShowStatistics)
+                    {
+                        DescribeStatistics(output);
+                    }
+                    return output.str();
+                case PropertyStatus::kInsufficientCoverage:
+                    output << "property coverage insufficient after "
+                           << TrialsRun << " trials: " << Error;
+                    DescribeStatistics(output);
+                    return output.str();
+                case PropertyStatus::kGaveUp:
+                    output << "property gave up after " << TrialsRun
+                           << " trials: " << Error;
                     return output.str();
                 case PropertyStatus::kInvalidConfiguration:
                     output << "invalid property configuration: " << Error;
@@ -88,7 +152,7 @@ namespace Progmasoft::Catch3
                     break;
             }
 
-            if (Failure.has_value())
+            if (Failure.has_value() && Failure->Replay.empty())
             {
                 output << "; failing trial " << Failure->Trial << ", root seed "
                        << Failure->RootSeed << ", replay seed "
@@ -99,7 +163,41 @@ namespace Progmasoft::Catch3
                        << "\nreplay: set PropertyOptions::ReplayTrialSeed to "
                        << Failure->TrialSeed;
             }
+            else if (Failure.has_value())
+            {
+                output << "; failing trial " << Failure->Trial << ", root seed "
+                       << Failure->RootSeed << ", shrink checks "
+                       << Failure->ShrinkSteps
+                       << "\ncounterexample: " << Failure->Counterexample
+                       << "\nreason: " << Failure->Reason;
+                for (const auto &note : Failure->Notes)
+                {
+                    output << "\nnote: " << note;
+                }
+                output << "\nreplay: set PropertyOptions::Replay to \""
+                       << Failure->Replay << '"';
+            }
             return output.str();
+        }
+
+    private:
+        void
+        DescribeStatistics(std::ostringstream &output) const
+        {
+            for (const auto &statistic : Statistics)
+            {
+                output << "\n  " << statistic.Label << ": "
+                       << statistic.Count << " ("
+                       << static_cast<long long>(statistic.Percentage * 10.0
+                                                 + 0.5)
+                              / 10.0
+                       << "%";
+                if (statistic.Required > 0.0)
+                {
+                    output << ", required " << statistic.Required << "%";
+                }
+                output << ')';
+            }
         }
     };
 

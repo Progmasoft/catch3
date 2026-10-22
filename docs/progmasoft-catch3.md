@@ -8,6 +8,14 @@ namespace.
 
 ## Property testing
 
+Catch3 has two property APIs. [Native property testing](progmasoft-properties.md#top)
+with `ForAll` and strategies is the full engine: every combination of
+strategies shrinks, failures replay from a token and from an example database,
+and it adds state machines, statistics, targeted search and differential and
+metamorphic oracles. New tests should use it. The value-shrinking
+`CheckProperty` API described here remains supported for existing tests.
+[The roadmap](progmasoft-roadmap.md#top) lists what comes next.
+
 `<Progmasoft/Catch3.hpp>` is the umbrella header. It brings in Catch2's
 `catch_all.hpp` as well as the Progmasoft extensions, so it is convenient but
 increases compile time. Include individual headers when a translation unit only
@@ -108,11 +116,10 @@ Invalid factory arguments, such as an empty alphabet or a minimum above its
 maximum, throw `std::invalid_argument`; a client built without exceptions
 gets the message on standard error followed by `std::abort`.
 
-State-machine commands, parallel trials, mapped or filtered generators, and
-adaptive shrinking are deliberately not implied by this module; they need
-their own deterministic contracts and tests before being added. Shrinking a
-composite value is greedy and local like scalar shrinking: it finds a small
-counterexample, not a provably smallest one.
+Mapped, filtered and dependent generators and state machines are not part of
+this module; the strategies of [native property testing](progmasoft-properties.md#top)
+provide them. Shrinking a composite value here is greedy and local like scalar
+shrinking: it finds a small counterexample, not a provably smallest one.
 
 ## Snapshots
 

@@ -62,6 +62,9 @@ project "ProgmasoftCatch3"
     targetdir "build/premake/bin/%{cfg.buildcfg}"
     objdir "build/premake/obj/ProgmasoftCatch3/%{cfg.buildcfg}"
     files {
+        "src/Progmasoft/ChoiceShrinker.cpp",
+        "src/Progmasoft/Context.cpp",
+        "src/Progmasoft/PropertyEngine.cpp",
         "src/Progmasoft/Results.cpp",
         "src/Progmasoft/Results.hpp",
         "src/Progmasoft/Snapshot.cpp",
@@ -83,8 +86,11 @@ project "ProgmasoftPropertyTests"
     files {
         "tests/Progmasoft/Generators.tests.cpp",
         "tests/Progmasoft/Property.tests.cpp",
+        "tests/Progmasoft/ForAll.tests.cpp",
         "tests/Progmasoft/Results.tests.cpp",
         "tests/Progmasoft/Snapshot.tests.cpp",
+        "tests/Progmasoft/Stateful.tests.cpp",
+        "tests/Progmasoft/Strategy.tests.cpp",
         "src/Progmasoft/**.hpp",
     }
     includedirs { "src", generated_include }

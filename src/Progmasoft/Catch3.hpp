@@ -6,6 +6,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <Progmasoft/Catch3/Assertions.hpp>
+#include <Progmasoft/Catch3/ForAll.hpp>
 #include <Progmasoft/Catch3/Generator.hpp>
 #include <Progmasoft/Catch3/Generators/Boolean.hpp>
 #include <Progmasoft/Catch3/Generators/Element.hpp>
@@ -15,6 +16,13 @@
 #include <Progmasoft/Catch3/Generators/Vector.hpp>
 #include <Progmasoft/Catch3/Property.hpp>
 #include <Progmasoft/Catch3/Random.hpp>
+#include <Progmasoft/Catch3/Relations.hpp>
 #include <Progmasoft/Catch3/Results.hpp>
 #include <Progmasoft/Catch3/Snapshot.hpp>
+#include <Progmasoft/Catch3/Stateful.hpp>
+#include <Progmasoft/Catch3/Strategy/ChoiceSource.hpp>
+#include <Progmasoft/Catch3/Strategy/Containers.hpp>
+#include <Progmasoft/Catch3/Strategy/Context.hpp>
+#include <Progmasoft/Catch3/Strategy/Numeric.hpp>
+#include <Progmasoft/Catch3/Strategy/Strategy.hpp>
 #include <Progmasoft/Catch3/XmlWriter.hpp>

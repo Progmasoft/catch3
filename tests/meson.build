@@ -84,8 +84,11 @@ progmasoft_property_tests = executable(
   [
     'Progmasoft/Generators.tests.cpp',
     'Progmasoft/Property.tests.cpp',
+    'Progmasoft/ForAll.tests.cpp',
     'Progmasoft/Results.tests.cpp',
     'Progmasoft/Snapshot.tests.cpp',
+    'Progmasoft/Stateful.tests.cpp',
+    'Progmasoft/Strategy.tests.cpp',
   ],
   include_directories: '../src',
   dependencies: [progmasoft_catch3_dep, catch2_with_main_dep],

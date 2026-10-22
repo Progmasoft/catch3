@@ -363,6 +363,9 @@ add_library(Catch2::Catch2 ALIAS Catch2)
 # Progmasoft's compiled C++20 utilities are separate from Catch2's
 # compatibility engine, which retains its existing C++14 baseline.
 add_library(ProgmasoftCatch3 STATIC
+  "${CATCH_DIR}/src/Progmasoft/ChoiceShrinker.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Context.cpp"
+  "${CATCH_DIR}/src/Progmasoft/PropertyEngine.cpp"
   "${CATCH_DIR}/src/Progmasoft/Results.cpp"
   "${CATCH_DIR}/src/Progmasoft/Snapshot.cpp"
   "${CATCH_DIR}/src/Progmasoft/XmlWriter.cpp"
