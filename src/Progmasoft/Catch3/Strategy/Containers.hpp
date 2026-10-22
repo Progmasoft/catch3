@@ -61,6 +61,30 @@ namespace Progmasoft::Catch3
             return true;
         }
 
+        /// Draws one value from each strategy, strictly left to right: the
+        /// fold over the comma operator fixes the order, which keeps the
+        /// choice sequence of a tuple stable.
+        template<typename... ValueTypes, std::size_t... Index>
+        [[nodiscard]] std::optional<std::tuple<ValueTypes...>>
+        DrawTuple(const std::tuple<Strategy<ValueTypes>...> &strategies,
+                  ChoiceSource &source,
+                  std::index_sequence<Index...>)
+        {
+            std::tuple<std::optional<ValueTypes>...> parts;
+            bool complete = true;
+            ((complete = complete
+                         && (std::get<Index>(parts)
+                             = std::get<Index>(strategies).Draw(source))
+                                .has_value()),
+             ...);
+            if (!complete)
+            {
+                return std::nullopt;
+            }
+            return std::tuple<ValueTypes...>(
+                std::move(*std::get<Index>(parts))...);
+        }
+
         inline void
         CheckRange(const SizeRange &range)
         {
@@ -320,31 +344,15 @@ namespace Progmasoft::Catch3
         [[nodiscard]] Strategy<std::tuple<ValueTypes...>>
         Tuples(Strategy<ValueTypes>... strategies)
         {
+            // The strategies are held as one tuple rather than captured as
+            // a pack: MSVC rejects a pack used inside a nested lambda.
             return Strategy<std::tuple<ValueTypes...>>(
-                [strategies...](ChoiceSource &source)
-                    -> std::optional<std::tuple<ValueTypes...>> {
-                    std::tuple<std::optional<ValueTypes>...> parts;
-                    bool complete = true;
-                    // A braced list fixes the evaluation order: left to
-                    // right, which keeps the choice sequence stable.
-                    std::apply(
-                        [&](auto &...part) {
-                            ((complete = complete
-                                         && (part = strategies.Draw(source))
-                                                .has_value()),
-                             ...);
-                        },
-                        parts);
-                    if (!complete)
-                    {
-                        return std::nullopt;
-                    }
-                    return std::apply(
-                        [](auto &...part) {
-                            return std::tuple<ValueTypes...>(
-                                std::move(*part)...);
-                        },
-                        parts);
+                [strategies = std::tuple<Strategy<ValueTypes>...>(
+                     std::move(strategies)...)](ChoiceSource &source) {
+                    return Detail::DrawTuple(
+                        strategies,
+                        source,
+                        std::index_sequence_for<ValueTypes...>{});
                 });
         }
 
