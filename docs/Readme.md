@@ -3,7 +3,8 @@
 
 Catch3 combines the upstream Catch2-compatible runner and API with
 Progmasoft's C++20 extensions. Start with the [tutorial](tutorial.md#top),
-then read [what Catch3 adds](progmasoft-catch3.md) and
+then read [what Catch3 adds](progmasoft-catch3.md),
+[native property testing](progmasoft-properties.md), [the roadmap](progmasoft-roadmap.md) and
 [why the two API families remain distinct](why-catch3.md). The compatibility
 pages below retain real `catch2/` include paths, `Catch2::` CMake targets,
 and upstream version history; renaming those would make examples incorrect.

@@ -39,6 +39,9 @@ target("ProgmasoftCatch3")
     set_languages("cxx20")
     add_headerfiles("src/Progmasoft/**.hpp", {prefixdir = ""})
     add_files(
+        "src/Progmasoft/ChoiceShrinker.cpp",
+        "src/Progmasoft/Context.cpp",
+        "src/Progmasoft/PropertyEngine.cpp",
         "src/Progmasoft/Results.cpp",
         "src/Progmasoft/Snapshot.cpp",
         "src/Progmasoft/XmlWriter.cpp"
@@ -52,8 +55,11 @@ target("ProgmasoftPropertyTests")
     add_files(
         "tests/Progmasoft/Generators.tests.cpp",
         "tests/Progmasoft/Property.tests.cpp",
+        "tests/Progmasoft/ForAll.tests.cpp",
         "tests/Progmasoft/Results.tests.cpp",
         "tests/Progmasoft/Snapshot.tests.cpp",
+        "tests/Progmasoft/Stateful.tests.cpp",
+        "tests/Progmasoft/Strategy.tests.cpp",
         "src/catch2/internal/catch_main.cpp"
     )
     add_includedirs("src", generated_include)

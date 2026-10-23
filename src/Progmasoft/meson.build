@@ -5,7 +5,14 @@
 # own C++14 baseline for existing users.
 progmasoft_catch3 = static_library(
   'ProgmasoftCatch3',
-  ['Results.cpp', 'Snapshot.cpp', 'XmlWriter.cpp'],
+  [
+    'ChoiceShrinker.cpp',
+    'Context.cpp',
+    'PropertyEngine.cpp',
+    'Results.cpp',
+    'Snapshot.cpp',
+    'XmlWriter.cpp',
+  ],
   include_directories: '..',
   dependencies: catch2_dep,
   override_options: ['cpp_std=c++20'],
@@ -28,6 +35,15 @@ if get_option('install')
   install_headers('Catch3/Results.hpp', subdir: 'Progmasoft/Catch3')
   install_headers('Catch3/Snapshot.hpp', subdir: 'Progmasoft/Catch3')
   install_headers('Catch3/XmlWriter.hpp', subdir: 'Progmasoft/Catch3')
+  install_headers('Catch3/ForAll.hpp', subdir: 'Progmasoft/Catch3')
+  install_headers('Catch3/Relations.hpp', subdir: 'Progmasoft/Catch3')
+  install_headers('Catch3/Stateful.hpp', subdir: 'Progmasoft/Catch3')
+  install_headers('Catch3/Strategy/ChoiceSource.hpp', subdir: 'Progmasoft/Catch3/Strategy')
+  install_headers('Catch3/Strategy/Containers.hpp', subdir: 'Progmasoft/Catch3/Strategy')
+  install_headers('Catch3/Strategy/Context.hpp', subdir: 'Progmasoft/Catch3/Strategy')
+  install_headers('Catch3/Strategy/Engine.hpp', subdir: 'Progmasoft/Catch3/Strategy')
+  install_headers('Catch3/Strategy/Numeric.hpp', subdir: 'Progmasoft/Catch3/Strategy')
+  install_headers('Catch3/Strategy/Strategy.hpp', subdir: 'Progmasoft/Catch3/Strategy')
   install_headers('Catch3/Generators/Boolean.hpp', subdir: 'Progmasoft/Catch3/Generators')
   install_headers('Catch3/Generators/Integer.hpp', subdir: 'Progmasoft/Catch3/Generators')
   install_headers('Catch3/Generators/Element.hpp', subdir: 'Progmasoft/Catch3/Generators')

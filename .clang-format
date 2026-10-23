@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 
 ---
-# Visual X# C++20 format profile, pinned to LLVM/Clang 23.1.0.
+# Progmasoft C++ Style format profile, pinned to LLVM/Clang 23.1.0.
 # Naming is intentionally outside clang-format and remains governed by the
-# existing Visual X# PascalCase/camelCase conventions.
+# PascalCase/camelCase conventions of Progmasoft C++ Style.
 Language: Cpp
 BasedOnStyle: LLVM
 Standard: c++20

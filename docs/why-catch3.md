@@ -15,19 +15,19 @@ Catch2 runner.
 
 | Area | Catch2 compatibility engine | Progmasoft Catch3 additions |
 | --- | --- | --- |
-| Test execution | Catch2's existing runner, reporters, command-line interface, and test registration | `CATCH3_CHECK_PROPERTY` reports property outcomes through Catch2's assertion path |
+| Test execution | Catch2's existing runner, reporters, command-line interface, and test registration | `CATCH3_CHECK_FOR_ALL` and `CATCH3_CHECK_PROPERTY` report property outcomes through Catch2's assertion path |
 | Public include path | Existing `catch2/...` headers | `Progmasoft/Catch3.hpp` and focused `Progmasoft/Catch3/...` headers |
 | C++ baseline | Existing Catch2 target remains at C++14 | The added property API requires C++20 |
 | Randomness | Catch2's existing behavior is unchanged | A specified SplitMix64 sequence provides deterministic trial seeds and unbiased bounded integer sampling |
-| Generated values | No change to existing Catch2 generators | Initial integer/boolean strategies, custom generator callbacks, and bounded greedy shrinking |
+| Generated values | No change to existing Catch2 generators | Strategies for numbers, text, collections and structures with `Map`, `Filter` and `FlatMap`; shrinking of recorded choices, so every combination shrinks; replay tokens and an example database; state machines, `Classify`/`Cover` statistics, targeted search, and differential and metamorphic oracles |
 | Build identity | Existing `Catch2` target and APIs remain available | Separate `Progmasoft::Catch3` CMake target and `//src/Progmasoft:catch3` Bazel target |
 | Source terms | Catch2-originated source retains its upstream BSL-1.0 terms | Progmasoft-authored additions state their own SPDX license in each file |
 
-The current property runner handles one generated value per property. Shrinking
-is deterministic and bounded, but greedy rather than globally minimal. There is
-not yet built-in support for state-machine properties, mapped or filtered generators,
-discard/classification policies, parallel execution, or a standalone Catch3
-runner. Those features are not implied by the initial API.
+Properties take any number of generated values. Shrinking is deterministic and
+bounded, but local rather than globally minimal. Parallel trials and a
+standalone Catch3 runner do not exist yet; [the roadmap](progmasoft-roadmap.md#top)
+orders them with mocking, per-test coverage, test selection, mutation testing
+and test generation.
 
 ## Compatibility policy
 
