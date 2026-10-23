@@ -14,7 +14,13 @@ target_compile_features(fuzzhelper PUBLIC cxx_std_20)
 # fix later. For now, target libFuzzer only.
 target_link_options(fuzzhelper PUBLIC "-fsanitize=fuzzer")
 
-foreach(fuzzer TestSpecParser RunnerJson RunnerOptions)
+foreach(fuzzer TestSpecParser)
   add_executable(fuzz_${fuzzer} fuzz_${fuzzer}.cpp)
+  target_link_libraries(fuzz_${fuzzer} PRIVATE fuzzhelper)
+endforeach()
+
+# Progmasoft's fuzzers live apart, under their own license header.
+foreach(fuzzer RunnerJson RunnerOptions)
+  add_executable(fuzz_${fuzzer} Progmasoft/fuzz_${fuzzer}.cpp)
   target_link_libraries(fuzz_${fuzzer} PRIVATE fuzzhelper)
 endforeach()
