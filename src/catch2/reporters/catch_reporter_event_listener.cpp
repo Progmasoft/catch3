@@ -20,12 +20,6 @@ namespace Catch {
     void EventListenerBase::assertionStarting( AssertionInfo const& ) {}
 
     void EventListenerBase::assertionEnded( AssertionStats const& ) {}
-    void EventListenerBase::listReporters(
-        std::vector<ReporterDescription> const& ) {}
-    void EventListenerBase::listListeners(
-        std::vector<ListenerDescription> const& ) {}
-    void EventListenerBase::listTests( std::vector<TestCaseHandle> const& ) {}
-    void EventListenerBase::listTags( std::vector<TagInfo> const& ) {}
     void EventListenerBase::noMatchingTestCases( StringRef ) {}
     void EventListenerBase::reportInvalidTestSpec( StringRef ) {}
     void EventListenerBase::testRunStarting( TestRunInfo const& ) {}
@@ -36,5 +30,4 @@ namespace Catch {
     void EventListenerBase::testCasePartialEnded(TestCaseStats const&, uint64_t) {}
     void EventListenerBase::testCaseEnded( TestCaseStats const& ) {}
     void EventListenerBase::testRunEnded( TestRunStats const& ) {}
-    void EventListenerBase::skipTest( TestCaseInfo const& ) {}
 } // namespace Catch

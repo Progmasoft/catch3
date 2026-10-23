@@ -1,17 +1,15 @@
 # Copyright (c) 2026 Progmasoft.
 # SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 
-# Compile the non-template C++20 utilities separately while retaining Catch2's
-# own C++14 baseline for existing users.
+# The property engine and the other Progmasoft test utilities; their headers
+# need C++20 in the code that includes them.
 progmasoft_catch3 = static_library(
   'ProgmasoftCatch3',
   [
     'ChoiceShrinker.cpp',
     'Context.cpp',
     'PropertyEngine.cpp',
-    'Results.cpp',
     'Snapshot.cpp',
-    'XmlWriter.cpp',
   ],
   include_directories: '..',
   dependencies: catch2_dep,
@@ -33,6 +31,8 @@ if get_option('install')
   install_headers('Catch3/Property.hpp', subdir: 'Progmasoft/Catch3')
   install_headers('Catch3/Random.hpp', subdir: 'Progmasoft/Catch3')
   install_headers('Catch3/Results.hpp', subdir: 'Progmasoft/Catch3')
+  install_headers('Catch3/Runner.hpp', subdir: 'Progmasoft/Catch3')
+  install_headers('Catch3/Version.hpp', subdir: 'Progmasoft/Catch3')
   install_headers('Catch3/Snapshot.hpp', subdir: 'Progmasoft/Catch3')
   install_headers('Catch3/XmlWriter.hpp', subdir: 'Progmasoft/Catch3')
   install_headers('Catch3/ForAll.hpp', subdir: 'Progmasoft/Catch3')

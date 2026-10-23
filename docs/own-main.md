@@ -1,31 +1,25 @@
 <a id="top"></a>
-
-> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
-
 # Supplying main() yourself
 
 **Contents**<br>
-[Let Catch2 take full control of args and config](#let-catch2-take-full-control-of-args-and-config)<br>
-[Amending the Catch2 config](#amending-the-catch2-config)<br>
-[Adding your own command line options](#adding-your-own-command-line-options)<br>
+[Run the tests from your own main](#run-the-tests-from-your-own-main)<br>
+[Options of your own](#options-of-your-own)<br>
 [Version detection](#version-detection)<br>
 
-The easiest way to use Catch2 is to use its own `main` function, and let
-it handle the command line arguments. This is done by linking against
-Catch2Main library, e.g. through the [CMake target](cmake-integration.md#cmake-targets),
-or pkg-config files.
+The easiest way to use Catch3 is its own `main`: link against
+`Catch2::Catch2WithMain` (the [CMake target](cmake-integration.md#cmake-targets))
+or the `catch2-with-main` pkg-config file. To write your own `main`, link
+against `Catch2::Catch2` and hand the command line to the
+[Catch3 runner](progmasoft-runner.md#top).
 
-If you want to provide your own `main`, then you should link against
-the static library (target) only, without the main part. You will then
-have to write your own `main` and call into Catch2 test runner manually.
+The runner starts the same binary again for its worker processes, with the
+same `main`. Whatever `main` does before and after `run`, it also does in
+every worker. That is usually what global set-up needs; when only the
+runner's own process should do something, check whether the environment
+variable `CATCH3_WORKER` is set, which it is only in workers.
 
-Below are some basic recipes on what you can do supplying your own main.
 
-
-## Let Catch2 take full control of args and config
-
-This is useful if you just need to have code that executes before/after
-Catch2 runs tests.
+## Run the tests from your own main
 
 ```cpp
 #include <catch2/catch_session.hpp>
@@ -41,81 +35,41 @@ int main( int argc, char* argv[] ) {
 }
 ```
 
-_Note that if you only want to run some set up before tests are run, it
-might be simpler to use [event listeners](event-listeners.md#top) instead._
+`run` returns the [exit code](progmasoft-runner.md#exit-codes). A binary that
+needs no `Catch::Session` may call `Progmasoft::Catch3::RunTests`, from
+`<Progmasoft/Catch3/Runner.hpp>`, with the arguments as a
+`std::vector<std::string>`.
+
+_If you only want to run some set up before tests are run, it might be
+simpler to use [event listeners](event-listeners.md#top) instead._
 
 
-## Amending the Catch2 config
+## Options of your own
 
-If you want Catch2 to process command line arguments, but also want to
-programmatically change the resulting configuration of Catch2 run,
-you can do it in two ways:
-
-```c++
-int main( int argc, char* argv[] ) {
-  Catch::Session session; // There must be exactly one instance
-
-  // writing to session.configData() here sets defaults
-  // this is the preferred way to set them
-
-  int returnCode = session.applyCommandLine( argc, argv );
-  if( returnCode != 0 ) // Indicates a command line error
-    return returnCode;
-
-  // writing to session.configData() or session.Config() here
-  // overrides command line args
-  // only do this if you know you need to
-
-  returnCode = session.run();
-
-  // returnCode encodes the type of error that occurred. See the
-  // integer constants in catch_session.hpp for more information
-  // on what each return code means.
-
-  return numFailed;
-}
-```
-
-If you want full control of the configuration, don't call `applyCommandLine`.
-
-
-## Adding your own command line options
-
-You can add new command line options to Catch2, by composing the premade
-CLI parser (called Clara), and add your own options.
+Catch2's `Session::cli()` and `Session::configData()` went with Catch2's
+runner. Take your own options out of the command line before passing the
+rest on; the runner treats an option it does not know as an error.
 
 ```cpp
 int main( int argc, char* argv[] ) {
-  Catch::Session session; // There must be exactly one instance
+  int height = 0;
+  std::vector<char const*> arguments;
+  for ( int i = 0; i < argc; ++i ) {
+      std::string const argument = argv[i];
+      if ( argument.rfind( "--height=", 0 ) == 0 ) {
+          height = std::atoi( argument.c_str() + 9 );
+      } else {
+          arguments.push_back( argv[i] );
+      }
+  }
 
-  int height = 0; // Some user variable you want to be able to set
-
-  // Build a new parser on top of Catch2's
-  using namespace Catch::Clara;
-  auto cli
-    = session.cli()           // Get Catch2's command line parser
-    | Opt( height, "height" ) // bind variable to a new option, with a hint string
-        ["-g"]["--height"]    // the option names it will respond to
-        ("how high?");        // description string for the help output
-
-  // Now pass the new composite back to Catch2 so it uses that
-  session.cli( cli );
-
-  // Let Catch2 (using Clara) parse the command line
-  int returnCode = session.applyCommandLine( argc, argv );
-  if( returnCode != 0 ) // Indicates a command line error
-      return returnCode;
-
-  // if set on the command line then 'height' is now set at this point
-  if( height > 0 )
-      std::cout << "height: " << height << std::endl;
-
-  return session.run();
+  return Catch::Session().run( static_cast<int>( arguments.size() ),
+                               arguments.data() );
 }
 ```
 
-See the [Clara documentation](https://github.com/catchorg/Clara/blob/master/README.md)
-for more details on how to use the Clara parser.
+Workers are started with the runner's own options. A value the tests need
+in every worker belongs in the environment, which workers inherit.
 
 
 ## Version detection
@@ -128,7 +82,9 @@ Catch2 provides a triplet of macros providing the header's version,
 
 these macros expand into a single number, that corresponds to the appropriate
 part of the version. As an example, given single header version v2.3.4,
-the macros would expand into `2`, `3`, and `4` respectively.
+the macros would expand into `2`, `3`, and `4` respectively. The version of
+the Catch3 runner is `Progmasoft::Catch3::kVersion` in
+`<Progmasoft/Catch3/Version.hpp>`, and `--version` prints it.
 
 
 ---

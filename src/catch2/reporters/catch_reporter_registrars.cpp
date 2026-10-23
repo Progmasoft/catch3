@@ -14,19 +14,6 @@
 namespace Catch {
     namespace Detail {
 
-        void registerReporterImpl( std::string const& name,
-                                   IReporterFactoryPtr reporterPtr ) {
-            CATCH_TRY {
-                getMutableRegistryHub().registerReporter(
-                    name, CATCH_MOVE( reporterPtr ) );
-            }
-            CATCH_CATCH_ALL {
-                // Do not throw when constructing global objects, instead
-                // register the exception to be processed later
-                getMutableRegistryHub().registerStartupException();
-            }
-        }
-
         void registerListenerImpl( Detail::unique_ptr<EventListenerFactory> listenerFactory ) {
             getMutableRegistryHub().registerListener( CATCH_MOVE(listenerFactory) );
         }

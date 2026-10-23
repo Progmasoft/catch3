@@ -44,6 +44,10 @@ file_header = '''\
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
+//
+//  The parts that come from src/Progmasoft, the Catch3 runner, keep
+//  their own copyright and license lines (MPL-2.0 WITH
+//  AdditionRef-Progmasoft-Exception-1.1). The runner needs C++20.
 //  ----------------------------------------------------------
 '''
 
@@ -68,6 +72,9 @@ def concatenate_file(out, filename: str, expand_headers: bool) -> int:
             if line in copyright_lines:
                 continue
             m = internal_include_parser.match(line)
+            # The runner's headers are expanded at the start of the .cpp file.
+            if not m and not expand_headers and progmasoft_include_parser.match(line):
+                continue
             # anything that isn't a Catch2 header can just be copied to
             # the resulting file
             if not m:
@@ -112,16 +119,61 @@ def generate_header():
         print('Concatenated {} headers'.format(concatenate_file(header, starting_header, True)))
         header.write('#endif // CATCH_AMALGAMATED_HPP_INCLUDED\n')
 
+# The runner's files include each other as <Progmasoft/...> or, inside one
+# directory, as "Name.hpp".
+progmasoft_include_parser = re.compile(r'\s*#include (?:<(Progmasoft/[^>]+)>|"([A-Za-z/]+\.hpp)").*')
+concatenated_runner_headers = set()
+
+
+def concatenate_runner_file(out, filename: str, expand_headers: bool):
+    """Copies a file of the runner, expanding the runner's headers it
+    includes once, or dropping those includes from the .cpp files."""
+    directory = os.path.dirname(filename)
+    with open(filename, mode='r', encoding='utf-8') as input:
+        for line in input:
+            if line.strip() == '#pragma once':
+                continue
+            # Catch2's own headers are all in the amalgamated header.
+            if internal_include_parser.match(line):
+                continue
+            m = progmasoft_include_parser.match(line)
+            if not m:
+                out.write(line)
+                continue
+            if m.group(1):
+                header = os.path.normpath(os.path.join(root_path, m.group(1)))
+            else:
+                header = os.path.normpath(os.path.join(directory, m.group(2)))
+            if not expand_headers or header in concatenated_runner_headers:
+                continue
+            concatenated_runner_headers.add(header)
+            concatenate_runner_file(out, header, True)
+
+
 def generate_cpp():
     from glob import glob
     cpp_files = sorted(glob(os.path.join(root_path, 'catch2', '**/*.cpp'), recursive=True))
+    runner_headers = sorted(glob(os.path.join(root_path, 'Progmasoft', 'Runner', '*.hpp'))) + [
+        os.path.join(root_path, 'Progmasoft', 'Catch3', name)
+        for name in ('Results.hpp', 'Runner.hpp', 'Version.hpp', 'XmlWriter.hpp')]
+    runner_files = [os.path.join(root_path, 'Progmasoft', 'Results.cpp'),
+                    os.path.join(root_path, 'Progmasoft', 'XmlWriter.cpp')] + \
+        sorted(glob(os.path.join(root_path, 'Progmasoft', 'Runner', '*.cpp')))
     with open(output_cpp, mode='w', encoding='utf-8') as cpp:
         cpp.write(formatted_file_header(Version()))
         cpp.write('\n#include "catch_amalgamated.hpp"\n')
         concatenate_file(cpp, os.path.join(root_path, 'catch2/internal/catch_windows_h_proxy.hpp'), False)
+        # The runner's headers come first: Catch::Session reaches the runner.
+        for header in runner_headers:
+            header = os.path.normpath(header)
+            if header not in concatenated_runner_headers:
+                concatenated_runner_headers.add(header)
+                concatenate_runner_file(cpp, header, True)
         for file in cpp_files:
             concatenate_file(cpp, file, False)
-    print('Concatenated {} cpp files'.format(len(cpp_files)))
+        for file in runner_files:
+            concatenate_runner_file(cpp, file, False)
+    print('Concatenated {} cpp files'.format(len(cpp_files) + len(runner_files)))
 
 if __name__ == "__main__":
     generate_header()

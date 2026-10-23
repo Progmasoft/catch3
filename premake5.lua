@@ -28,15 +28,21 @@ workspace "Catch3"
         runtime "Release"
     filter {}
 
+-- Catch2's engine with the Catch3 runner; the library is C++20, its headers
+-- need only C++14 in the code that includes them.
 project "Catch2"
     kind "StaticLib"
     language "C++"
-    cppdialect "C++14"
+    cppdialect "C++20"
     targetdir "build/premake/bin/%{cfg.buildcfg}"
     objdir "build/premake/obj/Catch2/%{cfg.buildcfg}"
     files {
         "src/catch2/**.cpp",
         "src/catch2/**.hpp",
+        "src/Progmasoft/Runner/*.cpp",
+        "src/Progmasoft/Runner/*.hpp",
+        "src/Progmasoft/Results.cpp",
+        "src/Progmasoft/XmlWriter.cpp",
         path.join(generated_include, "catch2", "catch_user_config.hpp"),
     }
     removefiles { "src/catch2/internal/catch_main.cpp" }
@@ -65,12 +71,7 @@ project "ProgmasoftCatch3"
         "src/Progmasoft/ChoiceShrinker.cpp",
         "src/Progmasoft/Context.cpp",
         "src/Progmasoft/PropertyEngine.cpp",
-        "src/Progmasoft/Results.cpp",
-        "src/Progmasoft/Results.hpp",
         "src/Progmasoft/Snapshot.cpp",
-        "src/Progmasoft/Snapshot.hpp",
-        "src/Progmasoft/XmlWriter.cpp",
-        "src/Progmasoft/XmlWriter.hpp",
         "src/Progmasoft/Catch3/**.hpp",
         "src/Progmasoft/Catch3.hpp",
     }
@@ -88,6 +89,8 @@ project "ProgmasoftPropertyTests"
         "tests/Progmasoft/Property.tests.cpp",
         "tests/Progmasoft/ForAll.tests.cpp",
         "tests/Progmasoft/Results.tests.cpp",
+        "tests/Progmasoft/Runner.tests.cpp",
+        "tests/Progmasoft/RunnerUnits.tests.cpp",
         "tests/Progmasoft/Snapshot.tests.cpp",
         "tests/Progmasoft/Stateful.tests.cpp",
         "tests/Progmasoft/Strategy.tests.cpp",

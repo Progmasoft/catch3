@@ -13,7 +13,6 @@
 #include <catch2/internal/catch_test_spec_parser.hpp>
 #include <catch2/catch_user_config.hpp>
 #include <catch2/catch_test_case_info.hpp>
-#include <catch2/internal/catch_commandline.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/internal/catch_compiler_capabilities.hpp>
 
@@ -362,4 +361,9 @@ TEST_CASE("Test spec serialization is round-trippable", "[test-spec][serializati
         CHECK( serializedTestSpec( "[ab]some test[cd]" ) ==
                "[ab] \"some test\" [cd]" );
     }
+}
+
+TEST_CASE("Test with special, characters \"in name", "[cli][regression]") {
+    // This test case succeeds if we can invoke it from the command line.
+    SUCCEED();
 }

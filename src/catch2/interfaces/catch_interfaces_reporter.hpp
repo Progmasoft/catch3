@@ -24,39 +24,10 @@
 
 namespace Catch {
 
-    struct ReporterDescription;
-    struct ListenerDescription;
-    struct TagInfo;
     struct TestCaseInfo;
     class TestCaseHandle;
     class IConfig;
-    class IStream;
     enum class ColourMode : std::uint8_t;
-
-    struct ReporterConfig {
-        ReporterConfig( IConfig const* _fullConfig,
-                        Detail::unique_ptr<IStream> _stream,
-                        ColourMode colourMode,
-                        Verbosity verbosity,
-                        std::map<std::string, std::string> customOptions );
-
-        ReporterConfig( ReporterConfig&& ) = default;
-        ReporterConfig& operator=( ReporterConfig&& ) = default;
-        ~ReporterConfig(); // = default
-
-        Detail::unique_ptr<IStream> takeStream() &&;
-        IConfig const* fullConfig() const;
-        ColourMode colourMode() const;
-        Verbosity verbosity() const;
-        std::map<std::string, std::string> const& customOptions() const;
-
-    private:
-        Detail::unique_ptr<IStream> m_stream;
-        IConfig const* m_fullConfig;
-        ColourMode m_colourMode;
-        Verbosity m_verbosity;
-        std::map<std::string, std::string> m_customOptions;
-    };
 
     struct AssertionStats {
         AssertionStats( AssertionResult const& _assertionResult,
@@ -204,25 +175,8 @@ namespace Catch {
          */
         virtual void testRunEnded( TestRunStats const& testRunStats ) = 0;
 
-        /**
-         * Called with test cases that are skipped due to the test run aborting.
-         * NOT called for test cases that are explicitly skipped using the `SKIP` macro.
-         *
-         * Deprecated - will be removed in the next major release.
-         */
-        virtual void skipTest( TestCaseInfo const& testInfo ) = 0;
-
         //! Called if a fatal error (signal/structured exception) occurred
         virtual void fatalErrorEncountered( StringRef error ) = 0;
-
-        //! Writes out information about provided reporters using reporter-specific format
-        virtual void listReporters(std::vector<ReporterDescription> const& descriptions) = 0;
-        //! Writes out the provided listeners descriptions using reporter-specific format
-        virtual void listListeners(std::vector<ListenerDescription> const& descriptions) = 0;
-        //! Writes out information about provided tests using reporter-specific format
-        virtual void listTests(std::vector<TestCaseHandle> const& tests) = 0;
-        //! Writes out information about the provided tags using reporter-specific format
-        virtual void listTags(std::vector<TagInfo> const& tags) = 0;
     };
     using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
 

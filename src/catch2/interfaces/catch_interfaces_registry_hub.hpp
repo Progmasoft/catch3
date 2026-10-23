@@ -20,7 +20,6 @@ namespace Catch {
     class IExceptionTranslatorRegistry;
     class IExceptionTranslator;
     class ReporterRegistry;
-    class IReporterFactory;
     class ITagAliasRegistry;
     class ITestInvoker;
     class IMutableEnumValuesRegistry;
@@ -29,7 +28,6 @@ namespace Catch {
     class StartupExceptionRegistry;
     class EventListenerFactory;
 
-    using IReporterFactoryPtr = Detail::unique_ptr<IReporterFactory>;
 
     class IRegistryHub {
     public:
@@ -47,7 +45,6 @@ namespace Catch {
     class IMutableRegistryHub {
     public:
         virtual ~IMutableRegistryHub(); // = default
-        virtual void registerReporter( std::string const& name, IReporterFactoryPtr factory ) = 0;
         virtual void registerListener( Detail::unique_ptr<EventListenerFactory> factory ) = 0;
         virtual void registerTest(Detail::unique_ptr<TestCaseInfo>&& testInfo, Detail::unique_ptr<ITestInvoker>&& invoker) = 0;
         virtual void registerTranslator( Detail::unique_ptr<IExceptionTranslator>&& translator ) = 0;

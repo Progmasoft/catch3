@@ -37,44 +37,44 @@ if os.path.isfile(info_file_path):
 print('bin path:', bin_path)
 print('shard confirmation path:', info_file_path)
 
-env = os.environ.copy()
-# We will run only one shard, and it should have the passing test.
-# This simplifies our work a bit, and if we have any regression in this
-# functionality we can make more complex tests later.
-env["BAZEL_TEST"] = "1"
-env["TEST_SHARD_INDEX"] = "0"
-env["TEST_TOTAL_SHARDS"] = "2"
-env["TEST_SHARD_STATUS_FILE"] = info_file_path
+import re
 
-cmd = [
-  bin_path,
-  # We rely on the test order being deterministic
-  '--order', 'decl'
-]
+# The two shards together run the two tests of the binary, each once.
+total = 0
+for index in range(2):
+    if os.path.isfile(info_file_path):
+        os.remove(info_file_path)
+    env = os.environ.copy()
+    env["BAZEL_TEST"] = "1"
+    env["TEST_SHARD_INDEX"] = str(index)
+    env["TEST_TOTAL_SHARDS"] = "2"
+    env["TEST_SHARD_STATUS_FILE"] = info_file_path
 
-try:
     ret = subprocess.run(
-        cmd,
+        [bin_path, '--allow-no-tests', '--retries=off'],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        check=True,
         universal_newlines=True,
         env=env
     )
-    stdout = ret.stdout
-except subprocess.SubprocessError as ex:
-    print('Could not run "{}"'.format(bin_path))
-    print("Return code: {}".format(ex.returncode))
-    print("stdout: {}".format(ex.stdout))
-    print("stderr: {}".format(ex.stderr))
-    raise
+    if ret.returncode not in (0, 42):
+        print('Could not run "{}"'.format(bin_path))
+        print("Return code: {}".format(ret.returncode))
+        print("stdout: {}".format(ret.stdout))
+        print("stderr: {}".format(ret.stderr))
+        exit(1)
 
+    summary = re.search(r'(\d+) test\(s\):', ret.stdout)
+    if summary is None:
+        print("Did not find the summary in stdout.")
+        print("stdout:\n{}".format(ret.stdout))
+        exit(1)
+    total += int(summary.group(1))
 
-if not "All tests passed (1 assertion in 1 test case)" in stdout:
-    print("Did not find expected output in stdout.")
-    print("stdout:\n{}".format(stdout))
-    exit(1)
+    if not os.path.isfile(info_file_path):
+        print("The runner did not create the expected file at path '{}'".format(info_file_path))
+        exit(2)
 
-if not os.path.isfile(info_file_path):
-    print("Catch2 did not create expected file at path '{}'".format(info_file_path))
-    exit(2)
+if total != 2:
+    print("The shards ran {} tests together instead of 2".format(total))
+    exit(3)

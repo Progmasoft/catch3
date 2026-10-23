@@ -8,6 +8,7 @@ package(
 
 exports_files([
     "LICENSE.txt",
+    "src/catch2/catch_session.cpp",
 ])
 
 license(
@@ -20,8 +21,6 @@ expand_template(
     name = "catch_user_config",
     out = "catch2/catch_user_config.hpp",
     substitutions = {
-        "@CATCH_CONFIG_CONSOLE_WIDTH@": "80",
-        "@CATCH_CONFIG_DEFAULT_REPORTER@": "console",
         "#cmakedefine CATCH_CONFIG_ANDROID_LOGWRITE": "",
         "#cmakedefine CATCH_CONFIG_BAZEL_SUPPORT": "#define CATCH_CONFIG_BAZEL_SUPPORT",
         "#cmakedefine CATCH_CONFIG_COLOUR_WIN32": "",
@@ -92,18 +91,34 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
-# Static library, without main.
+# Catch2's engine: everything but the entry points. The runner is in
+# //src/Progmasoft:runner.
 cc_library(
-    name = "catch2",
+    name = "catch2_core",
     srcs = glob(
         ["src/catch2/**/*.cpp"],
-        exclude = ["src/catch2/internal/catch_main.cpp"],
+        exclude = [
+            "src/catch2/internal/catch_main.cpp",
+            "src/catch2/catch_session.cpp",
+        ],
     ),
     hdrs = glob(["src/catch2/**/*.hpp"]),
     includes = ["src/"],
     linkstatic = True,
-    visibility = ["//visibility:public"],
+    visibility = ["//src/Progmasoft:__pkg__"],
     deps = [":catch2_generated"],
+)
+
+# Static library, without main: Catch2's engine with the Catch3 runner, which
+# replaced Catch2's session, command line and reporters.
+cc_library(
+    name = "catch2",
+    linkstatic = True,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":catch2_core",
+        "//src/Progmasoft:runner",
+    ],
 )
 
 # Static library, with main.

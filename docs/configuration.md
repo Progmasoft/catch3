@@ -6,11 +6,8 @@
 
 **Contents**<br>
 [Prefixing Catch macros](#prefixing-catch-macros)<br>
-[Terminal colour](#terminal-colour)<br>
-[Console width](#console-width)<br>
 [stdout](#stdout)<br>
 [Fallback stringifier](#fallback-stringifier)<br>
-[Default reporter](#default-reporter)<br>
 [Bazel support](#bazel-support)<br>
 [C++11 toggles](#c11-toggles)<br>
 [C++17 toggles](#c17-toggles)<br>
@@ -36,28 +33,6 @@ with the same name.
 
 To keep test code clean and uncluttered Catch uses short macro names (e.g. ```TEST_CASE``` and ```REQUIRE```). Occasionally these may conflict with identifiers from platform headers or the system under test. In this case the above identifier can be defined. This will cause all the Catch user macros to be prefixed with ```CATCH_``` (e.g. ```CATCH_TEST_CASE``` and ```CATCH_REQUIRE```).
 
-
-## Terminal colour
-
-    CATCH_CONFIG_COLOUR_WIN32     // Force enables compiling colouring impl based on Win32 console API
-    CATCH_CONFIG_NO_COLOUR_WIN32  // Force disables ...
-
-Yes, Catch2 uses the british spelling of colour.
-
-Catch2 attempts to autodetect whether the Win32 console colouring API,
-`SetConsoleTextAttribute`, is available, and if it is available it compiles
-in a console colouring implementation that uses it.
-
-This option can be used to override Catch2's autodetection and force the
-compilation either ON or OFF.
-
-
-## Console width
-
-    CATCH_CONFIG_CONSOLE_WIDTH = x // where x is a number
-
-Catch formats output intended for the console to fit within a fixed number of characters. This is especially important as indentation is used extensively and uncontrolled line wraps break this.
-By default a console width of 80 is assumed but this can be controlled by defining the above identifier to be a different value.
 
 ## stdout
 
@@ -94,21 +69,11 @@ _Note that if the provided function does not handle a type and this type
 requires to be stringified, the compilation will fail._
 
 
-## Default reporter
-
-Catch's default reporter can be changed by defining macro
-`CATCH_CONFIG_DEFAULT_REPORTER` to string literal naming the desired
-default reporter.
-
-This means that defining `CATCH_CONFIG_DEFAULT_REPORTER` to `"console"`
-is equivalent with the out-of-the-box experience.
-
-
 ## Bazel support
 
-Compiling Catch2 with `CATCH_CONFIG_BAZEL_SUPPORT` force-enables Catch2's
-support for Bazel's environment variables (normally Catch2 looks for
-`BAZEL_TEST=1` env var first).
+Compiling Catch2 with `CATCH_CONFIG_BAZEL_SUPPORT` makes the runner read
+[Bazel's environment variables](progmasoft-runner.md#bazel-and-ctest)
+always; otherwise it reads them when `BAZEL_TEST=1` is set.
 
 This can be useful if you are using older versions of Bazel, that do not
 yet have `BAZEL_TEST` env var support.

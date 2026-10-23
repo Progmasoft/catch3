@@ -7,10 +7,14 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch v3.16.1
-//  Generated: 2026-10-11 02:09:25.452537
+//  Generated: 2026-10-23 23:12:01.222722
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
+//
+//  The parts that come from src/Progmasoft, the Catch3 runner, keep
+//  their own copyright and license lines (MPL-2.0 WITH
+//  AdditionRef-Progmasoft-Exception-1.1). The runner needs C++20.
 //  ----------------------------------------------------------
 #ifndef CATCH_AMALGAMATED_HPP_INCLUDED
 #define CATCH_AMALGAMATED_HPP_INCLUDED
@@ -1284,7 +1288,6 @@ namespace Catch {
     class IExceptionTranslatorRegistry;
     class IExceptionTranslator;
     class ReporterRegistry;
-    class IReporterFactory;
     class ITagAliasRegistry;
     class ITestInvoker;
     class IMutableEnumValuesRegistry;
@@ -1293,7 +1296,6 @@ namespace Catch {
     class StartupExceptionRegistry;
     class EventListenerFactory;
 
-    using IReporterFactoryPtr = Detail::unique_ptr<IReporterFactory>;
 
     class IRegistryHub {
     public:
@@ -1311,7 +1313,6 @@ namespace Catch {
     class IMutableRegistryHub {
     public:
         virtual ~IMutableRegistryHub(); // = default
-        virtual void registerReporter( std::string const& name, IReporterFactoryPtr factory ) = 0;
         virtual void registerListener( Detail::unique_ptr<EventListenerFactory> factory ) = 0;
         virtual void registerTest(Detail::unique_ptr<TestCaseInfo>&& testInfo, Detail::unique_ptr<ITestInvoker>&& invoker) = 0;
         virtual void registerTranslator( Detail::unique_ptr<IExceptionTranslator>&& translator ) = 0;
@@ -2516,6 +2517,7 @@ namespace Catch {
 #elif defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpointer-bool-conversion"
+#pragma clang diagnostic ignored "-Wmicrosoft-cast"
 #endif
 
         template<typename T>
@@ -3807,130 +3809,26 @@ namespace Catch {
 
 #endif // CATCH_RANDOM_SEED_GENERATION_HPP_INCLUDED
 
-
-#ifndef CATCH_REPORTER_SPEC_PARSER_HPP_INCLUDED
-#define CATCH_REPORTER_SPEC_PARSER_HPP_INCLUDED
-
-
-#include <map>
-#include <string>
-#include <vector>
-
-namespace Catch {
-
-    enum class ColourMode : std::uint8_t;
-
-    namespace Detail {
-        //! Splits the reporter spec into reporter name and kv-pair options
-        std::vector<std::string> splitReporterSpec( StringRef reporterSpec );
-
-        Optional<ColourMode> stringToColourMode( StringRef colourMode );
-        Optional<Verbosity> stringToVerbosity( StringRef verbosity );
-    }
-
-    /**
-     * Structured reporter spec that a reporter can be created from
-     *
-     * Parsing has been validated, but semantics have not. This means e.g.
-     * that the colour mode is known to Catch2, but it might not be
-     * compiled into the binary, and the output filename might not be
-     * openable.
-     */
-    class ReporterSpec {
-        std::string m_name;
-        Optional<std::string> m_outputFileName;
-        Optional<ColourMode> m_colourMode;
-        Optional<Verbosity> m_verbosity;
-        std::map<std::string, std::string> m_customOptions;
-
-        friend bool operator==( ReporterSpec const& lhs,
-                                ReporterSpec const& rhs );
-        friend bool operator!=( ReporterSpec const& lhs,
-                                ReporterSpec const& rhs ) {
-            return !( lhs == rhs );
-        }
-
-    public:
-        ReporterSpec(
-            std::string name,
-            Optional<std::string> outputFileName,
-            Optional<ColourMode> colourMode,
-            Optional<Verbosity> verbosity,
-            std::map<std::string, std::string> customOptions );
-
-        std::string const& name() const { return m_name; }
-
-        Optional<std::string> const& outputFile() const {
-            return m_outputFileName;
-        }
-
-        Optional<ColourMode> const& colourMode() const { return m_colourMode; }
-
-        Optional<Verbosity> const& verbosity() const { return m_verbosity; }
-
-        std::map<std::string, std::string> const& customOptions() const {
-            return m_customOptions;
-        }
-    };
-
-    /**
-     * Parses provided reporter spec string into actual `ReporterSpec`
-     *
-     * Returns empty optional on errors, e.g.
-     *  * field that is not first and not a key+value pair
-     *  * duplicated keys in kv pair
-     *  * unknown catch reporter option
-     *  * empty key/value in an custom kv pair
-     *  * ...
-     */
-    Optional<ReporterSpec> parseReporterSpec( StringRef reporterSpec );
-
-}
-
-#endif // CATCH_REPORTER_SPEC_PARSER_HPP_INCLUDED
-
 #include <chrono>
-#include <map>
 #include <string>
 #include <vector>
 
 namespace Catch {
 
-    class IStream;
-
     /**
-     * `ReporterSpec` but with the defaults filled in.
+     * How the tests of one process behave.
      *
-     * Like `ReporterSpec`, the semantics are unchecked.
+     * The Catch3 runner fills this in from its own command line, in the
+     * process that runs the tests: a worker, or the runner itself with
+     * `--in-process`. What to run, in which order and where to report is
+     * the runner's, not part of this configuration.
      */
-    struct ProcessedReporterSpec {
-        std::string name;
-        std::string outputFilename;
-        ColourMode colourMode;
-        Verbosity verbosity;
-        std::map<std::string, std::string> customOptions;
-        friend bool operator==( ProcessedReporterSpec const& lhs,
-                                ProcessedReporterSpec const& rhs );
-        friend bool operator!=( ProcessedReporterSpec const& lhs,
-                                ProcessedReporterSpec const& rhs ) {
-            return !( lhs == rhs );
-        }
-    };
-
     struct ConfigData {
-
-        bool listTests = false;
-        bool listTags = false;
-        bool listReporters = false;
-        bool listListeners = false;
-
         bool showSuccessfulTests = false;
         bool shouldDebugBreak = false;
         bool noThrow = false;
-        bool showHelp = false;
         bool showInvisibles = false;
         bool filenamesAsTags = false;
-        bool libIdentify = false;
         bool allowZeroTests = false;
 
         int abortAfter = -1;
@@ -3951,20 +3849,15 @@ namespace Catch {
         WarnAbout::What warnings = WarnAbout::Nothing;
         ShowDurations showDurations = ShowDurations::DefaultForReporter;
         double minDuration = -1;
-        TestRunOrder runOrder = TestRunOrder::Randomized;
+        TestRunOrder runOrder = TestRunOrder::Declared;
         ColourMode defaultColourMode = ColourMode::PlatformDefault;
-        WaitForKeypress::When waitForKeypress = WaitForKeypress::Never;
 
-        std::string defaultOutputFilename;
         std::string name;
         std::string processName;
-        std::vector<ReporterSpec> reporterSpecifications;
 
         std::vector<std::string> testsOrTags;
         std::vector<PathFilter> pathFilters;
         bool useNewPathFilteringBehaviour = false;
-
-        std::string prematureExitGuardFilePath;
     };
 
 
@@ -3975,25 +3868,12 @@ namespace Catch {
         Config( ConfigData const& data );
         ~Config() override; // = default in the cpp file
 
-        bool listTests() const;
-        bool listTags() const;
-        bool listReporters() const;
-        bool listListeners() const;
-
-        std::vector<ReporterSpec> const& getReporterSpecs() const;
-        std::vector<ProcessedReporterSpec> const&
-        getProcessedReporterSpecs() const;
-
         std::vector<std::string> const& getTestsOrTags() const override;
         std::vector<PathFilter> const& getPathFilters() const override;
         bool useNewFilterBehaviour() const override;
 
         TestSpec const& testSpec() const override;
         bool hasTestFilters() const override;
-
-        bool showHelp() const;
-
-        std::string const& getExitGuardFilePath() const;
 
         // IConfig interface
         bool allowThrows() const override;
@@ -4023,11 +3903,7 @@ namespace Catch {
         std::chrono::milliseconds benchmarkWarmupTime() const override;
 
     private:
-        // Reads Bazel env vars and applies them to the config
-        void readBazelEnvVars();
-
         ConfigData m_data;
-        std::vector<ProcessedReporterSpec> m_processedReporterSpecs;
         TestSpec m_testSpec;
         bool m_hasTestFilters = false;
     };
@@ -4372,811 +4248,56 @@ namespace Catch {
 #define CATCH_SESSION_HPP_INCLUDED
 
 
-
-#ifndef CATCH_COMMANDLINE_HPP_INCLUDED
-#define CATCH_COMMANDLINE_HPP_INCLUDED
-
-
-
-#ifndef CATCH_CLARA_HPP_INCLUDED
-#define CATCH_CLARA_HPP_INCLUDED
-
-#if defined( __clang__ )
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wweak-vtables"
-#    pragma clang diagnostic ignored "-Wshadow"
-#    pragma clang diagnostic ignored "-Wdeprecated"
-#endif
-
-#if defined( __GNUC__ )
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
-#ifndef CLARA_CONFIG_OPTIONAL_TYPE
-#    ifdef __has_include
-#        if __has_include( <optional>) && __cplusplus >= 201703L
-#            include <optional>
-#            define CLARA_CONFIG_OPTIONAL_TYPE std::optional
-#        endif
-#    endif
-#endif
-
-
-#include <cassert>
-#include <memory>
-#include <ostream>
-#include <sstream>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 namespace Catch {
-    namespace Clara {
 
-        class Args;
-        class Parser;
-
-        // enum of result types from a parse
-        enum class ParseResultType {
-            Matched,
-            NoMatch,
-            ShortCircuitAll,
-            ShortCircuitSame
-        };
-
-        struct accept_many_t {};
-        constexpr accept_many_t accept_many {};
-
-        namespace Detail {
-            struct fake_arg {
-                template <typename T>
-                operator T();
-            };
-
-            template <typename F, typename = void>
-            static constexpr bool is_unary_function_v = false;
-
-            template <typename F>
-            static constexpr bool is_unary_function_v<
-                F,
-                Catch::Detail::void_t<decltype( std::declval<F>()(
-                    fake_arg() ) )>> = true;
-
-            // Traits for extracting arg and return type of lambdas (for single
-            // argument lambdas)
-            template <typename L>
-            struct UnaryLambdaTraits
-                : UnaryLambdaTraits<decltype( &L::operator() )> {};
-
-            template <typename ClassT, typename ReturnT, typename... Args>
-            struct UnaryLambdaTraits<ReturnT ( ClassT::* )( Args... ) const> {
-                static const bool isValid = false;
-            };
-
-            template <typename ClassT, typename ReturnT, typename ArgT>
-            struct UnaryLambdaTraits<ReturnT ( ClassT::* )( ArgT ) const> {
-                static const bool isValid = true;
-                using ArgType = std::remove_const_t<std::remove_reference_t<ArgT>>;
-                using ReturnType = ReturnT;
-            };
-
-            class TokenStream;
-
-            // Wraps a token coming from a token stream. These may not directly
-            // correspond to strings as a single string may encode an option +
-            // its argument if the : or = form is used
-            enum class TokenType { Option, Argument };
-            struct Token {
-                TokenType type;
-                StringRef token;
-            };
-
-            // Abstracts iterators into args as a stream of tokens, with option
-            // arguments uniformly handled
-            class TokenStream {
-                using Iterator = std::vector<StringRef>::const_iterator;
-                Iterator it;
-                Iterator itEnd;
-                std::vector<Token> m_tokenBuffer;
-                void loadBuffer();
-
-            public:
-                explicit TokenStream( Args const& args );
-                TokenStream( Iterator it, Iterator itEnd );
-
-                explicit operator bool() const {
-                    return !m_tokenBuffer.empty() || it != itEnd;
-                }
-
-                size_t count() const {
-                    return m_tokenBuffer.size() + ( itEnd - it );
-                }
-
-                Token operator*() const {
-                    assert( !m_tokenBuffer.empty() );
-                    return m_tokenBuffer.front();
-                }
-
-                Token const* operator->() const {
-                    assert( !m_tokenBuffer.empty() );
-                    return &m_tokenBuffer.front();
-                }
-
-                TokenStream& operator++();
-            };
-
-            //! Denotes type of a parsing result
-            enum class ResultType {
-                Ok,          ///< No errors
-                LogicError,  ///< Error in user-specified arguments for
-                             ///< construction
-                RuntimeError ///< Error in parsing inputs
-            };
-
-            class ResultBase {
-            protected:
-                ResultBase( ResultType type ): m_type( type ) {}
-                virtual ~ResultBase(); // = default;
-
-
-                ResultBase(ResultBase const&) = default;
-                ResultBase& operator=(ResultBase const&) = default;
-                ResultBase(ResultBase&&) = default;
-                ResultBase& operator=(ResultBase&&) = default;
-
-                virtual void enforceOk() const = 0;
-
-                ResultType m_type;
-            };
-
-            template <typename T>
-            class ResultValueBase : public ResultBase {
-            public:
-                T const& value() const& {
-                    enforceOk();
-                    return m_value;
-                }
-                T&& value() && {
-                    enforceOk();
-                    return CATCH_MOVE( m_value );
-                }
-
-            protected:
-                ResultValueBase( ResultType type ): ResultBase( type ) {}
-
-                ResultValueBase( ResultValueBase const& other ):
-                    ResultBase( other ) {
-                    if ( m_type == ResultType::Ok )
-                        new ( &m_value ) T( other.m_value );
-                }
-                ResultValueBase( ResultValueBase&& other ):
-                    ResultBase( other ) {
-                    if ( m_type == ResultType::Ok )
-                        new ( &m_value ) T( CATCH_MOVE(other.m_value) );
-                }
-
-
-                ResultValueBase( ResultType, T const& value ):
-                    ResultBase( ResultType::Ok ) {
-                    new ( &m_value ) T( value );
-                }
-                ResultValueBase( ResultType, T&& value ):
-                    ResultBase( ResultType::Ok ) {
-                    new ( &m_value ) T( CATCH_MOVE(value) );
-                }
-
-                ResultValueBase& operator=( ResultValueBase const& other ) {
-                    if ( m_type == ResultType::Ok )
-                        m_value.~T();
-                    ResultBase::operator=( other );
-                    if ( m_type == ResultType::Ok )
-                        new ( &m_value ) T( other.m_value );
-                    return *this;
-                }
-                ResultValueBase& operator=( ResultValueBase&& other ) {
-                    if ( m_type == ResultType::Ok ) m_value.~T();
-                    ResultBase::operator=( other );
-                    if ( m_type == ResultType::Ok )
-                        new ( &m_value ) T( CATCH_MOVE(other.m_value) );
-                    return *this;
-                }
-
-
-                ~ResultValueBase() override {
-                    if ( m_type == ResultType::Ok )
-                        m_value.~T();
-                }
-
-                union {
-                    T m_value;
-                };
-            };
-
-            template <> class ResultValueBase<void> : public ResultBase {
-            protected:
-                using ResultBase::ResultBase;
-            };
-
-            template <typename T = void>
-            class BasicResult : public ResultValueBase<T> {
-            public:
-                template <typename U>
-                explicit BasicResult( BasicResult<U> const& other ):
-                    ResultValueBase<T>( other.type() ),
-                    m_errorMessage( other.errorMessage() ) {
-                    assert( type() != ResultType::Ok );
-                }
-
-                template <typename U>
-                static auto ok( U&& value ) -> BasicResult {
-                    return { ResultType::Ok, CATCH_FORWARD(value) };
-                }
-                static auto ok() -> BasicResult { return { ResultType::Ok }; }
-                static auto logicError( std::string&& message )
-                    -> BasicResult {
-                    return { ResultType::LogicError, CATCH_MOVE(message) };
-                }
-                static auto runtimeError( std::string&& message )
-                    -> BasicResult {
-                    return { ResultType::RuntimeError, CATCH_MOVE(message) };
-                }
-
-                explicit operator bool() const {
-                    return m_type == ResultType::Ok;
-                }
-                auto type() const -> ResultType { return m_type; }
-                auto errorMessage() const -> std::string const& {
-                    return m_errorMessage;
-                }
-
-            protected:
-                void enforceOk() const override {
-
-                    // Errors shouldn't reach this point, but if they do
-                    // the actual error message will be in m_errorMessage
-                    assert( m_type != ResultType::LogicError );
-                    assert( m_type != ResultType::RuntimeError );
-                    if ( m_type != ResultType::Ok )
-                        std::abort();
-                }
-
-                std::string
-                    m_errorMessage; // Only populated if resultType is an error
-
-                BasicResult( ResultType type,
-                             std::string&& message ):
-                    ResultValueBase<T>( type ), m_errorMessage( CATCH_MOVE(message) ) {
-                    assert( m_type != ResultType::Ok );
-                }
-
-                using ResultValueBase<T>::ResultValueBase;
-                using ResultBase::m_type;
-            };
-
-            class ParseState {
-            public:
-                ParseState( ParseResultType type,
-                            TokenStream remainingTokens );
-
-                ParseResultType type() const { return m_type; }
-                TokenStream const& remainingTokens() const& {
-                    return m_remainingTokens;
-                }
-                TokenStream&& remainingTokens() && {
-                    return CATCH_MOVE( m_remainingTokens );
-                }
-
-            private:
-                ParseResultType m_type;
-                TokenStream m_remainingTokens;
-            };
-
-            using Result = BasicResult<void>;
-            using ParserResult = BasicResult<ParseResultType>;
-            using InternalParseResult = BasicResult<ParseState>;
-
-            struct HelpColumns {
-                std::string left;
-                StringRef descriptions;
-            };
-
-            template <typename T>
-            ParserResult convertInto( std::string const& source, T& target ) {
-                std::stringstream ss( source );
-                ss >> target;
-                if ( ss.fail() ) {
-                    return ParserResult::runtimeError(
-                        "Unable to convert '" + source +
-                        "' to destination type" );
-                } else {
-                    return ParserResult::ok( ParseResultType::Matched );
-                }
-            }
-            ParserResult convertInto( std::string const& source,
-                                      std::string& target );
-            ParserResult convertInto( std::string const& source, bool& target );
-
-#ifdef CLARA_CONFIG_OPTIONAL_TYPE
-            template <typename T>
-            auto convertInto( std::string const& source,
-                              CLARA_CONFIG_OPTIONAL_TYPE<T>& target )
-                -> ParserResult {
-                T temp;
-                auto result = convertInto( source, temp );
-                if ( result )
-                    target = CATCH_MOVE( temp );
-                return result;
-            }
-#endif // CLARA_CONFIG_OPTIONAL_TYPE
-
-            struct BoundRef : Catch::Detail::NonCopyable {
-                virtual ~BoundRef() = default;
-                virtual bool isContainer() const;
-                virtual bool isFlag() const;
-            };
-            struct BoundValueRefBase : BoundRef {
-                virtual auto setValue( std::string const& arg )
-                    -> ParserResult = 0;
-            };
-            struct BoundFlagRefBase : BoundRef {
-                virtual auto setFlag( bool flag ) -> ParserResult = 0;
-                bool isFlag() const override;
-            };
-
-            template <typename T> struct BoundValueRef : BoundValueRefBase {
-                T& m_ref;
-
-                explicit BoundValueRef( T& ref ): m_ref( ref ) {}
-
-                ParserResult setValue( std::string const& arg ) override {
-                    return convertInto( arg, m_ref );
-                }
-            };
-
-            template <typename T>
-            struct BoundValueRef<std::vector<T>> : BoundValueRefBase {
-                std::vector<T>& m_ref;
-
-                explicit BoundValueRef( std::vector<T>& ref ): m_ref( ref ) {}
-
-                auto isContainer() const -> bool override { return true; }
-
-                auto setValue( std::string const& arg )
-                    -> ParserResult override {
-                    T temp;
-                    auto result = convertInto( arg, temp );
-                    if ( result ) {
-                        m_ref.push_back( CATCH_MOVE( temp ) );
-                    }
-                    return result;
-                }
-            };
-
-            struct BoundFlagRef : BoundFlagRefBase {
-                bool& m_ref;
-
-                explicit BoundFlagRef( bool& ref ): m_ref( ref ) {}
-
-                ParserResult setFlag( bool flag ) override;
-            };
-
-            template <typename ReturnType> struct LambdaInvoker {
-                static_assert(
-                    std::is_same<ReturnType, ParserResult>::value,
-                    "Lambda must return void or clara::ParserResult" );
-
-                template <typename L, typename ArgType>
-                static auto invoke( L const& lambda, ArgType const& arg )
-                    -> ParserResult {
-                    return lambda( arg );
-                }
-            };
-
-            template <> struct LambdaInvoker<void> {
-                template <typename L, typename ArgType>
-                static auto invoke( L const& lambda, ArgType const& arg )
-                    -> ParserResult {
-                    lambda( arg );
-                    return ParserResult::ok( ParseResultType::Matched );
-                }
-            };
-
-            template <typename ArgType, typename L>
-            auto invokeLambda( L const& lambda, std::string const& arg )
-                -> ParserResult {
-                ArgType temp{};
-                auto result = convertInto( arg, temp );
-                return !result ? result
-                               : LambdaInvoker<typename UnaryLambdaTraits<
-                                     L>::ReturnType>::invoke( lambda, temp );
-            }
-
-            template <typename L> struct BoundLambda : BoundValueRefBase {
-                L m_lambda;
-
-                static_assert(
-                    UnaryLambdaTraits<L>::isValid,
-                    "Supplied lambda must take exactly one argument" );
-                explicit BoundLambda( L const& lambda ): m_lambda( lambda ) {}
-
-                auto setValue( std::string const& arg )
-                    -> ParserResult override {
-                    return invokeLambda<typename UnaryLambdaTraits<L>::ArgType>(
-                        m_lambda, arg );
-                }
-            };
-
-            template <typename L> struct BoundManyLambda : BoundLambda<L> {
-                explicit BoundManyLambda( L const& lambda ): BoundLambda<L>( lambda ) {}
-                bool isContainer() const override { return true; }
-            };
-
-            template <typename L> struct BoundFlagLambda : BoundFlagRefBase {
-                L m_lambda;
-
-                static_assert(
-                    UnaryLambdaTraits<L>::isValid,
-                    "Supplied lambda must take exactly one argument" );
-                static_assert(
-                    std::is_same<typename UnaryLambdaTraits<L>::ArgType,
-                                 bool>::value,
-                    "flags must be boolean" );
-
-                explicit BoundFlagLambda( L const& lambda ):
-                    m_lambda( lambda ) {}
-
-                auto setFlag( bool flag ) -> ParserResult override {
-                    return LambdaInvoker<typename UnaryLambdaTraits<
-                        L>::ReturnType>::invoke( m_lambda, flag );
-                }
-            };
-
-            enum class Optionality { Optional, Required };
-
-            class ParserBase {
-            public:
-                virtual ~ParserBase() = default;
-                virtual auto validate() const -> Result { return Result::ok(); }
-                virtual auto parse( std::string const& exeName,
-                                    TokenStream tokens ) const
-                    -> InternalParseResult = 0;
-                virtual size_t cardinality() const;
-
-                InternalParseResult parse( Args const& args ) const;
-            };
-
-            template <typename DerivedT>
-            class ComposableParserImpl : public ParserBase {
-            public:
-                template <typename T>
-                auto operator|( T const& other ) const -> Parser;
-            };
-
-            // Common code and state for Args and Opts
-            template <typename DerivedT>
-            class ParserRefImpl : public ComposableParserImpl<DerivedT> {
-            protected:
-                Optionality m_optionality = Optionality::Optional;
-                std::shared_ptr<BoundRef> m_ref;
-                StringRef m_hint;
-                StringRef m_description;
-
-                explicit ParserRefImpl( std::shared_ptr<BoundRef> const& ref ):
-                    m_ref( ref ) {}
-
-            public:
-                template <typename LambdaT>
-                ParserRefImpl( accept_many_t,
-                               LambdaT const& ref,
-                               StringRef hint ):
-                    m_ref( std::make_shared<BoundManyLambda<LambdaT>>( ref ) ),
-                    m_hint( hint ) {}
-
-                template <typename T,
-                          typename = typename std::enable_if_t<
-                              !Detail::is_unary_function_v<T>>>
-                ParserRefImpl( T& ref, StringRef hint ):
-                    m_ref( std::make_shared<BoundValueRef<T>>( ref ) ),
-                    m_hint( hint ) {}
-
-                template <typename LambdaT,
-                          typename = typename std::enable_if_t<
-                              Detail::is_unary_function_v<LambdaT>>>
-                ParserRefImpl( LambdaT const& ref, StringRef hint ):
-                    m_ref( std::make_shared<BoundLambda<LambdaT>>( ref ) ),
-                    m_hint( hint ) {}
-
-                DerivedT& operator()( StringRef description ) & {
-                    m_description = description;
-                    return static_cast<DerivedT&>( *this );
-                }
-                DerivedT&& operator()( StringRef description ) && {
-                    m_description = description;
-                    return static_cast<DerivedT&&>( *this );
-                }
-
-                auto optional() -> DerivedT& {
-                    m_optionality = Optionality::Optional;
-                    return static_cast<DerivedT&>( *this );
-                }
-
-                auto required() -> DerivedT& {
-                    m_optionality = Optionality::Required;
-                    return static_cast<DerivedT&>( *this );
-                }
-
-                auto isOptional() const -> bool {
-                    return m_optionality == Optionality::Optional;
-                }
-
-                auto cardinality() const -> size_t override {
-                    if ( m_ref->isContainer() )
-                        return 0;
-                    else
-                        return 1;
-                }
-
-                StringRef hint() const { return m_hint; }
-            };
-
-        } // namespace detail
-
-
-        // A parser for arguments
-        class Arg : public Detail::ParserRefImpl<Arg> {
-        public:
-            using ParserRefImpl::ParserRefImpl;
-            using ParserBase::parse;
-
-            Detail::InternalParseResult
-                parse(std::string const&,
-                      Detail::TokenStream tokens) const override;
-        };
-
-        // A parser for options
-        class Opt : public Detail::ParserRefImpl<Opt> {
-        protected:
-            std::vector<StringRef> m_optNames;
-
-        public:
-            template <typename LambdaT>
-            explicit Opt(LambdaT const& ref) :
-                ParserRefImpl(
-                    std::make_shared<Detail::BoundFlagLambda<LambdaT>>(ref)) {}
-
-            explicit Opt(bool& ref);
-
-            template <typename LambdaT,
-                      typename = typename std::enable_if_t<
-                          Detail::is_unary_function_v<LambdaT>>>
-            Opt( LambdaT const& ref, StringRef hint ):
-                ParserRefImpl( ref, hint ) {}
-
-            template <typename LambdaT>
-            Opt( accept_many_t, LambdaT const& ref, StringRef hint ):
-                ParserRefImpl( accept_many, ref, hint ) {}
-
-            template <typename T,
-                      typename = typename std::enable_if_t<
-                          !Detail::is_unary_function_v<T>>>
-            Opt( T& ref, StringRef hint ):
-                ParserRefImpl( ref, hint ) {}
-
-            Opt& operator[]( StringRef optName ) & {
-                m_optNames.push_back(optName);
-                return *this;
-            }
-            Opt&& operator[]( StringRef optName ) && {
-                m_optNames.push_back( optName );
-                return CATCH_MOVE(*this);
-            }
-
-            Detail::HelpColumns getHelpColumns() const;
-
-            bool isMatch(StringRef optToken) const;
-
-            using ParserBase::parse;
-
-            Detail::InternalParseResult
-                parse(std::string const&,
-                      Detail::TokenStream tokens) const override;
-
-            Detail::Result validate() const override;
-        };
-
-        // Specifies the name of the executable
-        class ExeName : public Detail::ComposableParserImpl<ExeName> {
-            std::shared_ptr<std::string> m_name;
-            std::shared_ptr<Detail::BoundValueRefBase> m_ref;
-
-        public:
-            ExeName();
-            explicit ExeName(std::string& ref);
-
-            template <typename LambdaT>
-            explicit ExeName(LambdaT const& lambda) : ExeName() {
-                m_ref = std::make_shared<Detail::BoundLambda<LambdaT>>(lambda);
-            }
-
-            // The exe name is not parsed out of the normal tokens, but is
-            // handled specially
-            Detail::InternalParseResult
-                parse(std::string const&,
-                      Detail::TokenStream tokens) const override;
-
-            std::string const& name() const { return *m_name; }
-            Detail::ParserResult set(std::string const& newName);
-        };
-
-
-        // A Combined parser
-        class Parser : Detail::ParserBase {
-            mutable ExeName m_exeName;
-            std::vector<Opt> m_options;
-            std::vector<Arg> m_args;
-
-        public:
-
-            auto operator|=(ExeName const& exeName) -> Parser& {
-                m_exeName = exeName;
-                return *this;
-            }
-
-            auto operator|=(Arg const& arg) -> Parser& {
-                m_args.push_back(arg);
-                return *this;
-            }
-
-            friend Parser& operator|=( Parser& p, Opt const& opt ) {
-                p.m_options.push_back( opt );
-                return p;
-            }
-            friend Parser& operator|=( Parser& p, Opt&& opt ) {
-                p.m_options.push_back( CATCH_MOVE(opt) );
-                return p;
-            }
-
-            Parser& operator|=(Parser const& other);
-
-            template <typename T>
-            friend Parser operator|( Parser const& p, T&& rhs ) {
-                Parser temp( p );
-                temp |= rhs;
-                return temp;
-            }
-
-            template <typename T>
-            friend Parser operator|( Parser&& p, T&& rhs ) {
-                p |= CATCH_FORWARD(rhs);
-                return CATCH_MOVE(p);
-            }
-
-            std::vector<Detail::HelpColumns> getHelpColumns() const;
-
-            void writeToStream(std::ostream& os) const;
-
-            friend auto operator<<(std::ostream& os, Parser const& parser)
-                -> std::ostream& {
-                parser.writeToStream(os);
-                return os;
-            }
-
-            Detail::Result validate() const override;
-
-            using ParserBase::parse;
-            Detail::InternalParseResult
-                parse(std::string const& exeName,
-                      Detail::TokenStream tokens) const override;
-        };
-
-        /**
-         * Wrapper over argc + argv, assumes that the inputs outlive it
-         */
-        class Args {
-            friend Detail::TokenStream;
-            StringRef m_exeName;
-            std::vector<StringRef> m_args;
-
-        public:
-            Args(int argc, char const* const* argv);
-            // Helper constructor for testing
-            Args(std::initializer_list<StringRef> args);
-
-            StringRef exeName() const { return m_exeName; }
-        };
-
-
-        // Convenience wrapper for option parser that specifies the help option
-        struct Help : Opt {
-            Help(bool& showHelpFlag);
-        };
-
-        // Result type for parser operation
-        using Detail::ParserResult;
-
-        namespace Detail {
-            template <typename DerivedT>
-            template <typename T>
-            Parser
-                ComposableParserImpl<DerivedT>::operator|(T const& other) const {
-                return Parser() | static_cast<DerivedT const&>(*this) | other;
-            }
-        }
-
-    } // namespace Clara
-} // namespace Catch
-
-#if defined( __clang__ )
-#    pragma clang diagnostic pop
-#endif
-
-#if defined( __GNUC__ )
-#    pragma GCC diagnostic pop
-#endif
-
-#endif // CATCH_CLARA_HPP_INCLUDED
-
-namespace Catch {
-
-    struct ConfigData;
-
-    Clara::Parser makeCommandLineParser( ConfigData& config );
-
-} // end namespace Catch
-
-#endif // CATCH_COMMANDLINE_HPP_INCLUDED
-
-namespace Catch {
-
-    // TODO: Use C++17 `inline` variables
     constexpr int UnspecifiedErrorExitCode = 1;
     constexpr int NoTestsRunExitCode = 2;
     constexpr int UnmatchedTestSpecExitCode = 3;
     constexpr int AllTestsSkippedExitCode = 4;
     constexpr int InvalidTestSpecExitCode = 5;
-    constexpr int ReporterConstructionErrorExitCode = 6;
     constexpr int TestFailureExitCode = 42;
 
+    /**
+     * The entry point of a test binary with its own `main`.
+     *
+     * It hands the command line to the Catch3 runner, which runs the tests
+     * in worker processes started from the same binary. Code in `main`
+     * before and after `run` therefore also runs in every worker: global
+     * set-up belongs there, or in a listener.
+     */
     class Session : Detail::NonCopyable {
     public:
 
         Session();
         ~Session();
 
+        //! Prints the options of the Catch3 runner.
         void showHelp() const;
-        void libIdentify();
 
+        //! Keeps the command line for a later `run()`. It is checked by
+        //! `run()`, which reports a mistake and returns 1.
         int applyCommandLine( int argc, char const * const * argv );
     #if defined(CATCH_CONFIG_WCHAR) && defined(_WIN32) && defined(UNICODE)
         int applyCommandLine( int argc, wchar_t const * const * argv );
     #endif
 
-        void useConfigData( ConfigData const& configData );
-
         template<typename CharT>
         int run(int argc, CharT const * const argv[]) {
-            if (m_startupExceptions)
-                return 1;
             int returnCode = applyCommandLine(argc, argv);
             if (returnCode == 0)
                 returnCode = run();
             return returnCode;
         }
 
+        //! Runs the tests the command line selects and returns the exit
+        //! code: 0, or one of the constants above.
         int run();
 
-        Clara::Parser const& cli() const;
-        void cli( Clara::Parser const& newParser );
-        ConfigData& configData();
-        Config& config();
     private:
-        int runInternal();
-
-        Clara::Parser m_cli;
-        ConfigData m_configData;
-        Detail::unique_ptr<Config> m_config;
-        bool m_startupExceptions = false;
+        std::vector<std::string> m_arguments;
     };
 
 } // end namespace Catch
@@ -9366,39 +8487,10 @@ auto from_range(Container const& cnt) {
 
 namespace Catch {
 
-    struct ReporterDescription;
-    struct ListenerDescription;
-    struct TagInfo;
     struct TestCaseInfo;
     class TestCaseHandle;
     class IConfig;
-    class IStream;
     enum class ColourMode : std::uint8_t;
-
-    struct ReporterConfig {
-        ReporterConfig( IConfig const* _fullConfig,
-                        Detail::unique_ptr<IStream> _stream,
-                        ColourMode colourMode,
-                        Verbosity verbosity,
-                        std::map<std::string, std::string> customOptions );
-
-        ReporterConfig( ReporterConfig&& ) = default;
-        ReporterConfig& operator=( ReporterConfig&& ) = default;
-        ~ReporterConfig(); // = default
-
-        Detail::unique_ptr<IStream> takeStream() &&;
-        IConfig const* fullConfig() const;
-        ColourMode colourMode() const;
-        Verbosity verbosity() const;
-        std::map<std::string, std::string> const& customOptions() const;
-
-    private:
-        Detail::unique_ptr<IStream> m_stream;
-        IConfig const* m_fullConfig;
-        ColourMode m_colourMode;
-        Verbosity m_verbosity;
-        std::map<std::string, std::string> m_customOptions;
-    };
 
     struct AssertionStats {
         AssertionStats( AssertionResult const& _assertionResult,
@@ -9546,25 +8638,8 @@ namespace Catch {
          */
         virtual void testRunEnded( TestRunStats const& testRunStats ) = 0;
 
-        /**
-         * Called with test cases that are skipped due to the test run aborting.
-         * NOT called for test cases that are explicitly skipped using the `SKIP` macro.
-         *
-         * Deprecated - will be removed in the next major release.
-         */
-        virtual void skipTest( TestCaseInfo const& testInfo ) = 0;
-
         //! Called if a fatal error (signal/structured exception) occurred
         virtual void fatalErrorEncountered( StringRef error ) = 0;
-
-        //! Writes out information about provided reporters using reporter-specific format
-        virtual void listReporters(std::vector<ReporterDescription> const& descriptions) = 0;
-        //! Writes out the provided listeners descriptions using reporter-specific format
-        virtual void listListeners(std::vector<ListenerDescription> const& descriptions) = 0;
-        //! Writes out information about provided tests using reporter-specific format
-        virtual void listTests(std::vector<TestCaseHandle> const& tests) = 0;
-        //! Writes out information about the provided tags using reporter-specific format
-        virtual void listTags(std::vector<TagInfo> const& tags) = 0;
     };
     using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
 
@@ -9581,21 +8656,9 @@ namespace Catch {
 
 namespace Catch {
 
-    struct ReporterConfig;
     class IConfig;
     class IEventListener;
     using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
-
-
-    class IReporterFactory {
-    public:
-        virtual ~IReporterFactory(); // = default
-
-        virtual IEventListenerPtr
-        create( ReporterConfig&& config ) const = 0;
-        virtual std::string getDescription() const = 0;
-    };
-    using IReporterFactoryPtr = Detail::unique_ptr<IReporterFactory>;
 
     class EventListenerFactory {
     public:
@@ -9752,154 +8815,6 @@ namespace Catch {
 #endif // CATCH_CONFIG_UNCAUGHT_EXCEPTIONS_HPP_INCLUDED
 
 
-#ifndef CATCH_CONSOLE_COLOUR_HPP_INCLUDED
-#define CATCH_CONSOLE_COLOUR_HPP_INCLUDED
-
-
-#include <iosfwd>
-#include <cstdint>
-
-namespace Catch {
-
-    enum class ColourMode : std::uint8_t;
-    class IStream;
-
-    struct Colour {
-        enum Code {
-            None = 0,
-
-            White,
-            Red,
-            Green,
-            Blue,
-            Cyan,
-            Yellow,
-            Grey,
-
-            Bright = 0x10,
-
-            BrightRed = Bright | Red,
-            BrightGreen = Bright | Green,
-            LightGrey = Bright | Grey,
-            BrightWhite = Bright | White,
-            BrightYellow = Bright | Yellow,
-
-            // By intention
-            FileName = LightGrey,
-            Warning = BrightYellow,
-            ResultError = BrightRed,
-            ResultSuccess = BrightGreen,
-            ResultExpectedFailure = Warning,
-
-            Error = BrightRed,
-            Success = Green,
-            Skip = LightGrey,
-
-            OriginalExpression = Cyan,
-            ReconstructedExpression = BrightYellow,
-
-            SecondaryText = LightGrey,
-            Headers = White
-        };
-    };
-
-    class ColourImpl {
-    protected:
-        //! The associated stream of this ColourImpl instance
-        IStream* m_stream;
-    public:
-        ColourImpl( IStream* stream ): m_stream( stream ) {}
-
-        //! RAII wrapper around writing specific colour of text using specific
-        //! colour impl into a stream.
-        class ColourGuard {
-            ColourImpl const* m_colourImpl;
-            Colour::Code m_code;
-            bool m_engaged = false;
-
-        public:
-            //! Does **not** engage the guard/start the colour
-            ColourGuard( Colour::Code code,
-                         ColourImpl const* colour );
-
-            ColourGuard( ColourGuard const& rhs ) = delete;
-            ColourGuard& operator=( ColourGuard const& rhs ) = delete;
-
-            ColourGuard( ColourGuard&& rhs ) noexcept;
-            ColourGuard& operator=( ColourGuard&& rhs ) noexcept;
-
-            //! Removes colour _if_ the guard was engaged
-            ~ColourGuard();
-
-            /**
-             * Explicitly engages colour for given stream.
-             *
-             * The API based on operator<< should be preferred.
-             */
-            ColourGuard& engage( std::ostream& stream ) &;
-            /**
-             * Explicitly engages colour for given stream.
-             *
-             * The API based on operator<< should be preferred.
-             */
-            ColourGuard&& engage( std::ostream& stream ) &&;
-
-        private:
-            //! Engages the guard and starts using colour
-            friend std::ostream& operator<<( std::ostream& lhs,
-                                             ColourGuard& guard ) {
-                guard.engageImpl( lhs );
-                return lhs;
-            }
-            //! Engages the guard and starts using colour
-            friend std::ostream& operator<<( std::ostream& lhs,
-                                            ColourGuard&& guard) {
-                guard.engageImpl( lhs );
-                return lhs;
-            }
-
-            void engageImpl( std::ostream& stream );
-
-        };
-
-        virtual ~ColourImpl(); // = default
-        /**
-         * Creates a guard object for given colour and this colour impl
-         *
-         * **Important:**
-         * the guard starts disengaged, and has to be engaged explicitly.
-         */
-        ColourGuard guardColour( Colour::Code colourCode );
-
-    private:
-        virtual void use( Colour::Code colourCode ) const = 0;
-    };
-
-    //! Provides ColourImpl based on global config and target compilation platform
-    Detail::unique_ptr<ColourImpl> makeColourImpl( ColourMode colourSelection,
-                                                   IStream* stream );
-
-    //! Checks if specific colour impl has been compiled into the binary
-    bool isColourImplAvailable( ColourMode colourSelection );
-
-} // end namespace Catch
-
-#endif // CATCH_CONSOLE_COLOUR_HPP_INCLUDED
-
-
-#ifndef CATCH_CONSOLE_WIDTH_HPP_INCLUDED
-#define CATCH_CONSOLE_WIDTH_HPP_INCLUDED
-
-// This include must be kept so that user's configured value for CONSOLE_WIDTH
-// is used before we attempt to provide a default value
-
-#ifndef CATCH_CONFIG_CONSOLE_WIDTH
-#define CATCH_CONFIG_CONSOLE_WIDTH 80
-#endif
-
-#endif // CATCH_CONSOLE_WIDTH_HPP_INCLUDED
-
-
 #ifndef CATCH_CONTAINER_NONMEMBERS_HPP_INCLUDED
 #define CATCH_CONTAINER_NONMEMBERS_HPP_INCLUDED
 
@@ -9965,18 +8880,6 @@ namespace Detail {
 
 
 #endif // CATCH_CONTAINER_NONMEMBERS_HPP_INCLUDED
-
-
-#ifndef CATCH_DEBUG_CONSOLE_HPP_INCLUDED
-#define CATCH_DEBUG_CONSOLE_HPP_INCLUDED
-
-#include <string>
-
-namespace Catch {
-    void writeToDebugConsole( std::string const& text );
-}
-
-#endif // CATCH_DEBUG_CONSOLE_HPP_INCLUDED
 
 
 #ifndef CATCH_DEBUGGER_HPP_INCLUDED
@@ -10455,172 +9358,6 @@ namespace Catch {
 #endif // CATCH_IS_PERMUTATION_HPP_INCLUDED
 
 
-#ifndef CATCH_ISTREAM_HPP_INCLUDED
-#define CATCH_ISTREAM_HPP_INCLUDED
-
-
-#include <iosfwd>
-#include <string>
-
-namespace Catch {
-
-    class IStream {
-    public:
-        virtual ~IStream(); // = default
-        virtual std::ostream& stream() = 0;
-        /**
-         * Best guess on whether the instance is writing to a console (e.g. via stdout/stderr)
-         *
-         * This is useful for e.g. Win32 colour support, because the Win32
-         * API manipulates console directly, unlike POSIX escape codes,
-         * that can be written anywhere.
-         *
-         * Due to variety of ways to change where the stdout/stderr is
-         * _actually_ being written, users should always assume that
-         * the answer might be wrong.
-         */
-        virtual bool isConsole() const { return false; }
-    };
-
-    /**
-     * Creates a stream wrapper that writes to specific file.
-     *
-     * Also recognizes 4 special filenames
-     * * `-` for stdout
-     * * `%stdout` for stdout
-     * * `%stderr` for stderr
-     * * `%debug` for platform specific debugging output
-     *
-     * \throws if passed an unrecognized %-prefixed stream
-     */
-    auto makeStream( std::string const& filename ) -> Detail::unique_ptr<IStream>;
-
-}
-
-#endif // CATCH_STREAM_HPP_INCLUDED
-
-
-#ifndef CATCH_JSONWRITER_HPP_INCLUDED
-#define CATCH_JSONWRITER_HPP_INCLUDED
-
-
-#include <cstdint>
-#include <sstream>
-
-namespace Catch {
-    class JsonObjectWriter;
-    class JsonArrayWriter;
-
-    struct JsonUtils {
-        static void indent( std::ostream& os, std::uint64_t level );
-        static void appendCommaNewline( std::ostream& os,
-                                        bool& should_comma,
-                                        std::uint64_t level );
-    };
-
-    class JsonValueWriter {
-    public:
-        JsonValueWriter( std::ostream& os CATCH_ATTR_LIFETIMEBOUND );
-        JsonValueWriter( std::ostream& os CATCH_ATTR_LIFETIMEBOUND, std::uint64_t indent_level );
-
-        JsonObjectWriter writeObject() &&;
-        JsonArrayWriter writeArray() &&;
-
-        template <typename T>
-        void write( T const& value ) && {
-            writeImpl( value, !std::is_arithmetic<T>::value );
-        }
-        void write( StringRef value ) &&;
-        void write( float value ) &&;
-        void write( double value ) &&;
-        void write( bool value ) &&;
-
-    private:
-        void writeImpl( StringRef value, bool quote );
-
-        // Helper to deal with non-finite floating point values, which
-        // are not standard JSON, but we use JS/Python/etc. approach of
-        // emitting `NaN`, `Infinity`, `-Infinity` as number(like).
-        template <typename T>
-        void writeFloatingPoint( T value );
-
-        // Without this SFINAE, this overload is a better match
-        // for `std::string`, `char const*`, `char const[N]` args.
-        // While it would still work, it would cause code bloat
-        // and multiple iteration over the strings
-        template <typename T,
-                  typename = typename std::enable_if_t<
-                      !std::is_convertible<T, StringRef>::value>>
-        void writeImpl( T const& value, bool quote_value ) {
-            m_sstream << value;
-            writeImpl( m_sstream.str(), quote_value );
-        }
-
-        std::ostream& m_os;
-        std::stringstream m_sstream;
-        std::uint64_t m_indent_level;
-    };
-
-    class JsonObjectWriter {
-    public:
-        JsonObjectWriter( std::ostream& os CATCH_ATTR_LIFETIMEBOUND );
-        JsonObjectWriter( std::ostream& os CATCH_ATTR_LIFETIMEBOUND, std::uint64_t indent_level );
-
-        JsonObjectWriter( JsonObjectWriter&& source ) noexcept;
-        JsonObjectWriter& operator=( JsonObjectWriter&& source ) = delete;
-
-        ~JsonObjectWriter();
-
-        JsonValueWriter write( StringRef key );
-
-    private:
-        std::ostream& m_os;
-        std::uint64_t m_indent_level;
-        bool m_should_comma = false;
-        bool m_active = true;
-    };
-
-    class JsonArrayWriter {
-    public:
-        JsonArrayWriter( std::ostream& os CATCH_ATTR_LIFETIMEBOUND );
-        JsonArrayWriter( std::ostream& os CATCH_ATTR_LIFETIMEBOUND, std::uint64_t indent_level );
-
-        JsonArrayWriter( JsonArrayWriter&& source ) noexcept;
-        JsonArrayWriter& operator=( JsonArrayWriter&& source ) = delete;
-
-        ~JsonArrayWriter();
-
-        JsonObjectWriter writeObject();
-        JsonArrayWriter writeArray();
-
-        template <typename T>
-        JsonArrayWriter& write( T const& value ) {
-            return writeImpl( value );
-        }
-
-        JsonArrayWriter& write( bool value );
-
-    private:
-        template <typename T>
-        JsonArrayWriter& writeImpl( T const& value ) {
-            JsonUtils::appendCommaNewline(
-                m_os, m_should_comma, m_indent_level + 1 );
-            JsonValueWriter{ m_os }.write( value );
-
-            return *this;
-        }
-
-        std::ostream& m_os;
-        std::uint64_t m_indent_level;
-        bool m_should_comma = false;
-        bool m_active = true;
-    };
-
-} // namespace Catch
-
-#endif // CATCH_JSONWRITER_HPP_INCLUDED
-
-
 #ifndef CATCH_LEAK_DETECTOR_HPP_INCLUDED
 #define CATCH_LEAK_DETECTOR_HPP_INCLUDED
 
@@ -10633,43 +9370,6 @@ namespace Catch {
 
 }
 #endif // CATCH_LEAK_DETECTOR_HPP_INCLUDED
-
-
-#ifndef CATCH_LIST_HPP_INCLUDED
-#define CATCH_LIST_HPP_INCLUDED
-
-
-#include <set>
-#include <string>
-
-
-namespace Catch {
-
-    class IEventListener;
-    class Config;
-
-
-    struct ReporterDescription {
-        std::string name, description;
-    };
-    struct ListenerDescription {
-        StringRef name;
-        std::string description;
-    };
-
-    struct TagInfo {
-        void add(StringRef spelling);
-        std::string all() const;
-
-        std::set<StringRef> spellings;
-        std::size_t count = 0;
-    };
-
-    bool list( IEventListener& reporter, Config const& config );
-
-} // end namespace Catch
-
-#endif // CATCH_LIST_HPP_INCLUDED
 
 
 #ifndef CATCH_OUTPUT_REDIRECT_HPP_INCLUDED
@@ -10767,7 +9467,6 @@ namespace Catch {
 #define CATCH_REPORTER_REGISTRY_HPP_INCLUDED
 
 
-#include <map>
 #include <string>
 #include <vector>
 
@@ -10775,9 +9474,6 @@ namespace Catch {
 
     class IEventListener;
     using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
-    class IReporterFactory;
-    using IReporterFactoryPtr = Detail::unique_ptr<IReporterFactory>;
-    struct ReporterConfig;
     class EventListenerFactory;
 
     class ReporterRegistry {
@@ -10788,19 +9484,10 @@ namespace Catch {
         ReporterRegistry();
         ~ReporterRegistry(); // = default;
 
-        IEventListenerPtr create( std::string const& name,
-                                  ReporterConfig&& config ) const;
-
-        void registerReporter( std::string const& name,
-                               IReporterFactoryPtr factory );
 
         void
         registerListener( Detail::unique_ptr<EventListenerFactory> factory );
 
-        std::map<std::string,
-                 IReporterFactoryPtr,
-                 Detail::CaseInsensitiveLess> const&
-        getFactories() const;
 
         std::vector<Detail::unique_ptr<EventListenerFactory>> const&
         getListeners() const;
@@ -11209,6 +9896,10 @@ namespace Catch {
         // !TBD We need to do this another way!
         bool aborting() const;
 
+        //! What the running test printed so far and was captured; for a
+        //! process that ends inside a test, whose end is never reported.
+        std::string capturedOutput();
+
     private:
         void assertionPassedFastPath( SourceLineInfo lineInfo );
         // Update the non-thread-safe m_totals from the atomic assertion counts.
@@ -11266,45 +9957,6 @@ namespace Catch {
 } // end namespace Catch
 
 #endif // CATCH_RUN_CONTEXT_HPP_INCLUDED
-
-
-#ifndef CATCH_SHARDING_HPP_INCLUDED
-#define CATCH_SHARDING_HPP_INCLUDED
-
-#include <cassert>
-#include <algorithm>
-
-namespace Catch {
-
-    template<typename Container>
-    Container createShard(Container container, std::size_t const shardCount, std::size_t const shardIndex) {
-        assert(shardCount > shardIndex);
-
-        // Single shard means there is nothing to do
-        if (shardCount == 1) {
-            return container;
-        }
-
-        const std::size_t totalTestCount = container.size();
-
-        const std::size_t shardSize = totalTestCount / shardCount;
-        const std::size_t leftoverTests = totalTestCount % shardCount;
-
-        const std::size_t startIndex = shardIndex * shardSize + (std::min)(shardIndex, leftoverTests);
-        const std::size_t endIndex = (shardIndex + 1) * shardSize + (std::min)(shardIndex + 1, leftoverTests);
-
-        auto startIterator = std::next(container.begin(), static_cast<std::ptrdiff_t>(startIndex));
-        auto endIterator = std::next(container.begin(), static_cast<std::ptrdiff_t>(endIndex));
-
-        container.erase(endIterator, container.end());
-        container.erase(container.begin(), startIterator);
-
-        return container;
-    }
-
-}
-
-#endif // CATCH_SHARDING_HPP_INCLUDED
 
 
 #ifndef CATCH_SINGLETONS_HPP_INCLUDED
@@ -11624,308 +10276,6 @@ namespace Catch {
 #endif // CATCH_TEST_SPEC_PARSER_HPP_INCLUDED
 
 
-#ifndef CATCH_TEXTFLOW_HPP_INCLUDED
-#define CATCH_TEXTFLOW_HPP_INCLUDED
-
-
-#include <cassert>
-#include <string>
-#include <vector>
-
-namespace Catch {
-    namespace TextFlow {
-
-        class Columns;
-
-        /**
-         * Abstraction for a string with ansi escape sequences that
-         * automatically skips over escapes when iterating. Only graphical
-         * escape sequences are considered.
-         *
-         * Internal representation:
-         * * An escape sequence looks like \033[39;49m
-         * * The string is stored unmodified
-         * * Index ranges of escape sequences are stored in separate vector
-         */
-        class AnsiSkippingString {
-        public:
-            //! Byte offsets of an escape sequence: [start, end)
-            struct EscapeRange {
-                std::ptrdiff_t start;
-                std::ptrdiff_t end;
-            };
-
-        private:
-            std::string m_string;
-            std::size_t m_size = 0;
-            // Sorted, non-overlapping. Empty -> no escapes in input
-            std::vector<EscapeRange> m_escapes;
-
-            // find escape sequences and calculate m_size
-            void preprocessString();
-
-        public:
-            class const_iterator;
-            using iterator = const_iterator;
-
-            explicit AnsiSkippingString( std::string const& text );
-            explicit AnsiSkippingString( std::string&& text );
-
-            const_iterator begin() const;
-            const_iterator end() const;
-
-            size_t size() const { return m_size; }
-            bool hasEscapes() const { return !m_escapes.empty(); }
-
-            std::string substring( const_iterator first,
-                                   const_iterator last ) const;
-            // Support for appending without extra allocations
-            void appendSubstringTo( std::string& out,
-                                    const_iterator first,
-                                    const_iterator last ) const;
-        };
-
-        class AnsiSkippingString::const_iterator {
-            friend AnsiSkippingString;
-            struct EndTag {};
-
-            const AnsiSkippingString* m_string;
-            std::string::const_iterator m_it;
-
-            explicit const_iterator( const AnsiSkippingString& string, EndTag ):
-                m_string( &string ), m_it( string.m_string.end() ) {}
-
-            void jumpForwardOverEscapes();
-            void jumpBackOverEscapes();
-            void advance();
-            void unadvance();
-
-        public:
-            using difference_type = std::ptrdiff_t;
-            using value_type = char;
-            using pointer = value_type*;
-            using reference = value_type&;
-            using iterator_category = std::bidirectional_iterator_tag;
-
-            explicit const_iterator( const AnsiSkippingString& string ):
-                m_string( &string ), m_it( string.m_string.begin() ) {
-                if ( m_string->hasEscapes() ) { jumpForwardOverEscapes(); }
-            }
-
-            char operator*() const { return *m_it; }
-
-            const_iterator& operator++() {
-                advance();
-                return *this;
-            }
-            const_iterator operator++( int ) {
-                iterator prev( *this );
-                operator++();
-                return prev;
-            }
-            const_iterator& operator--() {
-                unadvance();
-                return *this;
-            }
-            const_iterator operator--( int ) {
-                iterator prev( *this );
-                operator--();
-                return prev;
-            }
-
-            bool operator==( const_iterator const& other ) const {
-                return m_it == other.m_it;
-            }
-            bool operator!=( const_iterator const& other ) const {
-                return !operator==( other );
-            }
-            bool operator<=( const_iterator const& other ) const {
-                return m_it <= other.m_it;
-            }
-
-            const_iterator oneBefore() const {
-                auto it = *this;
-                return --it;
-            }
-        };
-
-        /**
-         * Represents a column of text with specific width and indentation
-         *
-         * When written out to a stream, it will perform linebreaking
-         * of the provided text so that the written lines fit within
-         * target width.
-         */
-        class Column {
-            // String to be written out
-            AnsiSkippingString m_string;
-            // Width of the column for linebreaking
-            size_t m_width = CATCH_CONFIG_CONSOLE_WIDTH - 1;
-            // Indentation of other lines (including first if initial indent is
-            // unset)
-            size_t m_indent = 0;
-            // Indentation of the first line
-            size_t m_initialIndent = std::string::npos;
-
-        public:
-            /**
-             * Iterates "lines" in `Column` and returns them
-             */
-            class const_iterator {
-                friend Column;
-                struct EndTag {};
-
-                Column const& m_column;
-                // Where does the current line start?
-                AnsiSkippingString::const_iterator m_lineStart;
-                // How long should the current line be?
-                AnsiSkippingString::const_iterator m_lineEnd;
-                // How far have we checked the string to iterate?
-                AnsiSkippingString::const_iterator m_parsedTo;
-                // Should a '-' be appended to the line?
-                bool m_addHyphen = false;
-
-                const_iterator( Column const& column, EndTag ):
-                    m_column( column ),
-                    m_lineStart( m_column.m_string.end() ),
-                    m_lineEnd( column.m_string.end() ),
-                    m_parsedTo( column.m_string.end() ) {}
-
-                // Calculates the length of the current line
-                void calcLength();
-
-                // Returns current indentation width
-                size_t indentSize() const;
-
-                // Creates an indented and (optionally) suffixed string from
-                // current iterator position, indentation and length.
-                std::string addIndentAndSuffix(
-                    AnsiSkippingString::const_iterator start,
-                    AnsiSkippingString::const_iterator end ) const;
-
-            public:
-                using difference_type = std::ptrdiff_t;
-                using value_type = std::string;
-                using pointer = value_type*;
-                using reference = value_type&;
-                using iterator_category = std::forward_iterator_tag;
-
-                explicit const_iterator( Column const& column );
-
-                std::string operator*() const;
-
-                const_iterator& operator++();
-                const_iterator operator++( int );
-
-                bool operator==( const_iterator const& other ) const {
-                    return m_lineStart == other.m_lineStart &&
-                           &m_column == &other.m_column;
-                }
-                bool operator!=( const_iterator const& other ) const {
-                    return !operator==( other );
-                }
-            };
-            using iterator = const_iterator;
-
-            explicit Column( std::string const& text ): m_string( text ) {}
-            explicit Column( std::string&& text ):
-                m_string( CATCH_MOVE( text ) ) {}
-
-            Column& width( size_t newWidth ) & {
-                assert( newWidth > 0 );
-                m_width = newWidth;
-                return *this;
-            }
-            Column&& width( size_t newWidth ) && {
-                assert( newWidth > 0 );
-                m_width = newWidth;
-                return CATCH_MOVE( *this );
-            }
-            Column& indent( size_t newIndent ) & {
-                m_indent = newIndent;
-                return *this;
-            }
-            Column&& indent( size_t newIndent ) && {
-                m_indent = newIndent;
-                return CATCH_MOVE( *this );
-            }
-            Column& initialIndent( size_t newIndent ) & {
-                m_initialIndent = newIndent;
-                return *this;
-            }
-            Column&& initialIndent( size_t newIndent ) && {
-                m_initialIndent = newIndent;
-                return CATCH_MOVE( *this );
-            }
-
-            size_t width() const { return m_width; }
-            const_iterator begin() const { return const_iterator( *this ); }
-            const_iterator end() const {
-                return { *this, const_iterator::EndTag{} };
-            }
-
-            friend std::ostream& operator<<( std::ostream& os,
-                                             Column const& col );
-
-            friend Columns operator+( Column const& lhs, Column const& rhs );
-            friend Columns operator+( Column&& lhs, Column&& rhs );
-        };
-
-        //! Creates a column that serves as an empty space of specific width
-        Column Spacer( size_t spaceWidth );
-
-        class Columns {
-            std::vector<Column> m_columns;
-
-        public:
-            class iterator {
-                friend Columns;
-                struct EndTag {};
-
-                std::vector<Column> const& m_columns;
-                std::vector<Column::const_iterator> m_iterators;
-                size_t m_activeIterators;
-
-                iterator( Columns const& columns, EndTag );
-
-            public:
-                using difference_type = std::ptrdiff_t;
-                using value_type = std::string;
-                using pointer = value_type*;
-                using reference = value_type&;
-                using iterator_category = std::forward_iterator_tag;
-
-                explicit iterator( Columns const& columns );
-
-                auto operator==( iterator const& other ) const -> bool {
-                    return m_iterators == other.m_iterators;
-                }
-                auto operator!=( iterator const& other ) const -> bool {
-                    return m_iterators != other.m_iterators;
-                }
-                std::string operator*() const;
-                iterator& operator++();
-                iterator operator++( int );
-            };
-            using const_iterator = iterator;
-
-            iterator begin() const { return iterator( *this ); }
-            iterator end() const { return { *this, iterator::EndTag() }; }
-
-            friend Columns& operator+=( Columns& lhs, Column const& rhs );
-            friend Columns& operator+=( Columns& lhs, Column&& rhs );
-            friend Columns operator+( Columns const& lhs, Column const& rhs );
-            friend Columns operator+( Columns&& lhs, Column&& rhs );
-
-            friend std::ostream& operator<<( std::ostream& os,
-                                             Columns const& cols );
-        };
-
-    } // namespace TextFlow
-} // namespace Catch
-#endif // CATCH_TEXTFLOW_HPP_INCLUDED
-
-
 #ifndef CATCH_THREAD_LOCAL_HPP_INCLUDED
 #define CATCH_THREAD_LOCAL_HPP_INCLUDED
 
@@ -11969,162 +10319,6 @@ namespace Catch {
 } // end namespace Catch
 
 #endif // CATCH_UNCAUGHT_EXCEPTIONS_HPP_INCLUDED
-
-
-#ifndef CATCH_XMLWRITER_HPP_INCLUDED
-#define CATCH_XMLWRITER_HPP_INCLUDED
-
-
-#include <iosfwd>
-#include <vector>
-#include <cstdint>
-
-namespace Catch {
-    enum class XmlFormatting : std::uint8_t {
-        None = 0x00,
-        Indent = 0x01,
-        Newline = 0x02,
-    };
-
-    constexpr XmlFormatting operator|( XmlFormatting lhs, XmlFormatting rhs ) {
-        return static_cast<XmlFormatting>( static_cast<std::uint8_t>( lhs ) |
-                                           static_cast<std::uint8_t>( rhs ) );
-    }
-
-    constexpr XmlFormatting operator&( XmlFormatting lhs, XmlFormatting rhs ) {
-        return static_cast<XmlFormatting>( static_cast<std::uint8_t>( lhs ) &
-                                           static_cast<std::uint8_t>( rhs ) );
-    }
-
-
-    /**
-     * Helper for XML-encoding text (escaping angle brackets, quotes, etc)
-     *
-     * Note: doesn't take ownership of passed strings, and thus the
-     *       encoded string must outlive the encoding instance.
-     */
-    class XmlEncode {
-    public:
-        enum ForWhat { ForTextNodes, ForAttributes };
-
-        constexpr XmlEncode( StringRef str CATCH_ATTR_LIFETIMEBOUND, ForWhat forWhat = ForTextNodes ):
-            m_str( str ), m_forWhat( forWhat ) {}
-
-
-        void encodeTo( std::ostream& os ) const;
-
-        friend std::ostream& operator << ( std::ostream& os, XmlEncode const& xmlEncode );
-
-    private:
-        StringRef m_str;
-        ForWhat m_forWhat;
-    };
-
-    class XmlWriter {
-    public:
-
-        class ScopedElement {
-        public:
-            ScopedElement( XmlWriter* writer CATCH_ATTR_LIFETIMEBOUND, XmlFormatting fmt );
-
-            ScopedElement( ScopedElement&& other ) noexcept;
-            ScopedElement& operator=( ScopedElement&& other ) noexcept;
-
-            ~ScopedElement();
-
-            ScopedElement&
-            writeText( StringRef text,
-                       XmlFormatting fmt = XmlFormatting::Newline |
-                                           XmlFormatting::Indent );
-
-            ScopedElement& writeAttribute( StringRef name,
-                                           StringRef attribute );
-            template <typename T,
-                      // Without this SFINAE, this overload is a better match
-                      // for `std::string`, `char const*`, `char const[N]` args.
-                      // While it would still work, it would cause code bloat
-                      // and multiple iteration over the strings
-                      typename = typename std::enable_if_t<
-                          !std::is_convertible<T, StringRef>::value>>
-            ScopedElement& writeAttribute( StringRef name,
-                                           T const& attribute ) {
-                m_writer->writeAttribute( name, attribute );
-                return *this;
-            }
-
-        private:
-            XmlWriter* m_writer = nullptr;
-            XmlFormatting m_fmt;
-        };
-
-        XmlWriter( std::ostream& os CATCH_ATTR_LIFETIMEBOUND );
-        ~XmlWriter();
-
-        XmlWriter( XmlWriter const& ) = delete;
-        XmlWriter& operator=( XmlWriter const& ) = delete;
-
-        XmlWriter& startElement( std::string const& name, XmlFormatting fmt = XmlFormatting::Newline | XmlFormatting::Indent);
-
-        ScopedElement scopedElement( std::string const& name, XmlFormatting fmt = XmlFormatting::Newline | XmlFormatting::Indent);
-
-        XmlWriter& endElement(XmlFormatting fmt = XmlFormatting::Newline | XmlFormatting::Indent);
-
-        //! The attribute content is XML-encoded
-        XmlWriter& writeAttribute( StringRef name, StringRef attribute );
-
-        //! Writes the attribute as "true/false"
-        XmlWriter& writeAttribute( StringRef name, bool attribute );
-
-        //! The attribute content is XML-encoded
-        XmlWriter& writeAttribute( StringRef name, char const* attribute );
-
-        //! The attribute value must provide op<<(ostream&, T). The resulting
-        //! serialization is XML-encoded
-        template <typename T,
-                  // Without this SFINAE, this overload is a better match
-                  // for `std::string`, `char const*`, `char const[N]` args.
-                  // While it would still work, it would cause code bloat
-                  // and multiple iteration over the strings
-                  typename = typename std::enable_if_t<
-                      !std::is_convertible<T, StringRef>::value>>
-        XmlWriter& writeAttribute( StringRef name, T const& attribute ) {
-            ReusableStringStream rss;
-            rss << attribute;
-            return writeAttribute( name, rss.str() );
-        }
-
-        //! Writes escaped `text` in a element
-        XmlWriter& writeText( StringRef text,
-                              XmlFormatting fmt = XmlFormatting::Newline |
-                                                  XmlFormatting::Indent );
-
-        //! Writes XML comment as "<!-- text -->"
-        XmlWriter& writeComment( StringRef text,
-                                 XmlFormatting fmt = XmlFormatting::Newline |
-                                                     XmlFormatting::Indent );
-
-        void writeStylesheetRef( StringRef url );
-
-        void ensureTagClosed();
-
-    private:
-
-        void applyFormatting(XmlFormatting fmt);
-
-        void writeDeclaration();
-
-        void newlineIfNecessary();
-
-        bool m_tagIsOpen = false;
-        bool m_needsNewline = false;
-        std::vector<std::string> m_tags;
-        std::string m_indent;
-        std::ostream& m_os;
-    };
-
-}
-
-#endif // CATCH_XMLWRITER_HPP_INCLUDED
 
 
 /** \file
@@ -13800,424 +11994,16 @@ namespace Matchers {
 
 
 /** \file
- * This is a convenience header for Catch2's Reporter support. It includes
- * **all** of Catch2 headers related to reporters, including all reporters.
+ * This is a convenience header for Catch2's event listener support. It
+ * includes the headers a listener is written with.
  *
- * Generally the Catch2 users should use specific includes they need,
- * but this header can be used instead for ease-of-experimentation, or
- * just plain convenience, at the cost of (significantly) increased
- * compilation times.
- *
- * When a new header (reporter) is added to either the `reporter` folder,
- * or to the corresponding internal subfolder, it should be added here.
+ * The reporters of Catch2 were replaced by the reports of the Catch3
+ * runner; listeners remain, and run in every worker process.
  */
 
 #ifndef CATCH_REPORTERS_ALL_HPP_INCLUDED
 #define CATCH_REPORTERS_ALL_HPP_INCLUDED
 
-
-
-#ifndef CATCH_REPORTER_AUTOMAKE_HPP_INCLUDED
-#define CATCH_REPORTER_AUTOMAKE_HPP_INCLUDED
-
-
-
-#ifndef CATCH_REPORTER_STREAMING_BASE_HPP_INCLUDED
-#define CATCH_REPORTER_STREAMING_BASE_HPP_INCLUDED
-
-
-
-#ifndef CATCH_REPORTER_COMMON_BASE_HPP_INCLUDED
-#define CATCH_REPORTER_COMMON_BASE_HPP_INCLUDED
-
-
-#include <map>
-#include <string>
-
-namespace Catch {
-    class ColourImpl;
-
-    /**
-     * This is the base class for all reporters.
-     *
-     * If are writing a reporter, you must derive from this type, or one
-     * of the helper reporter bases that are derived from this type.
-     *
-     * ReporterBase centralizes handling of various common tasks in reporters,
-     * like storing the right stream for the reporters to write to, and
-     * providing the default implementation of the different listing events.
-     */
-    class ReporterBase : public IEventListener {
-    protected:
-        //! The stream wrapper as passed to us by outside code
-        Detail::unique_ptr<IStream> m_wrapped_stream;
-        //! Cached output stream from `m_wrapped_stream` to reduce
-        //! number of indirect calls needed to write output.
-        std::ostream& m_stream;
-        //! Colour implementation this reporter was configured for
-        Detail::unique_ptr<ColourImpl> m_colour;
-        //! Verbosity configured for this reporter
-        Verbosity m_verbosity;
-        //! The custom reporter options user passed down to the reporter
-        std::map<std::string, std::string> m_customOptions;
-
-    public:
-        ReporterBase( ReporterConfig&& config );
-        ~ReporterBase() override; // = default;
-
-        /**
-         * Provides a simple default listing of reporters.
-         *
-         * Should look roughly like the reporter listing in v2 and earlier
-         * versions of Catch2.
-         */
-        void listReporters(
-            std::vector<ReporterDescription> const& descriptions ) override;
-        /**
-         * Provides a simple default listing of listeners
-         *
-         * Looks similarly to listing of reporters, but with listener type
-         * instead of reporter name.
-         */
-        void listListeners(
-            std::vector<ListenerDescription> const& descriptions ) override;
-        /**
-         * Provides a simple default listing of tests.
-         *
-         * Should look roughly like the test listing in v2 and earlier versions
-         * of Catch2. Especially supports low-verbosity listing that mimics the
-         * old `--list-test-names-only` output.
-         */
-        void listTests( std::vector<TestCaseHandle> const& tests ) override;
-        /**
-         * Provides a simple default listing of tags.
-         *
-         * Should look roughly like the tag listing in v2 and earlier versions
-         * of Catch2.
-         */
-        void listTags( std::vector<TagInfo> const& tags ) override;
-    };
-} // namespace Catch
-
-#endif // CATCH_REPORTER_COMMON_BASE_HPP_INCLUDED
-
-#include <vector>
-
-namespace Catch {
-
-    class StreamingReporterBase : public ReporterBase {
-    public:
-        // GCC5 compat: we cannot use inherited constructor, because it
-        //              doesn't implement backport of P0136
-        StreamingReporterBase(ReporterConfig&& _config):
-            ReporterBase(CATCH_MOVE(_config))
-        {}
-        ~StreamingReporterBase() override;
-
-        void benchmarkPreparing( StringRef ) override {}
-        void benchmarkStarting( BenchmarkInfo const& ) override {}
-        void benchmarkEnded( BenchmarkStats<> const& ) override {}
-        void benchmarkFailed( StringRef ) override {}
-
-        void fatalErrorEncountered( StringRef /*error*/ ) override {}
-        void noMatchingTestCases( StringRef /*unmatchedSpec*/ ) override {}
-        void reportInvalidTestSpec( StringRef /*invalidArgument*/ ) override {}
-
-        void testRunStarting( TestRunInfo const& _testRunInfo ) override;
-
-        void testCaseStarting(TestCaseInfo const& _testInfo) override  {
-            currentTestCaseInfo = &_testInfo;
-        }
-        void testCasePartialStarting( TestCaseInfo const&, uint64_t ) override {}
-        void sectionStarting(SectionInfo const& _sectionInfo) override {
-            m_sectionStack.push_back(_sectionInfo);
-        }
-
-        void assertionStarting( AssertionInfo const& ) override {}
-        void assertionEnded( AssertionStats const& ) override {}
-
-        void sectionEnded(SectionStats const& /* _sectionStats */) override {
-            m_sectionStack.pop_back();
-        }
-        void testCasePartialEnded( TestCaseStats const&, uint64_t ) override {}
-        void testCaseEnded(TestCaseStats const& /* _testCaseStats */) override {
-            currentTestCaseInfo = nullptr;
-        }
-        void testRunEnded( TestRunStats const& /* _testRunStats */ ) override;
-
-        void skipTest(TestCaseInfo const&) override {
-            // Don't do anything with this by default.
-            // It can optionally be overridden in the derived class.
-        }
-
-    protected:
-        TestRunInfo currentTestRunInfo{ "test run has not started yet"_sr };
-        TestCaseInfo const* currentTestCaseInfo = nullptr;
-
-        //! Stack of all _active_ sections in the _current_ test case
-        std::vector<SectionInfo> m_sectionStack;
-    };
-
-} // end namespace Catch
-
-#endif // CATCH_REPORTER_STREAMING_BASE_HPP_INCLUDED
-
-#include <string>
-
-namespace Catch {
-
-    class AutomakeReporter final : public StreamingReporterBase {
-    public:
-        // GCC5 compat: we cannot use inherited constructor, because it
-        //              doesn't implement backport of P0136
-        AutomakeReporter( ReporterConfig&& _config );
-        ~AutomakeReporter() override;
-
-        static std::string getDescription() {
-            using namespace std::string_literals;
-            return "Reports test results in the format of Automake .trs files"s;
-        }
-
-        void testCaseEnded(TestCaseStats const& _testCaseStats) override;
-        void skipTest(TestCaseInfo const& testInfo) override;
-    };
-
-} // end namespace Catch
-
-#endif // CATCH_REPORTER_AUTOMAKE_HPP_INCLUDED
-
-
-#ifndef CATCH_REPORTER_COMPACT_HPP_INCLUDED
-#define CATCH_REPORTER_COMPACT_HPP_INCLUDED
-
-
-
-
-namespace Catch {
-
-    class CompactReporter final : public StreamingReporterBase {
-    public:
-        CompactReporter( ReporterConfig&& _config );
-        ~CompactReporter() override;
-
-        static std::string getDescription();
-
-        void noMatchingTestCases( StringRef unmatchedSpec ) override;
-
-        void testRunStarting( TestRunInfo const& _testInfo ) override;
-
-        void assertionEnded(AssertionStats const& _assertionStats) override;
-
-        void sectionEnded(SectionStats const& _sectionStats) override;
-
-        void testRunEnded(TestRunStats const& _testRunStats) override;
-
-    };
-
-} // end namespace Catch
-
-#endif // CATCH_REPORTER_COMPACT_HPP_INCLUDED
-
-
-#ifndef CATCH_REPORTER_CONSOLE_HPP_INCLUDED
-#define CATCH_REPORTER_CONSOLE_HPP_INCLUDED
-
-
-namespace Catch {
-    // Fwd decls
-    class TablePrinter;
-
-    class ConsoleReporter final : public StreamingReporterBase {
-        Detail::unique_ptr<TablePrinter> m_tablePrinter;
-
-    public:
-        ConsoleReporter(ReporterConfig&& config);
-        ~ConsoleReporter() override;
-        static std::string getDescription();
-
-        void noMatchingTestCases( StringRef unmatchedSpec ) override;
-        void reportInvalidTestSpec( StringRef arg ) override;
-
-        void assertionEnded(AssertionStats const& _assertionStats) override;
-
-        void sectionStarting(SectionInfo const& _sectionInfo) override;
-        void sectionEnded(SectionStats const& _sectionStats) override;
-
-        void benchmarkPreparing( StringRef name ) override;
-        void benchmarkStarting(BenchmarkInfo const& info) override;
-        void benchmarkEnded(BenchmarkStats<> const& stats) override;
-        void benchmarkFailed( StringRef error ) override;
-
-        void testCaseEnded(TestCaseStats const& _testCaseStats) override;
-        void testRunEnded(TestRunStats const& _testRunStats) override;
-        void testRunStarting(TestRunInfo const& _testRunInfo) override;
-
-    private:
-        void lazyPrint();
-
-        void lazyPrintWithoutClosingBenchmarkTable();
-        void lazyPrintRunInfo();
-        void printTestCaseAndSectionHeader();
-
-        void printClosedHeader(std::string const& _name);
-        void printOpenHeader(std::string const& _name);
-
-        // if string has a : in first line will set indent to follow it on
-        // subsequent lines
-        void printHeaderString(std::string const& _string, std::size_t indent = 0);
-
-        void printTotalsDivider(Totals const& totals);
-
-        bool m_headerPrinted = false;
-        bool m_testRunInfoPrinted = false;
-    };
-
-} // end namespace Catch
-
-#endif // CATCH_REPORTER_CONSOLE_HPP_INCLUDED
-
-
-#ifndef CATCH_REPORTER_CUMULATIVE_BASE_HPP_INCLUDED
-#define CATCH_REPORTER_CUMULATIVE_BASE_HPP_INCLUDED
-
-
-#include <string>
-#include <vector>
-
-namespace Catch {
-
-    namespace Detail {
-
-        //! Represents either an assertion or a benchmark result to be handled by cumulative reporter later
-        class AssertionOrBenchmarkResult {
-            // This should really be a variant, but this is much faster
-            // to write and the data layout here is already terrible
-            // enough that we do not have to care about the object size.
-            Optional<AssertionStats> m_assertion;
-            Optional<BenchmarkStats<>> m_benchmark;
-        public:
-            AssertionOrBenchmarkResult(AssertionStats const& assertion);
-            AssertionOrBenchmarkResult(BenchmarkStats<> const& benchmark);
-
-            bool isAssertion() const;
-            bool isBenchmark() const;
-
-            AssertionStats const& asAssertion() const;
-            BenchmarkStats<> const& asBenchmark() const;
-        };
-    }
-
-    /**
-     * Utility base for reporters that need to handle all results at once
-     *
-     * It stores tree of all test cases, sections and assertions, and after the
-     * test run is finished, calls into `testRunEndedCumulative` to pass the
-     * control to the deriving class.
-     *
-     * If you are deriving from this class and override any testing related
-     * member functions, you should first call into the base's implementation to
-     * avoid breaking the tree construction.
-     *
-     * Due to the way this base functions, it has to expand assertions up-front,
-     * even if they are later unused (e.g. because the deriving reporter does
-     * not report successful assertions, or because the deriving reporter does
-     * not use assertion expansion at all). Derived classes can use two
-     * customization points, `m_shouldStoreSuccesfulAssertions` and
-     * `m_shouldStoreFailedAssertions`, to disable the expansion and gain extra
-     * performance. **Accessing the assertion expansions if it wasn't stored is
-     * UB.**
-     */
-    class CumulativeReporterBase : public ReporterBase {
-    public:
-        template<typename T, typename ChildNodeT>
-        struct Node {
-            explicit Node( T const& _value ) : value( _value ) {}
-
-            using ChildNodes = std::vector<Detail::unique_ptr<ChildNodeT>>;
-            T value;
-            ChildNodes children;
-        };
-        struct SectionNode {
-            explicit SectionNode(SectionStats const& _stats) : stats(_stats) {}
-            explicit SectionNode(SectionStats&& _stats) : stats(CATCH_MOVE(_stats)) {}
-
-            bool operator == (SectionNode const& other) const {
-                return stats.sectionInfo.lineInfo == other.stats.sectionInfo.lineInfo;
-            }
-
-            bool hasAnyAssertions() const;
-
-            SectionStats stats;
-            std::vector<Detail::unique_ptr<SectionNode>> childSections;
-            std::vector<Detail::AssertionOrBenchmarkResult> assertionsAndBenchmarks;
-            std::string stdOut;
-            std::string stdErr;
-        };
-
-
-        using TestCaseNode = Node<TestCaseStats, SectionNode>;
-        using TestRunNode = Node<TestRunStats, TestCaseNode>;
-
-        // GCC5 compat: we cannot use inherited constructor, because it
-        //              doesn't implement backport of P0136
-        CumulativeReporterBase(ReporterConfig&& _config):
-            ReporterBase(CATCH_MOVE(_config))
-        {}
-        ~CumulativeReporterBase() override;
-
-        void benchmarkPreparing( StringRef ) override {}
-        void benchmarkStarting( BenchmarkInfo const& ) override {}
-        void benchmarkEnded( BenchmarkStats<> const& benchmarkStats ) override;
-        void benchmarkFailed( StringRef ) override {}
-
-        void noMatchingTestCases( StringRef ) override {}
-        void reportInvalidTestSpec( StringRef ) override {}
-        void fatalErrorEncountered( StringRef /*error*/ ) override {}
-
-        void testRunStarting( TestRunInfo const& ) override {}
-
-        void testCaseStarting( TestCaseInfo const& ) override {}
-        void testCasePartialStarting( TestCaseInfo const&, uint64_t ) override {}
-        void sectionStarting( SectionInfo const& sectionInfo ) override;
-
-        void assertionStarting( AssertionInfo const& ) override {}
-
-        void assertionEnded( AssertionStats const& assertionStats ) override;
-        void sectionEnded( SectionStats const& sectionStats ) override;
-        void testCasePartialEnded( TestCaseStats const&, uint64_t ) override {}
-        void testCaseEnded( TestCaseStats const& testCaseStats ) override;
-        void testRunEnded( TestRunStats const& testRunStats ) override;
-        //! Customization point: called after last test finishes (testRunEnded has been handled)
-        virtual void testRunEndedCumulative() = 0;
-
-        void skipTest(TestCaseInfo const&) override {}
-
-    protected:
-        //! Should the cumulative base store the assertion expansion for successful assertions?
-        bool m_shouldStoreSuccesfulAssertions = true;
-        //! Should the cumulative base store the assertion expansion for failed assertions?
-        bool m_shouldStoreFailedAssertions = true;
-
-        // We need lazy construction here. We should probably refactor it
-        // later, after the events are redone.
-        //! The root node of the test run tree.
-        Detail::unique_ptr<TestRunNode> m_testRun;
-
-    private:
-        // Note: We rely on pointer identity being stable, which is why
-        //       we store pointers to the nodes rather than the values.
-        std::vector<Detail::unique_ptr<TestCaseNode>> m_testCases;
-        // Root section of the _current_ test case
-        Detail::unique_ptr<SectionNode> m_rootSection;
-        // Deepest section of the _current_ test case
-        SectionNode* m_deepestSection = nullptr;
-        // Stack of _active_ sections in the _current_ test case
-        std::vector<SectionNode*> m_sectionStack;
-    };
-
-} // end namespace Catch
-
-#endif // CATCH_REPORTER_CUMULATIVE_BASE_HPP_INCLUDED
 
 
 #ifndef CATCH_REPORTER_EVENT_LISTENER_HPP_INCLUDED
@@ -14248,12 +12034,6 @@ namespace Catch {
         void assertionStarting( AssertionInfo const& assertionInfo ) override;
         void assertionEnded( AssertionStats const& assertionStats ) override;
 
-        void listReporters(
-            std::vector<ReporterDescription> const& descriptions ) override;
-        void listListeners(
-            std::vector<ListenerDescription> const& descriptions ) override;
-        void listTests( std::vector<TestCaseHandle> const& tests ) override;
-        void listTags( std::vector<TagInfo> const& tagInfos ) override;
 
         void noMatchingTestCases( StringRef unmatchedSpec ) override;
         void testRunStarting( TestRunInfo const& testRunInfo ) override;
@@ -14266,241 +12046,11 @@ namespace Catch {
                                    uint64_t partNumber ) override;
         void testCaseEnded( TestCaseStats const& testCaseStats ) override;
         void testRunEnded( TestRunStats const& testRunStats ) override;
-        void skipTest( TestCaseInfo const& testInfo ) override;
     };
 
 } // end namespace Catch
 
 #endif // CATCH_REPORTER_EVENT_LISTENER_HPP_INCLUDED
-
-
-#ifndef CATCH_REPORTER_HELPERS_HPP_INCLUDED
-#define CATCH_REPORTER_HELPERS_HPP_INCLUDED
-
-
-
-#include <iosfwd>
-#include <map>
-#include <string>
-#include <vector>
-
-namespace Catch {
-
-    class IConfig;
-    class TestCaseHandle;
-    class ColourImpl;
-
-    // Returns double formatted as %.3f (format expected on output)
-    std::string getFormattedDuration( double duration );
-
-    //! Should the reporter show duration of test given current configuration?
-    bool shouldShowDuration( IConfig const& config, double duration );
-
-    std::string serializeFilters( std::vector<std::string> const& filters );
-
-    struct lineOfChars {
-        char c;
-        constexpr lineOfChars( char c_ ): c( c_ ) {}
-
-        friend std::ostream& operator<<( std::ostream& out, lineOfChars value );
-    };
-
-    /**
-     * Lists reporter descriptions to the provided stream in user-friendly
-     * format
-     *
-     * Used as the default listing implementation by the first party reporter
-     * bases. The output should be backwards compatible with the output of
-     * Catch2 v2 binaries.
-     */
-    void
-    defaultListReporters( std::ostream& out,
-                          std::vector<ReporterDescription> const& descriptions,
-                          Verbosity verbosity );
-
-    /**
-     * Lists listeners descriptions to the provided stream in user-friendly
-     * format
-     */
-    void defaultListListeners( std::ostream& out,
-                               std::vector<ListenerDescription> const& descriptions,
-                               Verbosity verbosity );
-
-    /**
-     * Lists tag information to the provided stream in user-friendly format
-     *
-     * Used as the default listing implementation by the first party reporter
-     * bases. The output should be backwards compatible with the output of
-     * Catch2 v2 binaries.
-     */
-    void defaultListTags( std::ostream& out,
-                          std::vector<TagInfo> const& tags,
-                          bool isFiltered,
-                          Verbosity verbosity );
-
-    /**
-     * Lists test case information to the provided stream in user-friendly
-     * format
-     *
-     * Used as the default listing implementation by the first party reporter
-     * bases. The output is backwards compatible with the output of Catch2
-     * v2 binaries, and also supports the format specific to the old
-     * `--list-test-names-only` option, for people who used it in integrations.
-     */
-    void defaultListTests( std::ostream& out,
-                           ColourImpl* streamColour,
-                           std::vector<TestCaseHandle> const& tests,
-                           bool isFiltered,
-                           Verbosity verbosity );
-
-    /**
-     * Prints test run totals to the provided stream in user-friendly format
-     *
-     * Used by the console and compact reporters.
-     */
-    void printTestRunTotals( std::ostream& stream,
-                      ColourImpl& streamColour,
-                      Totals const& totals );
-
-    //! Throws an exception if options contain unknown keys
-    void rejectSuperfluousConfigKeys(
-        std::map<std::string, std::string> const& options,
-        std::initializer_list<StringRef> knownKeys );
-
-} // end namespace Catch
-
-#endif // CATCH_REPORTER_HELPERS_HPP_INCLUDED
-
-
-
-#ifndef CATCH_REPORTER_JSON_HPP_INCLUDED
-#define CATCH_REPORTER_JSON_HPP_INCLUDED
-
-
-#include <stack>
-
-namespace Catch {
-    class JsonReporter : public StreamingReporterBase {
-    public:
-        JsonReporter( ReporterConfig&& config );
-
-        ~JsonReporter() override;
-
-        static std::string getDescription();
-
-    public: // StreamingReporterBase
-        void testRunStarting( TestRunInfo const& runInfo ) override;
-        void testRunEnded( TestRunStats const& runStats ) override;
-
-        void testCaseStarting( TestCaseInfo const& tcInfo ) override;
-        void testCaseEnded( TestCaseStats const& tcStats ) override;
-
-        void testCasePartialStarting( TestCaseInfo const& tcInfo,
-                                      uint64_t index ) override;
-        void testCasePartialEnded( TestCaseStats const& tcStats,
-                                   uint64_t index ) override;
-
-        void sectionStarting( SectionInfo const& sectionInfo ) override;
-        void sectionEnded( SectionStats const& sectionStats ) override;
-
-        void assertionEnded( AssertionStats const& assertionStats ) override;
-
-        //void testRunEndedCumulative() override;
-
-        void benchmarkPreparing( StringRef name ) override;
-        void benchmarkStarting( BenchmarkInfo const& ) override;
-        void benchmarkEnded( BenchmarkStats<> const& ) override;
-        void benchmarkFailed( StringRef error ) override;
-
-        void listReporters(
-            std::vector<ReporterDescription> const& descriptions ) override;
-        void listListeners(
-            std::vector<ListenerDescription> const& descriptions ) override;
-        void listTests( std::vector<TestCaseHandle> const& tests ) override;
-        void listTags( std::vector<TagInfo> const& tags ) override;
-
-    private:
-        Timer m_testCaseTimer;
-        enum class Writer {
-            Object,
-            Array
-        };
-
-        JsonArrayWriter& startArray();
-        JsonArrayWriter& startArray( StringRef key );
-
-        JsonObjectWriter& startObject();
-        JsonObjectWriter& startObject( StringRef key );
-
-        void endObject();
-        void endArray();
-
-        bool isInside( Writer writer );
-
-        void startListing();
-        void endListing();
-
-        // Invariant:
-        // When m_writers is not empty and its top element is
-        // - Writer::Object, then m_objectWriters is not be empty
-        // - Writer::Array,  then m_arrayWriters shall not be empty
-        std::stack<JsonObjectWriter> m_objectWriters{};
-        std::stack<JsonArrayWriter> m_arrayWriters{};
-        std::stack<Writer> m_writers{};
-
-        bool m_startedListing = false;
-    };
-} // namespace Catch
-
-#endif // CATCH_REPORTER_JSON_HPP_INCLUDED
-
-
-#ifndef CATCH_REPORTER_JUNIT_HPP_INCLUDED
-#define CATCH_REPORTER_JUNIT_HPP_INCLUDED
-
-
-
-namespace Catch {
-
-    class JunitReporter final : public CumulativeReporterBase {
-    public:
-        JunitReporter(ReporterConfig&& _config);
-
-        static std::string getDescription();
-
-        void testRunStarting(TestRunInfo const& runInfo) override;
-
-        void testCaseStarting(TestCaseInfo const& testCaseInfo) override;
-        void assertionEnded(AssertionStats const& assertionStats) override;
-
-        void testCaseEnded(TestCaseStats const& testCaseStats) override;
-
-        void testRunEndedCumulative() override;
-
-    private:
-        void writeRun(TestRunNode const& testRunNode, double suiteTime);
-
-        void writeTestCase(TestCaseNode const& testCaseNode);
-
-        void writeSection( std::string const& className,
-                           std::string const& rootName,
-                           SectionNode const& sectionNode,
-                           bool testOkToFail );
-
-        void writeAssertions(SectionNode const& sectionNode);
-        bool writeAssertion(AssertionStats const& stats);
-
-        XmlWriter xml;
-        Timer suiteTimer;
-        std::string stdOutForSuite;
-        std::string stdErrForSuite;
-        unsigned int unexpectedExceptions = 0;
-        bool m_okToFail = false;
-    };
-
-} // end namespace Catch
-
-#endif // CATCH_REPORTER_JUNIT_HPP_INCLUDED
 
 
 #ifndef CATCH_REPORTER_MULTI_HPP_INCLUDED
@@ -14559,12 +12109,7 @@ namespace Catch {
         void testCaseEnded( TestCaseStats const& testCaseStats ) override;
         void testRunEnded( TestRunStats const& testRunStats ) override;
 
-        void skipTest( TestCaseInfo const& testInfo ) override;
 
-        void listReporters(std::vector<ReporterDescription> const& descriptions) override;
-        void listListeners(std::vector<ListenerDescription> const& descriptions) override;
-        void listTests(std::vector<TestCaseHandle> const& tests) override;
-        void listTags(std::vector<TagInfo> const& tags) override;
 
 
     };
@@ -14593,38 +12138,12 @@ namespace Catch {
             void_t<decltype( T::getDescription() )>>
             : std::true_type {};
 
-        //! Indirection for reporter registration, so that the error handling is
-        //! independent on the reporter's concrete type
-        void registerReporterImpl( std::string const& name,
-                                   IReporterFactoryPtr reporterPtr );
         //! Actually registers the factory, independent on listener's concrete type
         void registerListenerImpl( Detail::unique_ptr<EventListenerFactory> listenerFactory );
     } // namespace Detail
 
     class IEventListener;
     using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
-
-    template <typename T>
-    class ReporterFactory : public IReporterFactory {
-
-        IEventListenerPtr create( ReporterConfig&& config ) const override {
-            return Detail::make_unique<T>( CATCH_MOVE(config) );
-        }
-
-        std::string getDescription() const override {
-            return T::getDescription();
-        }
-    };
-
-
-    template<typename T>
-    class ReporterRegistrar {
-    public:
-        explicit ReporterRegistrar( std::string const& name ) {
-            registerReporterImpl( name,
-                                  Detail::make_unique<ReporterFactory<T>>() );
-        }
-    };
 
     template<typename T>
     class ListenerRegistrar {
@@ -14666,16 +12185,6 @@ namespace Catch {
 
 #if !defined(CATCH_CONFIG_DISABLE)
 
-#    define CATCH_REGISTER_REPORTER( name, reporterType )                  \
-        CATCH_INTERNAL_START_WARNINGS_SUPPRESSION                          \
-        CATCH_INTERNAL_SUPPRESS_GLOBALS_WARNINGS                           \
-        namespace {                                                        \
-            const Catch::ReporterRegistrar<reporterType>                   \
-                INTERNAL_CATCH_UNIQUE_NAME( catch_internal_RegistrarFor )( \
-                    name );                                                \
-        }                                                                  \
-        CATCH_INTERNAL_STOP_WARNINGS_SUPPRESSION
-
 #    define CATCH_REGISTER_LISTENER( listenerType )                        \
         CATCH_INTERNAL_START_WARNINGS_SUPPRESSION                          \
         CATCH_INTERNAL_SUPPRESS_GLOBALS_WARNINGS                           \
@@ -14688,199 +12197,11 @@ namespace Catch {
 
 #else // CATCH_CONFIG_DISABLE
 
-#define CATCH_REGISTER_REPORTER(name, reporterType)
 #define CATCH_REGISTER_LISTENER(listenerType)
 
 #endif // CATCH_CONFIG_DISABLE
 
 #endif // CATCH_REPORTER_REGISTRARS_HPP_INCLUDED
-
-
-#ifndef CATCH_REPORTER_SONARQUBE_HPP_INCLUDED
-#define CATCH_REPORTER_SONARQUBE_HPP_INCLUDED
-
-
-
-namespace Catch {
-
-    class SonarQubeReporter final : public CumulativeReporterBase {
-    public:
-        SonarQubeReporter( ReporterConfig&& config );
-
-        static std::string getDescription() {
-            using namespace std::string_literals;
-            return "Reports test results in the Generic Test Data SonarQube XML format"s;
-        }
-
-        void testRunStarting( TestRunInfo const& testRunInfo ) override;
-
-        void testRunEndedCumulative() override {
-            writeRun( *m_testRun );
-            xml.endElement();
-        }
-
-        void writeRun( TestRunNode const& runNode );
-
-        void writeTestFile(StringRef filename, std::vector<TestCaseNode const*> const& testCaseNodes);
-
-        void writeTestCase(TestCaseNode const& testCaseNode);
-
-        void writeSection(std::string const& rootName, SectionNode const& sectionNode, bool okToFail);
-
-        void writeAssertions(SectionNode const& sectionNode, bool okToFail);
-
-        void writeAssertion(AssertionStats const& stats, bool okToFail);
-
-    private:
-        XmlWriter xml;
-    };
-
-
-} // end namespace Catch
-
-#endif // CATCH_REPORTER_SONARQUBE_HPP_INCLUDED
-
-
-#ifndef CATCH_REPORTER_TAP_HPP_INCLUDED
-#define CATCH_REPORTER_TAP_HPP_INCLUDED
-
-
-namespace Catch {
-
-    class TAPReporter final : public StreamingReporterBase {
-    public:
-        TAPReporter( ReporterConfig&& config );
-
-        static std::string getDescription() {
-            using namespace std::string_literals;
-            return "Reports test results in TAP format, suitable for test harnesses"s;
-        }
-
-        void testRunStarting( TestRunInfo const& testInfo ) override;
-
-        void noMatchingTestCases( StringRef unmatchedSpec ) override;
-
-        void assertionEnded(AssertionStats const& _assertionStats) override;
-
-        void testRunEnded(TestRunStats const& _testRunStats) override;
-
-    private:
-        std::size_t counter = 0;
-    };
-
-} // end namespace Catch
-
-#endif // CATCH_REPORTER_TAP_HPP_INCLUDED
-
-
-#ifndef CATCH_REPORTER_TEAMCITY_HPP_INCLUDED
-#define CATCH_REPORTER_TEAMCITY_HPP_INCLUDED
-
-
-#include <cstring>
-
-#ifdef __clang__
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wpadded"
-#endif
-
-namespace Catch {
-
-    class TeamCityReporter final : public StreamingReporterBase {
-    public:
-        TeamCityReporter( ReporterConfig&& _config );
-        ~TeamCityReporter() override;
-
-        static std::string getDescription() {
-            using namespace std::string_literals;
-            return "Reports test results as TeamCity service messages"s;
-        }
-
-        void testRunStarting( TestRunInfo const& runInfo ) override;
-        void testRunEnded( TestRunStats const& runStats ) override;
-
-
-        void assertionEnded(AssertionStats const& assertionStats) override;
-
-        void sectionStarting(SectionInfo const& sectionInfo) override {
-            m_headerPrintedForThisSection = false;
-            StreamingReporterBase::sectionStarting( sectionInfo );
-        }
-
-        void testCaseStarting(TestCaseInfo const& testInfo) override;
-
-        void testCaseEnded(TestCaseStats const& testCaseStats) override;
-
-    private:
-        void printSectionHeader(std::ostream& os);
-
-        bool m_headerPrintedForThisSection = false;
-        Timer m_testTimer;
-    };
-
-} // end namespace Catch
-
-#ifdef __clang__
-#   pragma clang diagnostic pop
-#endif
-
-#endif // CATCH_REPORTER_TEAMCITY_HPP_INCLUDED
-
-
-#ifndef CATCH_REPORTER_XML_HPP_INCLUDED
-#define CATCH_REPORTER_XML_HPP_INCLUDED
-
-
-
-
-namespace Catch {
-    class XmlReporter : public StreamingReporterBase {
-    public:
-        XmlReporter(ReporterConfig&& _config);
-
-        ~XmlReporter() override;
-
-        static std::string getDescription();
-
-        virtual std::string getStylesheetRef() const;
-
-        void writeSourceInfo(SourceLineInfo const& sourceInfo);
-
-    public: // StreamingReporterBase
-
-        void testRunStarting(TestRunInfo const& testInfo) override;
-
-        void testCaseStarting(TestCaseInfo const& testInfo) override;
-
-        void sectionStarting(SectionInfo const& sectionInfo) override;
-
-        void assertionEnded(AssertionStats const& assertionStats) override;
-
-        void sectionEnded(SectionStats const& sectionStats) override;
-
-        void testCaseEnded(TestCaseStats const& testCaseStats) override;
-
-        void testRunEnded(TestRunStats const& testRunStats) override;
-
-        void benchmarkPreparing( StringRef name ) override;
-        void benchmarkStarting(BenchmarkInfo const&) override;
-        void benchmarkEnded(BenchmarkStats<> const&) override;
-        void benchmarkFailed( StringRef error ) override;
-
-        void listReporters(std::vector<ReporterDescription> const& descriptions) override;
-        void listListeners(std::vector<ListenerDescription> const& descriptions) override;
-        void listTests(std::vector<TestCaseHandle> const& tests) override;
-        void listTags(std::vector<TagInfo> const& tags) override;
-
-    private:
-        Timer m_testCaseTimer;
-        XmlWriter m_xml;
-        int m_sectionDepth = 0;
-    };
-
-} // end namespace Catch
-
-#endif // CATCH_REPORTER_XML_HPP_INCLUDED
 
 #endif // CATCH_REPORTERS_ALL_HPP_INCLUDED
 

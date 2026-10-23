@@ -32,7 +32,10 @@ if(CATCH_BUILD_SURROGATES)
     foreach(Source ${targetSources})
       string(REGEX MATCH "^.*\\.hpp$" isHeader ${Source})
       string(REGEX MATCH "_all.hpp" isAllHeader ${Source})
-      if(isHeader AND NOT isAllHeader)
+      # The runner's headers need C++20; the surrogates check Catch2's
+      # headers at the language level of the build.
+      string(REGEX MATCH "/Progmasoft/" isRunnerHeader ${Source})
+      if(isHeader AND NOT isAllHeader AND NOT isRunnerHeader)
         list(APPEND AllHeaders ${Source})
       endif()
     endforeach()
@@ -71,30 +74,20 @@ set(TEST_SOURCES
   ${SELF_TEST_DIR}/TestRegistrations.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/Algorithms.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/AssertionHandler.tests.cpp
-  ${SELF_TEST_DIR}/IntrospectiveTests/Clara.tests.cpp
-  ${SELF_TEST_DIR}/IntrospectiveTests/CmdLine.tests.cpp
-  ${SELF_TEST_DIR}/IntrospectiveTests/CmdLineHelpers.tests.cpp
-  ${SELF_TEST_DIR}/IntrospectiveTests/ColourImpl.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/Details.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/FloatingPoint.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/GeneratorsImpl.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/Integer.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/InternalBenchmark.tests.cpp
-  ${SELF_TEST_DIR}/IntrospectiveTests/Json.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/Parse.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/PartTracker.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/RandomNumberGeneration.tests.cpp
-  ${SELF_TEST_DIR}/IntrospectiveTests/Reporters.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/Tag.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/TestCaseInfoHasher.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/TestSpec.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/TestSpecParser.tests.cpp
-  ${SELF_TEST_DIR}/IntrospectiveTests/TextFlow.tests.cpp
-  ${SELF_TEST_DIR}/IntrospectiveTests/Sharding.tests.cpp
-  ${SELF_TEST_DIR}/IntrospectiveTests/Stream.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/String.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/StringManip.tests.cpp
-  ${SELF_TEST_DIR}/IntrospectiveTests/Xml.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/Traits.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/ToString.tests.cpp
   ${SELF_TEST_DIR}/IntrospectiveTests/UniquePtr.tests.cpp
@@ -162,13 +155,25 @@ add_executable(ProgmasoftSelfTest
   Progmasoft/Property.tests.cpp
   Progmasoft/ForAll.tests.cpp
   Progmasoft/Results.tests.cpp
+  Progmasoft/Runner.tests.cpp
+  Progmasoft/RunnerUnits.tests.cpp
   Progmasoft/Snapshot.tests.cpp
   Progmasoft/Stateful.tests.cpp
   Progmasoft/Strategy.tests.cpp
 )
 target_link_libraries(ProgmasoftSelfTest PRIVATE Progmasoft::Catch3 Catch2WithMain)
 target_compile_features(ProgmasoftSelfTest PRIVATE cxx_std_20)
-add_test(NAME Progmasoft::PropertyTests COMMAND $<TARGET_FILE:ProgmasoftSelfTest>)
+
+# Tests that misbehave on purpose, for the runner's integration tests.
+add_executable(RunnerFixture Progmasoft/RunnerFixture.cpp)
+target_link_libraries(RunnerFixture PRIVATE Catch2WithMain)
+target_compile_features(RunnerFixture PRIVATE cxx_std_20)
+add_dependencies(ProgmasoftSelfTest RunnerFixture)
+
+add_test(NAME Progmasoft::PropertyTests COMMAND $<TARGET_FILE:ProgmasoftSelfTest> --no-history)
+set_tests_properties(Progmasoft::PropertyTests PROPERTIES
+  ENVIRONMENT "CATCH3_RUNNER_FIXTURE=$<TARGET_FILE:RunnerFixture>"
+)
 if(BUILD_SHARED_LIBS AND WIN32)
   add_custom_command(TARGET SelfTest PRE_LINK
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Catch2>
@@ -185,203 +190,108 @@ if(CATCH_ENABLE_COVERAGE)
 endif()
 
 # configure unit tests via CTest
-add_test(NAME RunTests COMMAND $<TARGET_FILE:SelfTest> --order rand --rng-seed time --warn InfiniteGenerators)
-set_tests_properties(RunTests PROPERTIES
-  FAIL_REGULAR_EXPRESSION "Filters:"
-  COST 15
-)
+add_test(NAME RunTests COMMAND $<TARGET_FILE:SelfTest> --order=random --warn=infinite-generators --no-history)
+set_tests_properties(RunTests PROPERTIES COST 15)
 
 # Because CTest does not allow us to check both return code _and_ expected
 # output in one test, we run these commands twice. First time we check
 # the output, the second time we check the exit code.
-add_test(NAME List::Tests::Output COMMAND $<TARGET_FILE:SelfTest> --list-tests --verbosity high)
+add_test(NAME List::Tests::Output COMMAND $<TARGET_FILE:SelfTest> --list)
 set_tests_properties(List::Tests::Output PROPERTIES
-  PASS_REGULAR_EXPRESSION "[0-9]+ test cases"
+  PASS_REGULAR_EXPRESSION "[0-9]+ matching test\\(s\\)"
   FAIL_REGULAR_EXPRESSION "Hidden Test"
 )
+add_test(NAME List::Tests::ExitCode COMMAND $<TARGET_FILE:SelfTest> --list)
 
-add_test(NAME VerbosityIsPerReporter COMMAND $<TARGET_FILE:SelfTest> --list-tests --verbosity high --reporter console::verbosity=quiet)
-set_tests_properties(VerbosityIsPerReporter
-  PROPERTIES
-    FAIL_REGULAR_EXPRESSION "\.cpp"
-)
-
-# This should be equivalent to the old --list-test-names-only and be usable
-# with --input-file.
-add_test(NAME List::Tests::Quiet COMMAND $<TARGET_FILE:SelfTest> --list-tests --verbosity quiet)
-# Sadly we cannot ask for start-of-line and end-of-line in a ctest regex,
-# so we fail if we see space/tab at the start...
-set_tests_properties(List::Tests::Quiet PROPERTIES
-  PASS_REGULAR_EXPRESSION "\"#1905 -- test spec parser properly clears internal state between compound tests\"[\r\n]"
-  FAIL_REGULAR_EXPRESSION "[ \t]\"#1905 -- test spec parser properly clears internal state between compound tests\""
+add_test(NAME List::Tests::Names COMMAND $<TARGET_FILE:SelfTest> --list=names)
+# CTest regexes cannot anchor at the start of a line, so a name indented by
+# space or tab fails the test.
+set_tests_properties(List::Tests::Names PROPERTIES
+  PASS_REGULAR_EXPRESSION "#1905 -- test spec parser properly clears internal state between compound tests[\r\n]"
+  FAIL_REGULAR_EXPRESSION "[ \t]#1905 -- test spec parser properly clears internal state between compound tests"
 )
 
-add_test(NAME List::Tests::ExitCode COMMAND $<TARGET_FILE:SelfTest> --list-tests --verbosity high)
-add_test(NAME List::Tests::XmlOutput COMMAND $<TARGET_FILE:SelfTest> --list-tests --verbosity high -r xml)
-set_tests_properties(List::Tests::XmlOutput PROPERTIES
-  PASS_REGULAR_EXPRESSION "<Line>[0-9]+</Line>"
-  FAIL_REGULAR_EXPRESSION "[0-9]+ test cases"
-)
-
-add_test(NAME List::Tests::Json::Normal COMMAND $<TARGET_FILE:SelfTest> --list-tests -r json)
-set_tests_properties(List::Tests::Json::Normal PROPERTIES
-  PASS_REGULAR_EXPRESSION "\"tags\": \\["
-  FAIL_REGULAR_EXPRESSION "\"source-location\": {"
-)
-add_test(NAME List::Tests::Json::Quiet COMMAND $<TARGET_FILE:SelfTest> --list-tests -r json::verbosity=quiet)
-set_tests_properties(List::Tests::Json::Quiet PROPERTIES
-  PASS_REGULAR_EXPRESSION "\"name\": \""
-  FAIL_REGULAR_EXPRESSION "\"tags\": \\["
-)
-add_test(NAME List::Tests::Json::High COMMAND $<TARGET_FILE:SelfTest> --list-tests -r json::verbosity=high)
-set_tests_properties(List::Tests::Json::High PROPERTIES
-  PASS_REGULAR_EXPRESSION "\"source-location\": {"
+add_test(NAME List::Tests::Json COMMAND $<TARGET_FILE:SelfTest> --list=json)
+set_tests_properties(List::Tests::Json PROPERTIES
+  PASS_REGULAR_EXPRESSION "\"format\": \"catch3-tests\""
 )
 
 add_test(NAME List::Tags::Output COMMAND $<TARGET_FILE:SelfTest> --list-tags)
 set_tests_properties(List::Tags::Output PROPERTIES
-  PASS_REGULAR_EXPRESSION "[0-9]+ tags"
+  PASS_REGULAR_EXPRESSION "[0-9]+ tag\\(s\\)"
   FAIL_REGULAR_EXPRESSION "\\[\\.\\]")
 add_test(NAME List::Tags::ExitCode COMMAND $<TARGET_FILE:SelfTest> --list-tags)
-add_test(NAME List::Tags::XmlOutput COMMAND $<TARGET_FILE:SelfTest> --list-tags -r xml)
-set_tests_properties(List::Tags::XmlOutput PROPERTIES
-  PASS_REGULAR_EXPRESSION "<Count>18</Count>"
-  FAIL_REGULAR_EXPRESSION "[0-9]+ tags"
-)
-add_test(NAME List::Tags::JsonOutput COMMAND $<TARGET_FILE:SelfTest> --list-tags -r json)
-set_tests_properties(List::Tags::JsonOutput PROPERTIES
-  PASS_REGULAR_EXPRESSION "\"count\": 18"
-  FAIL_REGULAR_EXPRESSION "[0-9]+ tags"
-)
 
-add_test(NAME List::Reporters::Output COMMAND $<TARGET_FILE:SelfTest> --list-reporters)
-set_tests_properties(List::Reporters::Output PROPERTIES PASS_REGULAR_EXPRESSION "Available reporters:")
-add_test(NAME List::Reporters::ExitCode COMMAND $<TARGET_FILE:SelfTest> --list-reporters)
-add_test(NAME List::Reporters::XmlOutput COMMAND $<TARGET_FILE:SelfTest> --list-reporters -r xml)
-set_tests_properties(List::Reporters::XmlOutput PROPERTIES
-  PASS_REGULAR_EXPRESSION "<Name>compact</Name>"
-  FAIL_REGULAR_EXPRESSION "Available reporters:"
-)
-add_test(NAME List::Reporters::JsonOutput COMMAND $<TARGET_FILE:SelfTest> --list-reporters -r json)
-set_tests_properties(List::Reporters::JsonOutput PROPERTIES
-  PASS_REGULAR_EXPRESSION "\"name\": \"compact\""
-  FAIL_REGULAR_EXPRESSION "Available reporters:"
-)
+add_test(NAME NoAssertions COMMAND $<TARGET_FILE:SelfTest> --no-history --warn=no-assertions "An empty test with no assertions")
+set_tests_properties(NoAssertions PROPERTIES PASS_REGULAR_EXPRESSION "no assertion ran")
 
+add_test(NAME TestSpecs::CombiningMatchingAndNonMatchingIsOk-1 COMMAND $<TARGET_FILE:SelfTest> --no-history Tracker, "___nonexistent_test___")
 
-add_test(NAME List::Listeners::Output
-  COMMAND
-    $<TARGET_FILE:SelfTest> --list-listeners
-)
-set_tests_properties(List::Listeners::Output
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "Registered listeners:"
-)
-add_test(NAME List::Listeners::ExitCode
-  COMMAND
-    $<TARGET_FILE:SelfTest> --list-listeners
-)
-add_test(NAME List::Listeners::XmlOutput
-  COMMAND
-    $<TARGET_FILE:SelfTest>
-      --list-listeners
-      --reporter xml
-)
-set_tests_properties(List::Listeners::XmlOutput
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "<RegisteredListeners>"
-    FAIL_REGULAR_EXPRESSION "Registered listeners:"
-)
-add_test(NAME List::Listeners::JsonOutput
-  COMMAND
-    $<TARGET_FILE:SelfTest>
-      --list-listeners
-      --reporter json
-)
-set_tests_properties(List::Listeners::JsonOutput
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "\"listeners\": \\["
-    FAIL_REGULAR_EXPRESSION "Registered listeners:"
-)
-
-
-add_test(NAME NoAssertions COMMAND $<TARGET_FILE:SelfTest> -w NoAssertions "An empty test with no assertions")
-set_tests_properties(NoAssertions PROPERTIES PASS_REGULAR_EXPRESSION "No assertions in test case")
-
-# We cannot combine a regular expression on output with return code check
-# in one test, so we register two instead of making a checking script because
-# the runtime overhead is small enough.
-add_test(NAME TestSpecs::CombiningMatchingAndNonMatchingIsOk-1 COMMAND $<TARGET_FILE:SelfTest> Tracker, "___nonexistent_test___")
-
-add_test(NAME TestSpecs::CombiningMatchingAndNonMatchingIsOk-2 COMMAND $<TARGET_FILE:SelfTest> Tracker, "___nonexistent_test___")
+add_test(NAME TestSpecs::CombiningMatchingAndNonMatchingIsOk-2 COMMAND $<TARGET_FILE:SelfTest> --no-history Tracker, "___nonexistent_test___")
 set_tests_properties(TestSpecs::CombiningMatchingAndNonMatchingIsOk-2 PROPERTIES
-  PASS_REGULAR_EXPRESSION "No test cases matched '\"___nonexistent_test___\"'"
-  FAIL_REGULAR_EXPRESSION "No tests ran"
+  PASS_REGULAR_EXPRESSION "no test matches '\"___nonexistent_test___\"'"
+  FAIL_REGULAR_EXPRESSION "none ran"
 )
 
 add_test(NAME TestSpecs::NoMatchedTestsFail
-  COMMAND $<TARGET_FILE:SelfTest> "___nonexistent_test___"
+  COMMAND $<TARGET_FILE:SelfTest> --no-history "___nonexistent_test___"
 )
 set_tests_properties(TestSpecs::NoMatchedTestsFail
   PROPERTIES
     WILL_FAIL ON
 )
 add_test(NAME TestSpecs::OverrideFailureWithNoMatchedTests
-  COMMAND $<TARGET_FILE:SelfTest> "___nonexistent_test___" --allow-running-no-tests
+  COMMAND $<TARGET_FILE:SelfTest> --no-history "___nonexistent_test___" --allow-no-tests
 )
 
 add_test(NAME TestSpecs::OverrideAllSkipFailure
-  COMMAND $<TARGET_FILE:SelfTest> "tests can be skipped dynamically at runtime" --allow-running-no-tests
+  COMMAND $<TARGET_FILE:SelfTest> --no-history "tests can be skipped dynamically at runtime" --allow-no-tests
 )
 
 add_test(NAME TestSpecs::NonMatchingTestSpecIsRoundTrippable
-  COMMAND $<TARGET_FILE:SelfTest> Tracker, "this test does not exist" "[nor does this tag]"
+  COMMAND $<TARGET_FILE:SelfTest> --no-history Tracker, "this test does not exist" "[nor does this tag]"
 )
 set_tests_properties(TestSpecs::NonMatchingTestSpecIsRoundTrippable
   PROPERTIES
-    PASS_REGULAR_EXPRESSION "No test cases matched '\"this test does not exist\" \\[nor does this tag\\]'"
+    PASS_REGULAR_EXPRESSION "no test matches '\"this test does not exist\" \\[nor does this tag\\]'"
 )
 
 add_test(NAME Warnings::UnmatchedTestSpecIsAccepted
-  COMMAND $<TARGET_FILE:SelfTest> Tracker --warn UnmatchedTestSpec
-)
-set_tests_properties(Warnings::UnmatchedTestSpecIsAccepted
-  PROPERTIES
-    FAIL_REGULAR_EXPRESSION "Unrecognised warning option: "
+  COMMAND $<TARGET_FILE:SelfTest> --no-history Tracker --warn=unmatched-specs
 )
 
 add_test(NAME Warnings::MultipleWarningsCanBeSpecified
   COMMAND
-    $<TARGET_FILE:SelfTest> Tracker
-      --warn NoAssertions
-      --warn UnmatchedTestSpec
+    $<TARGET_FILE:SelfTest> --no-history Tracker
+      --warn=no-assertions
+      --warn=unmatched-specs
 )
 
 add_test(NAME TestSpecs::WarnUnmatchedTestSpecFailsWithUnmatchedTestSpec
   COMMAND
-    $<TARGET_FILE:SelfTest> Tracker, "___nonexistent_test___" --warn UnmatchedTestSpec
+    $<TARGET_FILE:SelfTest> --no-history Tracker, "___nonexistent_test___" --warn=unmatched-specs
 )
 set_tests_properties(TestSpecs::WarnUnmatchedTestSpecFailsWithUnmatchedTestSpec
   PROPERTIES
     WILL_FAIL ON
 )
 
-add_test(NAME UnmatchedOutputFilter COMMAND $<TARGET_FILE:SelfTest> [this-tag-does-not-exist])
+add_test(NAME UnmatchedOutputFilter COMMAND $<TARGET_FILE:SelfTest> --no-history [this-tag-does-not-exist])
 set_tests_properties(UnmatchedOutputFilter
   PROPERTIES
-    PASS_REGULAR_EXPRESSION "No test cases matched '\\[this-tag-does-not-exist\\]'"
+    PASS_REGULAR_EXPRESSION "no test matches '\\[this-tag-does-not-exist\\]'"
 )
 
-add_test(NAME FilteredSections::SimpleExample::1 COMMAND $<TARGET_FILE:SelfTest> \#1394 -c RunSection)
-set_tests_properties(FilteredSections::SimpleExample::1 PROPERTIES FAIL_REGULAR_EXPRESSION "No tests ran")
-add_test(NAME FilteredSections::SimpleExample::2 COMMAND $<TARGET_FILE:SelfTest> \#1394\ nested -c NestedRunSection -c s1)
-set_tests_properties(FilteredSections::SimpleExample::2 PROPERTIES FAIL_REGULAR_EXPRESSION "No tests ran")
+add_test(NAME FilteredSections::SimpleExample::1 COMMAND $<TARGET_FILE:SelfTest> --no-history \#1394 --section=RunSection)
+set_tests_properties(FilteredSections::SimpleExample::1 PROPERTIES FAIL_REGULAR_EXPRESSION "none ran")
+add_test(NAME FilteredSections::SimpleExample::2 COMMAND $<TARGET_FILE:SelfTest> --no-history \#1394\ nested --section=NestedRunSection --section=s1)
+set_tests_properties(FilteredSections::SimpleExample::2 PROPERTIES FAIL_REGULAR_EXPRESSION "none ran")
 
 add_test(
   NAME
     FilteredSections::GeneratorsDontCauseInfiniteLoop
   COMMAND
-    $<TARGET_FILE:SelfTest> "#2025: original repro" -c "fov_0"
+    $<TARGET_FILE:SelfTest> --no-history --verbose "#2025: original repro" --section=fov_0
 )
 set_tests_properties(FilteredSections::GeneratorsDontCauseInfiniteLoop
   PROPERTIES
@@ -389,51 +299,26 @@ set_tests_properties(FilteredSections::GeneratorsDontCauseInfiniteLoop
     FAIL_REGULAR_EXPRESSION "inside with fov: 1" # This would mean there was no filtering
 )
 
-add_test(NAME "FilteredSections::DifferentSimpleFilters"
-  COMMAND
-      Python3::Interpreter "${CMAKE_CURRENT_LIST_DIR}/TestScripts/testSectionFiltering.py" $<TARGET_FILE:SelfTest>
-)
-set_tests_properties("FilteredSections::DifferentSimpleFilters"
-  PROPERTIES
-    LABELS "uses-python"
-)
-
 add_test(NAME "FilteredSections::HittingGeneratorsWithSectionFilterCausesSkip"
   COMMAND
-    $<TARGET_FILE:SelfTest> "baz" -p "c:A" -r "compact"
+    $<TARGET_FILE:SelfTest> --no-history "baz" --path-filter=c:A
 )
 set_tests_properties("FilteredSections::HittingGeneratorsWithSectionFilterCausesSkip"
   PROPERTIES
-    PASS_REGULAR_EXPRESSION "test cases: 1 \\| 1 skipped[\r\n\t ]*assertions: 1 \\| 1 passed"
+    PASS_REGULAR_EXPRESSION "1 test\\(s\\): 1 skipped"
 )
 
-add_test(NAME ApprovalTests
-  COMMAND
-    Python3::Interpreter
-    ${CATCH_DIR}/tools/scripts/approvalTests.py
-    $<TARGET_FILE:SelfTest>
-    "${CMAKE_CURRENT_BINARY_DIR}"
-)
+add_test(NAME RegressionCheck-1670 COMMAND $<TARGET_FILE:SelfTest> --no-history "#1670 regression check" --section=A)
+set_tests_properties(RegressionCheck-1670 PROPERTIES PASS_REGULAR_EXPRESSION "1 test\\(s\\): 1 passed")
 
-set_tests_properties(ApprovalTests
-  PROPERTIES
-    FAIL_REGULAR_EXPRESSION "Results differed"
+add_test(NAME VersionCheck COMMAND $<TARGET_FILE:SelfTest> --version)
+set_tests_properties(VersionCheck PROPERTIES PASS_REGULAR_EXPRESSION "Catch3 [0-9]+\\.[0-9]+\\.[0-9]+")
 
-    # This is the most expensive test in the basic test suite, so we give
-    # it high cost estimate so that CI runs it as one of the first ones,
-    # for better parallelization.
-    COST 30
-    LABELS "uses-python"
-)
+add_test(NAME HelpCheck COMMAND $<TARGET_FILE:SelfTest> --help)
+set_tests_properties(HelpCheck PROPERTIES PASS_REGULAR_EXPRESSION "--jobs=N")
 
-add_test(NAME RegressionCheck-1670 COMMAND $<TARGET_FILE:SelfTest> "#1670 regression check" -c A -r compact)
-set_tests_properties(RegressionCheck-1670 PROPERTIES PASS_REGULAR_EXPRESSION "All tests passed \\(2 assertions in 1 test case\\)")
-
-add_test(NAME VersionCheck COMMAND $<TARGET_FILE:SelfTest> -h)
-set_tests_properties(VersionCheck PROPERTIES PASS_REGULAR_EXPRESSION "Catch2 v${PROJECT_VERSION}")
-
-add_test(NAME LibIdentityTest COMMAND $<TARGET_FILE:SelfTest> --libidentify)
-set_tests_properties(LibIdentityTest PROPERTIES PASS_REGULAR_EXPRESSION "description:    A Catch2 test executable")
+add_test(NAME UnknownOptionHasHint COMMAND $<TARGET_FILE:SelfTest> --jbos=2)
+set_tests_properties(UnknownOptionHasHint PROPERTIES PASS_REGULAR_EXPRESSION "did you mean --jobs\\?")
 
 add_test(NAME FilenameAsTagsTest COMMAND $<TARGET_FILE:SelfTest> -\# --list-tags)
 set_tests_properties(FilenameAsTagsTest PROPERTIES PASS_REGULAR_EXPRESSION "\\[#Approx.tests\\]")
@@ -447,36 +332,28 @@ set_tests_properties(FilenameAsTagsMatching
     FAIL_REGULAR_EXPRESSION "[\r\n]0 tag"
 )
 
-add_test(NAME EscapeSpecialCharactersInTestNames COMMAND $<TARGET_FILE:SelfTest> "Test with special\\, characters \"in name")
-set_tests_properties(EscapeSpecialCharactersInTestNames PROPERTIES PASS_REGULAR_EXPRESSION "1 assertion in 1 test case")
+add_test(NAME EscapeSpecialCharactersInTestNames COMMAND $<TARGET_FILE:SelfTest> --no-history "Test with special\\, characters \"in name")
+set_tests_properties(EscapeSpecialCharactersInTestNames PROPERTIES PASS_REGULAR_EXPRESSION "1 test\\(s\\): 1 passed")
 
-add_test(NAME NegativeSpecNoHiddenTests COMMAND $<TARGET_FILE:SelfTest> --list-tests ~[approval])
+add_test(NAME NegativeSpecNoHiddenTests COMMAND $<TARGET_FILE:SelfTest> --list ~[approval])
 set_tests_properties(NegativeSpecNoHiddenTests PROPERTIES FAIL_REGULAR_EXPRESSION "\\[\\.\\]")
 
-add_test(NAME TestsInFile::SimpleSpecs COMMAND $<TARGET_FILE:SelfTest> "-f ${SELF_TEST_DIR}/Misc/plain-old-tests.input")
-set_tests_properties(TestsInFile::SimpleSpecs PROPERTIES PASS_REGULAR_EXPRESSION "6 assertions in 2 test cases")
+add_test(NAME TestsInFile::SimpleSpecs COMMAND $<TARGET_FILE:SelfTest> --no-history "--input-file=${SELF_TEST_DIR}/Misc/plain-old-tests.input")
+set_tests_properties(TestsInFile::SimpleSpecs PROPERTIES PASS_REGULAR_EXPRESSION "2 test\\(s\\): 2 passed")
 
-add_test(NAME TestsInFile::EscapeSpecialCharacters COMMAND $<TARGET_FILE:SelfTest> "-f ${SELF_TEST_DIR}/Misc/special-characters-in-file.input")
-set_tests_properties(TestsInFile::EscapeSpecialCharacters PROPERTIES PASS_REGULAR_EXPRESSION "1 assertion in 1 test case")
+add_test(NAME TestsInFile::EscapeSpecialCharacters COMMAND $<TARGET_FILE:SelfTest> --no-history "--input-file=${SELF_TEST_DIR}/Misc/special-characters-in-file.input")
+set_tests_properties(TestsInFile::EscapeSpecialCharacters PROPERTIES PASS_REGULAR_EXPRESSION "1 test\\(s\\): 1 passed")
 
-add_test(NAME TestsInFile::InvalidTestNames-1 COMMAND $<TARGET_FILE:SelfTest> "-f ${SELF_TEST_DIR}/Misc/invalid-test-names.input")
+add_test(NAME TestsInFile::InvalidTestNames-1 COMMAND $<TARGET_FILE:SelfTest> --no-history "--input-file=${SELF_TEST_DIR}/Misc/invalid-test-names.input")
 set_tests_properties(TestsInFile::InvalidTestNames-1
   PROPERTIES
-    PASS_REGULAR_EXPRESSION "Invalid Filter: \"Test with special, characters in \\\\\" name\""
-    FAIL_REGULAR_EXPRESSION "No tests ran"
+    PASS_REGULAR_EXPRESSION "invalid test spec"
+    FAIL_REGULAR_EXPRESSION "none ran"
 )
 
-add_test(NAME TagAlias COMMAND $<TARGET_FILE:SelfTest> [@tricky] --list-tests)
+add_test(NAME TagAlias COMMAND $<TARGET_FILE:SelfTest> [@tricky] --list)
 set_tests_properties(TagAlias PROPERTIES
-  PASS_REGULAR_EXPRESSION "[0-9]+ matching test cases"
-  FAIL_REGULAR_EXPRESSION "0 matching test cases"
-)
-
-add_test(NAME RandomTestOrdering COMMAND Python3::Interpreter
-  ${CATCH_DIR}/tests/TestScripts/testRandomOrder.py $<TARGET_FILE:SelfTest>)
-set_tests_properties(RandomTestOrdering
-  PROPERTIES
-    LABELS "uses-python"
+  PASS_REGULAR_EXPRESSION "[1-9][0-9]* matching test\\(s\\)"
 )
 
 add_test(NAME CheckConvenienceHeaders
@@ -490,50 +367,20 @@ set_tests_properties(CheckConvenienceHeaders
 
 add_test(NAME "Benchmarking::SkipBenchmarkMacros"
   COMMAND
-    $<TARGET_FILE:SelfTest> "Skip benchmark macros"
-      --reporter console
+    $<TARGET_FILE:SelfTest> --no-history "Skip benchmark macros"
       --skip-benchmarks
-      --colour-mode none
+      --verbose
+      --color=never
 )
 set_tests_properties("Benchmarking::SkipBenchmarkMacros"
   PROPERTIES
-    PASS_REGULAR_EXPRESSION "All tests passed \\(2 assertions in 1 test case\\)"
+    PASS_REGULAR_EXPRESSION "1 test\\(s\\): 1 passed"
     FAIL_REGULAR_EXPRESSION "benchmark name"
-)
-
-add_test(NAME "Benchmarking::FailureReporting::ThrowingBenchmark"
-  COMMAND
-    $<TARGET_FILE:SelfTest> "Failing benchmarks" -c "throw" -r xml
-)
-set_tests_properties("Benchmarking::FailureReporting::ThrowingBenchmark"
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "<failed message=\"just a plain literal"
-    FAIL_REGULAR_EXPRESSION "successes=\"1\""
-)
-
-add_test(NAME "Benchmarking::FailureReporting::FailedAssertion"
-  COMMAND
-    $<TARGET_FILE:SelfTest> "Failing benchmarks" -c "assert" -r xml
-)
-set_tests_properties("Benchmarking::FailureReporting::FailedAssertion"
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "<Expression success=\"false\""
-    FAIL_REGULAR_EXPRESSION "successes=\"1\""
-)
-
-add_test(NAME "Benchmarking::FailureReporting::FailMacro"
-  COMMAND
-    $<TARGET_FILE:SelfTest> "Failing benchmarks" -c "fail" -r xml
-)
-set_tests_properties("Benchmarking::FailureReporting::FailMacro"
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "This benchmark only fails\, nothing else"
-    FAIL_REGULAR_EXPRESSION "successes=\"1\""
 )
 
 add_test(NAME "Benchmarking::FailureReporting::ShouldFailIsRespected"
   COMMAND
-    $<TARGET_FILE:SelfTest> "Failing benchmark respects should-fail"
+    $<TARGET_FILE:SelfTest> --no-history "Failing benchmark respects should-fail"
 )
 set_tests_properties("Benchmarking::FailureReporting::ShouldFailIsRespected"
   PROPERTIES
@@ -542,114 +389,25 @@ set_tests_properties("Benchmarking::FailureReporting::ShouldFailIsRespected"
 
 add_test(NAME "ErrorHandling::InvalidTestSpecExitsEarly"
   COMMAND
-    $<TARGET_FILE:SelfTest> "[aa,a]"
+    $<TARGET_FILE:SelfTest> --no-history "[aa,a]"
 )
 set_tests_properties("ErrorHandling::InvalidTestSpecExitsEarly"
   PROPERTIES
-    PASS_REGULAR_EXPRESSION "Invalid Filter: \\[aa\,a\\]"
-    FAIL_REGULAR_EXPRESSION "No tests ran"
+    PASS_REGULAR_EXPRESSION "invalid test spec: \\[aa,a\\]"
+    FAIL_REGULAR_EXPRESSION "none ran"
 )
 
-if(WIN32)
-  set(_NullFile "NUL")
-else()
-  set(_NullFile "/dev/null")
-endif()
-
-# This test checks that there is nothing written out from the process,
-# but if CMake is running the tests under Valgrind or similar tool, then
-# that will write its own output to stdout and the test would fail.
-if(NOT MEMORYCHECK_COMMAND)
-  add_test(NAME "MultiReporter::CapturingReportersDontPropagateStdOut"
-    COMMAND
-      $<TARGET_FILE:SelfTest> "Sends stuff to stdout and stderr"
-        --reporter xml::out=${_NullFile}
-        --reporter junit::out=${_NullFile}
-  )
-  set_tests_properties("MultiReporter::CapturingReportersDontPropagateStdOut"
-    PROPERTIES
-      FAIL_REGULAR_EXPRESSION ".+"
-  )
-endif()
-
-add_test(NAME "MultiReporter::NonCapturingReportersPropagateStdout"
+add_test(NAME "Runner::SeedIsReported"
   COMMAND
-    $<TARGET_FILE:SelfTest> "Sends stuff to stdout and stderr"
-      --reporter xml::out=${_NullFile}
-      --reporter console::out=${_NullFile}
+    $<TARGET_FILE:SelfTest> --no-history "Factorials are computed" --seed=18181818
 )
-set_tests_properties("MultiReporter::NonCapturingReportersPropagateStdout"
+set_tests_properties("Runner::SeedIsReported"
   PROPERTIES
-    PASS_REGULAR_EXPRESSION "A string sent to stderr via clog"
-)
-
-add_test(NAME "Outputs::DashAsOutLocationSendsOutputToStdout"
-  COMMAND
-    $<TARGET_FILE:SelfTest> "Factorials are computed"
-      --out=-
-      --colour-mode none
-)
-set_tests_properties("Outputs::DashAsOutLocationSendsOutputToStdout"
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "All tests passed \\(5 assertions in 1 test case\\)"
-)
-
-add_test(NAME "Reporters::DashAsLocationInReporterSpecSendsOutputToStdout"
-  COMMAND
-    $<TARGET_FILE:SelfTest> "Factorials are computed"
-      --reporter console::out=-
-      --colour-mode none
-)
-set_tests_properties("Reporters::DashAsLocationInReporterSpecSendsOutputToStdout"
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "All tests passed \\(5 assertions in 1 test case\\)"
-)
-
-add_test(NAME "Reporters::ReporterSpecificColourOverridesDefaultColour"
-  COMMAND
-    $<TARGET_FILE:SelfTest> "Factorials are computed"
-      --reporter console::colour-mode=ansi
-      --colour-mode none
-)
-set_tests_properties("Reporters::ReporterSpecificColourOverridesDefaultColour"
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "\\[1\;32mAll tests passed"
-)
-
-add_test(NAME "Reporters::UnrecognizedOptionInSpecCausesError"
-  COMMAND
-    $<TARGET_FILE:SelfTest> "Factorials are computed"
-      --reporter console::bad-option=ansi
-)
-set_tests_properties("Reporters::UnrecognizedOptionInSpecCausesError"
-  PROPERTIES
-    WILL_FAIL ON
-)
-
-add_test(NAME "Colours::ColourModeCanBeExplicitlySetToAnsi"
-  COMMAND
-    $<TARGET_FILE:SelfTest> "Factorials are computed"
-      --reporter console
-      --colour-mode ansi
-)
-set_tests_properties("Colours::ColourModeCanBeExplicitlySetToAnsi"
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "\\[1\;32mAll tests passed"
-)
-
-add_test(NAME "Reporters::JUnit::NamespacesAreNormalized"
-  COMMAND
-    $<TARGET_FILE:SelfTest>
-      --reporter junit
-      "A TEST_CASE_METHOD testing junit classname normalization"
-)
-set_tests_properties("Reporters::JUnit::NamespacesAreNormalized"
-  PROPERTIES
-    PASS_REGULAR_EXPRESSION "testcase classname=\"SelfTest(\.exe)?\\.A\\.B\\.TestClass\""
+    PASS_REGULAR_EXPRESSION "seed 18181818"
 )
 
 if(CATCH_ENABLE_CONFIGURE_TESTS)
-  foreach(testName "DefaultReporter" "Disable" "DisableStringification"
+  foreach(testName "Disable" "DisableStringification"
                     "ExperimentalRedirect")
     add_test(NAME "CMakeConfig::${testName}"
       COMMAND
@@ -694,45 +452,6 @@ if(CATCH_ENABLE_CMAKE_HELPER_TESTS)
   )
 endif()
 
-foreach(reporterName # "Automake" - the simple .trs format does not support any kind of comments/metadata
-                       "compact"
-                       "console"
-                       "JUnit"
-                       "SonarQube"
-                       "TAP"
-                     # "TeamCity" - does not seem to support test suite-level metadata/comments
-                       "XML"
-                       "JSON")
-  add_test(NAME "Reporters:Filters:${reporterName}"
-    COMMAND
-      $<TARGET_FILE:SelfTest> [comparisons][string-case] "CaseInsensitiveLess is case insensitive"
-        --reporter ${reporterName}
-  )
-  # Different regex for these two reporters, because the commas end up xml-escaped
-  if(reporterName MATCHES "JUnit|XML")
-    set(testCaseNameFormat "&quot;CaseInsensitiveLess is case insensitive&quot;")
-  elseif(reporterName MATCHES "JSON")
-    set(testCaseNameFormat "\\\\\"CaseInsensitiveLess is case insensitive\\\\\"")
-  else()
-    set(testCaseNameFormat "\"CaseInsensitiveLess is case insensitive\"")
-  endif()
-  set_tests_properties("Reporters:Filters:${reporterName}"
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION "[fF]ilters.+\\[comparisons\\] \\[string-case\\] ${testCaseNameFormat}"
-  )
-
-  add_test(NAME "Reporters:RngSeed:${reporterName}"
-    COMMAND
-      $<TARGET_FILE:SelfTest> "Factorials are computed"
-        --reporter ${reporterName}
-        --rng-seed 18181818
-  )
-  set_tests_properties("Reporters:RngSeed:${reporterName}"
-    PROPERTIES
-      PASS_REGULAR_EXPRESSION "18181818"
-  )
-endforeach()
-
 add_test(NAME "Bazel::RngSeedEnvVar::JustEnv"
   COMMAND
     $<TARGET_FILE:SelfTest> "Factorials are computed"
@@ -740,29 +459,29 @@ add_test(NAME "Bazel::RngSeedEnvVar::JustEnv"
 set_tests_properties("Bazel::RngSeedEnvVar::JustEnv"
   PROPERTIES
     ENVIRONMENT "BAZEL_TEST=1;TEST_RANDOM_SEED=18181818"
-    PASS_REGULAR_EXPRESSION "Randomness seeded to: 18181818"
+    PASS_REGULAR_EXPRESSION "seed 18181818"
 )
 
 add_test(NAME "Bazel::RngSeedEnvVar::EnvHasPriorityOverCLI"
   COMMAND
     $<TARGET_FILE:SelfTest> "Factorials are computed"
-    --rng-seed 17171717
+    --seed=17171717
 )
 set_tests_properties("Bazel::RngSeedEnvVar::EnvHasPriorityOverCLI"
   PROPERTIES
     ENVIRONMENT "BAZEL_TEST=1;TEST_RANDOM_SEED=18181818"
-    PASS_REGULAR_EXPRESSION "Randomness seeded to: 18181818"
+    PASS_REGULAR_EXPRESSION "seed 18181818"
 )
 
 add_test(NAME "Bazel::RngSeedEnvVar::MalformedValueIsIgnored"
   COMMAND
     $<TARGET_FILE:SelfTest> "Factorials are computed"
-    --rng-seed 17171717
+    --seed=17171717
 )
 set_tests_properties("Bazel::RngSeedEnvVar::MalformedValueIsIgnored"
   PROPERTIES
     ENVIRONMENT "BAZEL_TEST=1;TEST_RANDOM_SEED=XOXOXOXO"
-    PASS_REGULAR_EXPRESSION "Randomness seeded to: 17171717"
+    PASS_REGULAR_EXPRESSION "seed 17171717"
 )
 
 list(APPEND CATCH_TEST_TARGETS SelfTest)

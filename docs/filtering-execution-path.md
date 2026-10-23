@@ -11,9 +11,9 @@ sections and generator indices to run through. This is done by using one
 of the three commandline parameters, one or more times.
 
 ```
--c, --section           <section name>
--g, --generator-index   <index in generator>
--p, --path-filter       <path filter spec>
+-c, --section=NAME
+-g, --generator-index=INDEX
+-p, --path-filter=c:SECTION|g:INDEX
 ```
 
 All the variants form a shared stack of filters, but if you use only
@@ -125,8 +125,8 @@ TEST_CASE( "qux" ) {
 > The new behaviour was introduced in Catch2 3.13.0
 
 ```
--g, --generator-index   <index in generator>
--p, --path-filter       <path filter spec>
+-g, --generator-index=INDEX
+-p, --path-filter=c:SECTION|g:INDEX
 ```
 
 The argument to `-g`/`--generator-index` must be either a non-negative

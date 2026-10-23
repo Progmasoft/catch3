@@ -1,6 +1,6 @@
 # Copyright (c) 2026 Progmasoft.
 # SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
-load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -11,6 +11,8 @@ cc_test(
         "Generators.tests.cpp",
         "Property.tests.cpp",
         "Results.tests.cpp",
+        "Runner.tests.cpp",
+        "RunnerUnits.tests.cpp",
         "Snapshot.tests.cpp",
         "Stateful.tests.cpp",
         "Strategy.tests.cpp",
@@ -19,9 +21,26 @@ cc_test(
         "@platforms//os:windows": ["/std:c++20"],
         "//conditions:default": ["-std=c++20"],
     }),
+    args = ["--no-history"],
+    data = [":runner_fixture"],
+    env = {"CATCH3_RUNNER_FIXTURE": "$(rootpath :runner_fixture)"},
     deps = [
         "//:catch2",
         "//:catch2_main",
         "//src/Progmasoft:catch3",
+    ],
+)
+
+# Tests that misbehave on purpose, for the runner's integration tests.
+cc_binary(
+    name = "runner_fixture",
+    srcs = ["RunnerFixture.cpp"],
+    copts = select({
+        "@platforms//os:windows": ["/std:c++20"],
+        "//conditions:default": ["-std=c++20"],
+    }),
+    deps = [
+        "//:catch2",
+        "//:catch2_main",
     ],
 )

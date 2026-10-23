@@ -38,10 +38,10 @@ configure_and_build(catch2_source_path,
 
 stdout, _ = run_and_return_output(os.path.join(build_dir_path, 'tests'),
                                   'SelfTest',
-                                  ['--allow-running-no-tests'])
+                                  ['--allow-no-tests', '--no-history'])
 
 
-summary_line = 'No tests ran'
+summary_line = '0 test(s): none ran'
 if not summary_line in stdout:
     print("Could not find '{}' in the stdout".format(summary_line))
     print('stdout: "{}"'.format(stdout))

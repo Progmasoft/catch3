@@ -15,50 +15,27 @@
 #include <catch2/internal/catch_path_filter.hpp>
 #include <catch2/internal/catch_stringref.hpp>
 #include <catch2/internal/catch_random_seed_generation.hpp>
-#include <catch2/internal/catch_reporter_spec_parser.hpp>
 
 #include <chrono>
-#include <map>
 #include <string>
 #include <vector>
 
 namespace Catch {
 
-    class IStream;
-
     /**
-     * `ReporterSpec` but with the defaults filled in.
+     * How the tests of one process behave.
      *
-     * Like `ReporterSpec`, the semantics are unchecked.
+     * The Catch3 runner fills this in from its own command line, in the
+     * process that runs the tests: a worker, or the runner itself with
+     * `--in-process`. What to run, in which order and where to report is
+     * the runner's, not part of this configuration.
      */
-    struct ProcessedReporterSpec {
-        std::string name;
-        std::string outputFilename;
-        ColourMode colourMode;
-        Verbosity verbosity;
-        std::map<std::string, std::string> customOptions;
-        friend bool operator==( ProcessedReporterSpec const& lhs,
-                                ProcessedReporterSpec const& rhs );
-        friend bool operator!=( ProcessedReporterSpec const& lhs,
-                                ProcessedReporterSpec const& rhs ) {
-            return !( lhs == rhs );
-        }
-    };
-
     struct ConfigData {
-
-        bool listTests = false;
-        bool listTags = false;
-        bool listReporters = false;
-        bool listListeners = false;
-
         bool showSuccessfulTests = false;
         bool shouldDebugBreak = false;
         bool noThrow = false;
-        bool showHelp = false;
         bool showInvisibles = false;
         bool filenamesAsTags = false;
-        bool libIdentify = false;
         bool allowZeroTests = false;
 
         int abortAfter = -1;
@@ -79,20 +56,15 @@ namespace Catch {
         WarnAbout::What warnings = WarnAbout::Nothing;
         ShowDurations showDurations = ShowDurations::DefaultForReporter;
         double minDuration = -1;
-        TestRunOrder runOrder = TestRunOrder::Randomized;
+        TestRunOrder runOrder = TestRunOrder::Declared;
         ColourMode defaultColourMode = ColourMode::PlatformDefault;
-        WaitForKeypress::When waitForKeypress = WaitForKeypress::Never;
 
-        std::string defaultOutputFilename;
         std::string name;
         std::string processName;
-        std::vector<ReporterSpec> reporterSpecifications;
 
         std::vector<std::string> testsOrTags;
         std::vector<PathFilter> pathFilters;
         bool useNewPathFilteringBehaviour = false;
-
-        std::string prematureExitGuardFilePath;
     };
 
 
@@ -103,25 +75,12 @@ namespace Catch {
         Config( ConfigData const& data );
         ~Config() override; // = default in the cpp file
 
-        bool listTests() const;
-        bool listTags() const;
-        bool listReporters() const;
-        bool listListeners() const;
-
-        std::vector<ReporterSpec> const& getReporterSpecs() const;
-        std::vector<ProcessedReporterSpec> const&
-        getProcessedReporterSpecs() const;
-
         std::vector<std::string> const& getTestsOrTags() const override;
         std::vector<PathFilter> const& getPathFilters() const override;
         bool useNewFilterBehaviour() const override;
 
         TestSpec const& testSpec() const override;
         bool hasTestFilters() const override;
-
-        bool showHelp() const;
-
-        std::string const& getExitGuardFilePath() const;
 
         // IConfig interface
         bool allowThrows() const override;
@@ -151,11 +110,7 @@ namespace Catch {
         std::chrono::milliseconds benchmarkWarmupTime() const override;
 
     private:
-        // Reads Bazel env vars and applies them to the config
-        void readBazelEnvVars();
-
         ConfigData m_data;
-        std::vector<ProcessedReporterSpec> m_processedReporterSpecs;
         TestSpec m_testSpec;
         bool m_hasTestFilters = false;
     };

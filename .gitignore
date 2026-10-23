@@ -25,7 +25,6 @@ Build
 .vscode
 cmake-build-*
 benchmark-dir
-.conan/test_package/build
 **/CMakeUserPresets.json
 /bazel-*
 build-fuzzers

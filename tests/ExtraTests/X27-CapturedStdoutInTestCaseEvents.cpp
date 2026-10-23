@@ -12,23 +12,22 @@
  * output).
  *
  * This is done by having a single test case that is entered multiple
- * times through generator, and a custom capturing reporter that knows
- * what it should expect captured from the test case.
+ * times through generator, and a capturing listener that knows what it
+ * should expect captured from the test case. It counts what differs and
+ * prints the count when the run ends.
  */
 
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/generators/catch_generators_range.hpp>
-#include <catch2/reporters/catch_reporter_streaming_base.hpp>
+#include <catch2/reporters/catch_reporter_event_listener.hpp>
 #include <catch2/reporters/catch_reporter_registrars.hpp>
-
 
 #include <iostream>
 #include <string>
-#include <utility>
 
-class TestReporter : public Catch::StreamingReporterBase {
+class TestListener : public Catch::EventListenerBase {
     std::string stdOutString( uint64_t iter ){
         return "stdout " + std::to_string( iter ) + '\n';
     }
@@ -36,42 +35,39 @@ class TestReporter : public Catch::StreamingReporterBase {
         return "stderr " + std::to_string( iter ) + '\n';
     }
 
-public:
-    TestReporter( Catch::ReporterConfig&& _config ):
-        StreamingReporterBase( std::move(_config) ) {
-        m_preferences.shouldRedirectStdOut = true;
-        std::cout << "X27 - TestReporter constructed\n";
-    }
+    int m_errors = 0;
 
-    static std::string getDescription() {
-        return "X27 test reporter";
+public:
+    TestListener( Catch::IConfig const* config ):
+        EventListenerBase( config ) {
+        m_preferences.shouldRedirectStdOut = true;
     }
 
     void testCasePartialEnded( Catch::TestCaseStats const& stats,
                                uint64_t iter ) override {
         if ( stats.stdOut != stdOutString( iter ) ) {
-            std::cerr << "X27 ERROR in partial stdout\n" << stats.stdOut;
+            ++m_errors;
         }
         if ( stats.stdErr != stdErrString( iter ) ) {
-            std::cerr << "X27 ERROR in partial stderr\n" << stats.stdErr;
+            ++m_errors;
         }
     }
 
     void testCaseEnded( Catch::TestCaseStats const& stats ) override {
         if ( stats.stdOut != "stdout 0\nstdout 1\nstdout 2\nstdout 3\nstdout 4\nstdout 5\n" ) {
-            std::cerr << "X27 ERROR in full stdout\n" << stats.stdOut;
+            ++m_errors;
         }
         if ( stats.stdErr != "stderr 0\nstderr 1\nstderr 2\nstderr 3\nstderr 4\nstderr 5\n" ) {
-            std::cerr << "X27 ERROR in full stderr\n" << stats.stdErr;
+            ++m_errors;
         }
     }
 
-    ~TestReporter() override;
+    void testRunEnded( Catch::TestRunStats const& ) override {
+        std::cerr << "X27 - listener saw " << m_errors << " error(s)\n";
+    }
 };
 
-TestReporter::~TestReporter() = default;
-
-CATCH_REGISTER_REPORTER( "test-reporter", TestReporter )
+CATCH_REGISTER_LISTENER( TestListener )
 
 TEST_CASE( "repeatedly entered test case" ) {
     auto i = GENERATE( range(0, 6) );

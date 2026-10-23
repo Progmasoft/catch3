@@ -80,10 +80,8 @@ else()
   set(CATCH_CONFIG_SHARED_LIBRARY "")
 endif()
 
-set(CATCH_CONFIG_DEFAULT_REPORTER "console" CACHE STRING "Read docs/configuration.md for details. The name of the reporter should be without quotes.")
-set(CATCH_CONFIG_CONSOLE_WIDTH "80" CACHE STRING "Read docs/configuration.md for details. Must form a valid integer literal.")
 
-mark_as_advanced(CATCH_CONFIG_SHARED_LIBRARY CATCH_CONFIG_DEFAULT_REPORTER CATCH_CONFIG_CONSOLE_WIDTH)
+mark_as_advanced(CATCH_CONFIG_SHARED_LIBRARY)
 
 # There is no good way to both turn this into a CMake cache variable,
 # and keep reasonable default semantics inside the project. Thus we do

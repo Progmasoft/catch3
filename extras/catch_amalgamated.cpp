@@ -7,10 +7,14 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch v3.16.1
-//  Generated: 2026-10-11 02:09:25.622664
+//  Generated: 2026-10-23 23:12:01.455813
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
+//
+//  The parts that come from src/Progmasoft, the Catch3 runner, keep
+//  their own copyright and license lines (MPL-2.0 WITH
+//  AdditionRef-Progmasoft-Exception-1.1). The runner needs C++20.
 //  ----------------------------------------------------------
 
 #include "catch_amalgamated.hpp"
@@ -36,6 +40,2117 @@
 #endif // defined(CATCH_PLATFORM_WINDOWS)
 
 #endif // CATCH_WINDOWS_H_PROXY_HPP_INCLUDED
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <cassert>
+#include <optional>
+#include <string>
+#include <utility>
+#include <variant>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// A failure with a message written for the person who has to act on it.
+    class Error final
+    {
+    public:
+        explicit Error(std::string message)
+            : message_{std::move(message)}
+        {
+        }
+
+        [[nodiscard]] const std::string &
+        Message() const noexcept
+        {
+            return message_;
+        }
+
+        /// The same failure, with what was being done in front of it.
+        [[nodiscard]] Error
+        Context(const std::string &context) const
+        {
+            return Error{context + ": " + message_};
+        }
+
+    private:
+        std::string message_;
+    };
+
+    /// A value, or the error that prevented it.
+    template<typename Value>
+    class [[nodiscard]] Expected final
+    {
+    public:
+        Expected(Value value)
+            : state_{std::in_place_index<0>, std::move(value)}
+        {
+        }
+
+        Expected(Error error)
+            : state_{std::in_place_index<1>, std::move(error)}
+        {
+        }
+
+        [[nodiscard]] explicit
+        operator bool() const noexcept
+        {
+            return state_.index() == 0;
+        }
+
+        [[nodiscard]] Value &
+        operator*() &
+        {
+            assert(*this);
+            return std::get<0>(state_);
+        }
+
+        [[nodiscard]] const Value &
+        operator*() const &
+        {
+            assert(*this);
+            return std::get<0>(state_);
+        }
+
+        [[nodiscard]] Value &&
+        operator*() &&
+        {
+            assert(*this);
+            return std::get<0>(std::move(state_));
+        }
+
+        [[nodiscard]] Value *
+        operator->()
+        {
+            assert(*this);
+            return &std::get<0>(state_);
+        }
+
+        [[nodiscard]] const Value *
+        operator->() const
+        {
+            assert(*this);
+            return &std::get<0>(state_);
+        }
+
+        [[nodiscard]] const Error &
+        GetError() const
+        {
+            assert(!*this);
+            return std::get<1>(state_);
+        }
+
+    private:
+        std::variant<Value, Error> state_;
+    };
+
+    /// Success, or the error that happened instead.
+    class [[nodiscard]] Status final
+    {
+    public:
+        Status() = default;
+
+        Status(Error error)
+            : error_{std::move(error)}
+        {
+        }
+
+        [[nodiscard]] static Status
+        Ok()
+        {
+            return Status{};
+        }
+
+        [[nodiscard]] explicit
+        operator bool() const noexcept
+        {
+            return !error_.has_value();
+        }
+
+        [[nodiscard]] const Error &
+        GetError() const
+        {
+            assert(error_.has_value());
+            return *error_;
+        }
+
+    private:
+        std::optional<Error> error_;
+    };
+} // namespace Progmasoft::Catch3::Runner
+
+#include <filesystem>
+#include <string>
+#include <vector>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// What Git says about the checkout the tests come from.
+    struct Changes final
+    {
+        std::filesystem::path root;
+        std::string commit;
+        /// Changed since the revision, staged or not, and untracked files;
+        /// absolute paths.
+        std::vector<std::filesystem::path> files;
+    };
+
+    /// The changes since `revision` (HEAD when empty) in the checkout that
+    /// holds `directory`. An error when Git or the checkout is missing.
+    [[nodiscard]] Expected<Changes>
+    ReadChanges(const std::filesystem::path &directory,
+                const std::string &revision);
+
+    /// The commit checked out in the checkout that holds `directory`, or
+    /// empty.
+    [[nodiscard]] std::string
+    CurrentCommit(const std::filesystem::path &directory);
+
+    /// Whether two spellings name the same source file: equal after
+    /// normalisation, or one a relative path the other ends with.
+    [[nodiscard]] bool
+    SameSourceFile(const std::filesystem::path &left,
+                   const std::filesystem::path &right);
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+#include <cstdint>
+#include <initializer_list>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+namespace Progmasoft::Catch3::Runner
+{
+    class JsonValue;
+
+    /// The members of an object, in the order they were added or read.
+    using JsonMembers = std::vector<std::pair<std::string, JsonValue>>;
+
+    /// One JSON value: the messages between the runner and its workers, the
+    /// reports, the history and the coverage exports of LLVM are all JSON.
+    ///
+    /// Numbers are kept as `double`, which represents every integer the
+    /// runner writes (counts, microseconds, 32-bit seeds) exactly.
+    class JsonValue final
+    {
+    public:
+        enum class Kind : std::uint8_t
+        {
+            kNull,
+            kBoolean,
+            kNumber,
+            kString,
+            kArray,
+            kObject,
+        };
+
+        JsonValue() = default;
+        JsonValue(std::nullptr_t) {}
+        JsonValue(bool value);
+        JsonValue(double value);
+        JsonValue(int value);
+        JsonValue(unsigned value);
+        JsonValue(long value);
+        JsonValue(unsigned long value);
+        JsonValue(long long value);
+        JsonValue(unsigned long long value);
+        JsonValue(const char *value);
+        JsonValue(std::string value);
+        JsonValue(std::string_view value);
+
+        JsonValue(const JsonValue &other);
+        JsonValue(JsonValue &&other) noexcept;
+        JsonValue &
+        operator=(const JsonValue &other);
+        JsonValue &
+        operator=(JsonValue &&other) noexcept;
+        ~JsonValue();
+
+        [[nodiscard]] static JsonValue
+        Array(std::vector<JsonValue> items = {});
+
+        [[nodiscard]] static JsonValue
+        Object(JsonMembers members = {});
+
+        [[nodiscard]] Kind
+        GetKind() const noexcept
+        {
+            return kind_;
+        }
+
+        [[nodiscard]] bool
+        IsNull() const noexcept
+        {
+            return kind_ == Kind::kNull;
+        }
+
+        [[nodiscard]] bool
+        IsObject() const noexcept
+        {
+            return kind_ == Kind::kObject;
+        }
+
+        [[nodiscard]] bool
+        IsArray() const noexcept
+        {
+            return kind_ == Kind::kArray;
+        }
+
+        [[nodiscard]] bool
+        IsString() const noexcept
+        {
+            return kind_ == Kind::kString;
+        }
+
+        [[nodiscard]] bool
+        IsNumber() const noexcept
+        {
+            return kind_ == Kind::kNumber;
+        }
+
+        /// The value as a Boolean; anything else reads as `fallback`.
+        [[nodiscard]] bool
+        AsBoolean(bool fallback = false) const noexcept;
+
+        [[nodiscard]] double
+        AsNumber(double fallback = 0.0) const noexcept;
+
+        [[nodiscard]] std::int64_t
+        AsInteger(std::int64_t fallback = 0) const noexcept;
+
+        [[nodiscard]] std::uint64_t
+        AsUnsigned(std::uint64_t fallback = 0) const noexcept;
+
+        /// The text of a string; anything else reads as the empty string.
+        [[nodiscard]] const std::string &
+        AsString() const noexcept;
+
+        /// The items of an array; anything else has none.
+        [[nodiscard]] const std::vector<JsonValue> &
+        Items() const noexcept;
+
+        [[nodiscard]] std::vector<JsonValue> &
+        MutableItems();
+
+        /// The members of an object; anything else has none.
+        [[nodiscard]] const JsonMembers &
+        Members() const noexcept;
+
+        [[nodiscard]] JsonMembers &
+        MutableMembers();
+
+        /// The member named `key`, or null when there is none.
+        [[nodiscard]] const JsonValue &
+        operator[](std::string_view key) const noexcept;
+
+        /// The member named `key` of an object, added when missing.
+        JsonValue &
+        Set(std::string_view key, JsonValue value);
+
+        /// Appends to an array.
+        void
+        Append(JsonValue value);
+
+        /// The compact JSON text of the value, on one line.
+        [[nodiscard]] std::string
+        ToString() const;
+
+        /// The JSON text with two spaces of indentation per level.
+        [[nodiscard]] std::string
+        ToPrettyString() const;
+
+    private:
+        void
+        Write(std::string &output, int indent, int depth) const;
+
+        void
+        Destroy() noexcept;
+
+        void
+        CopyFrom(const JsonValue &other);
+
+        void
+        MoveFrom(JsonValue &&other) noexcept;
+
+        Kind kind_ = Kind::kNull;
+        bool boolean_ = false;
+        double number_ = 0.0;
+        std::string string_;
+        std::unique_ptr<std::vector<JsonValue>> items_;
+        std::unique_ptr<JsonMembers> members_;
+    };
+
+    /// Reads one JSON document; whitespace may surround it.
+    [[nodiscard]] Expected<JsonValue>
+    ParseJson(std::string_view text);
+
+    /// Appends `text` to `output` as a JSON string literal.
+    void
+    AppendJsonString(std::string &output, std::string_view text);
+} // namespace Progmasoft::Catch3::Runner
+
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace Progmasoft::Catch3
+{
+    /// How one attempt at a test ended.
+    enum class Outcome : std::uint8_t
+    {
+        kPassed,
+        /// An assertion failed, or the test threw.
+        kFailed,
+        /// It failed, but `[!shouldfail]` or `[!mayfail]` allows that.
+        kFailedAsExpected,
+        /// `SKIP` was called.
+        kSkipped,
+        /// The process running it died: a signal, a structured exception or
+        /// an exit in the middle of the test.
+        kCrashed,
+        /// It ran past its time limit and was stopped.
+        kTimedOut,
+        /// A test it depends on did not pass, so it was not run.
+        kBlocked,
+        /// The run stopped before reaching it.
+        kNotRun,
+        /// It passed last time and nothing it depends on changed, so the
+        /// incremental run kept that result.
+        kUpToDate,
+    };
+
+    /// Why a failure happened, as far as the runner can tell.
+    enum class FailureCategory : std::uint8_t
+    {
+        kNone,
+        /// A REQUIRE or CHECK expression was false.
+        kAssertion,
+        /// An exception escaped the test or an assertion.
+        kUnexpectedException,
+        /// REQUIRE_THROWS and its kind did not see the expected exception.
+        kMissingException,
+        /// FAIL or FAIL_CHECK.
+        kExplicitFailure,
+        /// A signal or structured exception inside the test.
+        kCrash,
+        kTimeout,
+        /// The worker could not run the test at all, for example because it
+        /// failed to start.
+        kInfrastructure,
+        /// A test it depends on failed.
+        kDependency,
+    };
+
+    /// How a failure relates to earlier runs.
+    enum class FailureHistory : std::uint8_t
+    {
+        /// There is no history to compare with.
+        kUnknown,
+        /// The test passed in the previous run.
+        kNew,
+        /// The test failed in the previous run too.
+        kPersistent,
+        /// The test passes and fails with the same inputs.
+        kIntermittent,
+    };
+
+    /// One failed or reported assertion.
+    struct AssertionRecord final
+    {
+        std::string file;
+        std::size_t line = 0;
+        /// The macro, such as REQUIRE.
+        std::string macro;
+        /// The expression as written.
+        std::string expression;
+        /// The expression with its operands' values.
+        std::string expansion;
+        std::string message;
+        /// INFO, CAPTURE and UNSCOPED_INFO messages in force.
+        std::vector<std::string> context;
+        /// The sections the assertion was in, outermost first.
+        std::vector<std::string> sections;
+        FailureCategory category = FailureCategory::kAssertion;
+        bool passed = false;
+        /// The failure is allowed by `[!mayfail]` or `[!shouldfail]`.
+        bool allowed = false;
+    };
+
+    /// The statistics of one BENCHMARK.
+    struct BenchmarkRecord final
+    {
+        std::string name;
+        std::size_t samples = 0;
+        std::size_t iterations = 0;
+        double meanNanoseconds = 0.0;
+        double lowMeanNanoseconds = 0.0;
+        double highMeanNanoseconds = 0.0;
+        double standardDeviationNanoseconds = 0.0;
+        double outlierVariance = 0.0;
+    };
+
+    /// One section entered while a test ran, with its timing.
+    struct SectionRecord final
+    {
+        std::string name;
+        std::string file;
+        std::size_t line = 0;
+        /// Microseconds since the start of the attempt.
+        std::int64_t startMicroseconds = 0;
+        /// -1 for a section that never ended: the attempt crashed or timed
+        /// out inside it.
+        std::int64_t durationMicroseconds = 0;
+        /// 0 for a section directly in the test case.
+        std::size_t depth = 0;
+    };
+
+    /// One run of a test in a worker. A test may be tried several times:
+    /// retries, repeats and the probes that look for an order dependency.
+    struct Attempt final
+    {
+        Outcome outcome = Outcome::kNotRun;
+        FailureCategory category = FailureCategory::kNone;
+        std::size_t number = 1;
+        /// The worker that ran it, and the tests it ran before, in order.
+        std::size_t worker = 0;
+        std::vector<std::string> precededBy;
+        bool freshProcess = false;
+        std::uint32_t seed = 0;
+        std::int64_t startMicroseconds = 0;
+        std::int64_t durationMicroseconds = 0;
+        std::size_t assertionsPassed = 0;
+        std::size_t assertionsFailed = 0;
+        std::vector<AssertionRecord> assertions;
+        std::vector<BenchmarkRecord> benchmarks;
+        std::vector<SectionRecord> sections;
+        /// What the test wrote to std::cout and std::cerr, captured.
+        std::string standardOutput;
+        std::string standardError;
+        /// What reached the worker's own streams while the test ran, such as
+        /// printf output or a sanitizer report.
+        std::string processOutput;
+        /// The fatal condition the worker reported before it died.
+        std::string fatalMessage;
+        /// How the worker ended, for a crash.
+        std::string exitDescription;
+        /// The last assertion started before a crash or a timeout.
+        std::string lastLocation;
+        /// The directory the test had for its temporary files; kept when the
+        /// attempt failed, so its contents can be inspected.
+        std::string temporaryDirectory;
+    };
+
+    /// One test of the run and everything the runner learned about it.
+    struct TestResult final
+    {
+        /// Identifies the test across runs and builds: its name, with its
+        /// class and, when names repeat, its tags. History is kept by it.
+        std::string id;
+        std::string name;
+        std::string className;
+        std::string file;
+        std::size_t line = 0;
+        std::vector<std::string> tags;
+        /// The verdict over all attempts.
+        Outcome outcome = Outcome::kNotRun;
+        FailureCategory category = FailureCategory::kNone;
+        FailureHistory history = FailureHistory::kUnknown;
+        /// It failed and then passed with the same inputs.
+        bool flaky = false;
+        /// It is in quarantine, so its failure does not fail the run.
+        bool quarantined = false;
+        /// Why it was selected, when not every test runs: "failed last
+        /// run", "covers a changed file", "dependency of ...".
+        std::string selectionReason;
+        /// A stable identifier of the failure: its category, location and
+        /// message with numbers removed. Tests that share it probably share a
+        /// cause.
+        std::string signature;
+        /// What the runner found out about the failure, one finding per
+        /// entry, most useful first.
+        std::vector<std::string> analysis;
+        /// A command line that runs the failure again the way it happened.
+        std::string replayCommand;
+        std::vector<Attempt> attempts;
+        std::int64_t predictedDurationMicroseconds = 0;
+        double predictedFailureProbability = 0.0;
+
+        /// The sum of the attempts' durations.
+        [[nodiscard]] std::int64_t
+        DurationMicroseconds() const noexcept;
+
+        /// Whether the result fails the run.
+        [[nodiscard]] bool
+        FailsRun() const noexcept;
+    };
+
+    /// The totals of a run, by verdict.
+    struct RunSummary final
+    {
+        std::size_t tests = 0;
+        std::size_t passed = 0;
+        std::size_t failed = 0;
+        std::size_t failedAsExpected = 0;
+        std::size_t skipped = 0;
+        std::size_t crashed = 0;
+        std::size_t timedOut = 0;
+        std::size_t blocked = 0;
+        std::size_t notRun = 0;
+        std::size_t upToDate = 0;
+        std::size_t flaky = 0;
+        std::size_t quarantined = 0;
+        std::size_t attempts = 0;
+        std::size_t assertionsPassed = 0;
+        std::size_t assertionsFailed = 0;
+        /// Wall-clock time of the run, and the time its tests took added up;
+        /// their ratio is the speed-up of running in parallel.
+        std::int64_t wallMicroseconds = 0;
+        std::int64_t testMicroseconds = 0;
+    };
+
+    /// A whole run of one test binary.
+    struct RunResult final
+    {
+        std::string binary;
+        std::uint32_t seed = 0;
+        std::size_t workers = 0;
+        /// The shard, when the run was one of several.
+        unsigned shardIndex = 0;
+        unsigned shardCount = 1;
+        /// The tests that matched before selection narrowed them.
+        std::size_t candidates = 0;
+        std::vector<TestResult> tests;
+        /// Test specs that matched nothing.
+        std::vector<std::string> unmatchedSpecs;
+        /// Messages about the run itself, such as a history that could not
+        /// be read.
+        std::vector<std::string> notes;
+        std::int64_t startUnixMilliseconds = 0;
+        std::int64_t wallMicroseconds = 0;
+    };
+
+    [[nodiscard]] RunSummary
+    Summarize(const RunResult &run);
+
+    /// The name an outcome has in reports: "passed", "timed-out", ...
+    [[nodiscard]] const char *
+    OutcomeName(Outcome outcome) noexcept;
+
+    [[nodiscard]] std::optional<Outcome>
+    OutcomeFromName(const std::string &name) noexcept;
+
+    [[nodiscard]] const char *
+    CategoryName(FailureCategory category) noexcept;
+
+    [[nodiscard]] std::optional<FailureCategory>
+    CategoryFromName(const std::string &name) noexcept;
+
+    [[nodiscard]] const char *
+    HistoryName(FailureHistory history) noexcept;
+
+    /// The failure of an attempt as text: each failed assertion with its
+    /// expansion, messages and sections, or what is known about a crash or a
+    /// timeout. Empty for an attempt that did not fail.
+    [[nodiscard]] std::string
+    DescribeFailure(const Attempt &attempt);
+
+    /// The first line of `DescribeFailure`, for a summary.
+    [[nodiscard]] std::string
+    SummarizeFailure(const Attempt &attempt);
+
+    /// Whether an outcome counts as a failure of the attempt.
+    [[nodiscard]] bool
+    IsFailure(Outcome outcome) noexcept;
+} // namespace Progmasoft::Catch3
+
+#include <cstdint>
+#include <filesystem>
+#include <map>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// One result of one test in one run.
+    struct TestRecord final
+    {
+        std::int64_t run = 0;
+        Outcome outcome = Outcome::kNotRun;
+        FailureCategory category = FailureCategory::kNone;
+        std::int64_t durationMicroseconds = 0;
+        std::size_t attempts = 0;
+        bool flaky = false;
+        std::string signature;
+        /// What the test's result depended on; equal fingerprints mean the
+        /// same inputs.
+        std::string fingerprint;
+    };
+
+    /// How to run a failure again the way it happened.
+    struct ReplayRecord final
+    {
+        std::int64_t run = 0;
+        std::uint32_t seed = 0;
+        /// The tests the worker ran before, in order.
+        std::vector<std::string> precededBy;
+        bool freshProcess = false;
+    };
+
+    struct QuarantineRecord final
+    {
+        std::int64_t since = 0;
+        std::string reason;
+    };
+
+    /// Everything remembered about one test.
+    struct TestHistory final
+    {
+        /// The most recent last.
+        std::vector<TestRecord> records;
+        std::optional<QuarantineRecord> quarantine;
+        std::optional<ReplayRecord> lastFailure;
+
+        [[nodiscard]] const TestRecord *
+        Last() const noexcept;
+
+        /// A percentile of the durations of recent runs that finished on
+        /// their own; nothing without such runs.
+        [[nodiscard]] std::optional<std::int64_t>
+        DurationPercentile(double fraction) const;
+
+        /// The probability that the next run fails: a failure rate in which
+        /// each older run counts less, starting from a prior for tests with
+        /// little history.
+        [[nodiscard]] double
+        FailureProbability() const;
+
+        /// Flaky results, and failures that alternate with passes on the
+        /// same fingerprint, among the last `window` runs.
+        [[nodiscard]] std::size_t
+        FlakyEvents(std::size_t window) const;
+
+        /// Passes in a row, counting back from the latest run.
+        [[nodiscard]] std::size_t
+        PassStreak() const;
+    };
+
+    /// One run, as the history remembers it.
+    struct RunRecord final
+    {
+        std::int64_t id = 0;
+        std::int64_t unixMilliseconds = 0;
+        std::string commit;
+        std::string binaryFingerprint;
+        std::uint32_t seed = 0;
+        std::size_t tests = 0;
+        std::size_t failed = 0;
+        std::int64_t wallMicroseconds = 0;
+    };
+
+    /// When to put a test into quarantine and let it out.
+    struct QuarantinePolicy final
+    {
+        std::size_t window = 20;
+        std::size_t flakyEventsToEnter = 2;
+        std::size_t passesToLeave = 10;
+    };
+
+    /// The results of earlier runs of one test binary.
+    ///
+    /// It lives in one JSON file. Several runs of the same binary may finish
+    /// at the same time, so `Commit` changes the file under a lock: it reads
+    /// it again, adds its run and replaces it in one rename.
+    class History final
+    {
+    public:
+        History() = default;
+
+        /// Reads the file; a missing file is an empty history.
+        [[nodiscard]] static Expected<History>
+        Load(const std::filesystem::path &file);
+
+        /// Adds `run` to the history in `file`, updates quarantine and
+        /// returns the history as written.
+        [[nodiscard]] static Expected<History>
+        Commit(const std::filesystem::path &file,
+               const RunResult &run,
+               const RunRecord &record,
+               const std::map<std::string, std::string> &fingerprints,
+               const QuarantinePolicy &policy);
+
+        [[nodiscard]] const TestHistory *
+        Find(const std::string &key) const;
+
+        [[nodiscard]] const std::map<std::string, TestHistory> &
+        Tests() const noexcept
+        {
+            return tests_;
+        }
+
+        [[nodiscard]] const std::vector<RunRecord> &
+        Runs() const noexcept
+        {
+            return runs_;
+        }
+
+        [[nodiscard]] JsonValue
+        ToJson() const;
+
+        [[nodiscard]] static Expected<History>
+        FromJson(const JsonValue &value);
+
+        /// The key a test result is filed under.
+        [[nodiscard]] static std::string
+        KeyOf(const TestResult &test);
+
+    private:
+        void
+        Apply(const RunResult &run,
+              RunRecord record,
+              const std::map<std::string, std::string> &fingerprints,
+              const QuarantinePolicy &policy);
+
+        std::int64_t nextRun_ = 1;
+        std::vector<RunRecord> runs_;
+        std::map<std::string, TestHistory> tests_;
+    };
+
+    /// The file the history of a binary is kept in under `directory`.
+    [[nodiscard]] std::filesystem::path
+    HistoryFile(const std::filesystem::path &directory,
+                const std::string &binaryName);
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+
+#include <chrono>
+#include <cstddef>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace Catch
+{
+    class IConfig;
+}
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// One registered test and what its tags tell the runner.
+    struct TestEntry final
+    {
+        /// The position in registration order, the same in every process
+        /// started from one binary.
+        std::size_t index = 0;
+        /// A name that identifies the test across runs and builds: the test
+        /// name, with its class when it has one, and its tags when another
+        /// test has the same name.
+        std::string key;
+        std::string name;
+        std::string className;
+        std::string file;
+        std::size_t line = 0;
+        std::vector<std::string> tags;
+        bool hidden = false;
+        bool benchmark = false;
+        bool mayFail = false;
+        bool shouldFail = false;
+
+        // From the tags the runner reserves.
+        /// `[!serial]`: nothing else runs at the same time.
+        bool serial = false;
+        /// `[!isolated]`: runs in a process of its own.
+        bool isolated = false;
+        /// `[!quarantine]`: in quarantine whatever its history says.
+        bool quarantined = false;
+        /// `[!resource:NAME]`: tests sharing a resource never overlap.
+        std::vector<std::string> resources;
+        /// `[!depends:NAME]`: runs after these tests, and only if they pass.
+        std::vector<std::string> dependsOn;
+        /// `[!timeout:SECONDS]`.
+        std::optional<std::chrono::milliseconds> timeout;
+        /// `[!retries:N]`.
+        std::optional<unsigned> retries;
+    };
+
+    /// The tests registered in this binary.
+    class Catalog final
+    {
+    public:
+        /// Reads the test registry. Problems with a reserved tag, such as a
+        /// timeout that is not a number, are errors.
+        [[nodiscard]] static Expected<Catalog>
+        Load();
+
+        [[nodiscard]] const std::vector<TestEntry> &
+        Tests() const noexcept
+        {
+            return tests_;
+        }
+
+        [[nodiscard]] const std::vector<Catch::TestCaseHandle> &
+        Handles() const noexcept
+        {
+            return handles_;
+        }
+
+        /// The test of a key or of a name; null when there is none.
+        [[nodiscard]] const TestEntry *
+        Find(const std::string &keyOrName) const;
+
+        /// A digest of every key in order. A worker reports it, so the runner
+        /// knows the worker sees the same tests.
+        [[nodiscard]] const std::string &
+        Identity() const noexcept
+        {
+            return identity_;
+        }
+
+        /// The tests the specs of `config` select, in registration order, as
+        /// Catch2 selects them: hidden tests only when a spec names them.
+        /// Specs that matched nothing are added to `unmatched`.
+        [[nodiscard]] std::vector<std::size_t>
+        Match(const Catch::IConfig &config,
+              std::vector<std::string> &unmatched) const;
+
+    private:
+        std::vector<TestEntry> tests_;
+        std::vector<Catch::TestCaseHandle> handles_;
+        std::string identity_;
+    };
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+#include <chrono>
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// What the command line asks for.
+    enum class Mode : std::uint8_t
+    {
+        kRun,
+        kListTests,
+        kListTags,
+        kAnalytics,
+        kHelp,
+        kVersion,
+        /// Internal: run tests on behalf of a runner, over the protocol.
+        kWorker,
+    };
+
+    enum class ListFormat : std::uint8_t
+    {
+        kText,
+        kNames,
+        kJson,
+    };
+
+    /// Which of the matching tests to run.
+    enum class Selection : std::uint8_t
+    {
+        /// Every matching test.
+        kAll,
+        /// Those that failed, crashed, timed out or were flaky last time.
+        kFailed,
+        /// Those defined in, or covering, files changed since a revision.
+        kChanged,
+        /// Those without a recorded result.
+        kNew,
+        /// Changed, failed and new tests, and those most likely to fail.
+        kSmart,
+    };
+
+    enum class Order : std::uint8_t
+    {
+        /// Most likely to fail per second of running time first.
+        kPriority,
+        kDeclared,
+        kName,
+        kRandom,
+    };
+
+    enum class RetryMode : std::uint8_t
+    {
+        kOff,
+        /// Retry only what may pass on a second try: crashes, timeouts,
+        /// tests with a flaky history and failures that do not repeat.
+        kAuto,
+        /// Retry every failure up to the limit.
+        kAlways,
+    };
+
+    enum class QuarantineMode : std::uint8_t
+    {
+        /// Tests that keep flaking go into quarantine on their own; a failure
+        /// in quarantine is reported but does not fail the run.
+        kAuto,
+        /// Quarantine is reported, but failures still fail the run.
+        kReport,
+        kOff,
+    };
+
+    enum class ColorMode : std::uint8_t
+    {
+        kAuto,
+        kAlways,
+        kNever,
+    };
+
+    enum class Verbosity : std::uint8_t
+    {
+        kQuiet,
+        kNormal,
+        kVerbose,
+    };
+
+    /// One shard of a run: `index` counts from zero.
+    struct Shard final
+    {
+        unsigned index = 0;
+        unsigned count = 1;
+    };
+
+    /// Everything the command line can say, already checked and typed.
+    struct Options final
+    {
+        Mode mode = Mode::kRun;
+        ListFormat listFormat = ListFormat::kText;
+        std::string programName;
+
+        // Selecting tests.
+        std::vector<std::string> testSpecs;
+        std::vector<std::string> sections;
+        /// Path filters: "c:SECTION" or "g:INDEX" (a generator value, or *).
+        std::vector<std::string> paths;
+        Selection selection = Selection::kAll;
+        std::string changesSince;
+        bool incremental = false;
+        Shard shard;
+        std::string shardDurations;
+        bool filenamesAsTags = false;
+
+        // Running.
+        unsigned jobs = 0;
+        bool inProcess = false;
+        bool isolate = false;
+        /// The per-test limit; zero disables it.
+        std::chrono::milliseconds timeout{0};
+        bool timeoutGiven = false;
+        bool adaptiveTimeout = true;
+        RetryMode retryMode = RetryMode::kAuto;
+        unsigned retries = 2;
+        unsigned repeat = 1;
+        unsigned failFast = 0;
+        Order order = Order::kPriority;
+        std::uint32_t seed = 0;
+        bool seedGiven = false;
+        bool bisectOrder = true;
+
+        // How tests behave.
+        bool includeSuccessful = false;
+        bool breakIntoDebugger = false;
+        bool noThrow = false;
+        bool warnNoAssertions = false;
+        bool warnUnmatchedSpecs = false;
+        bool warnInfiniteGenerators = false;
+        bool allowNoTests = false;
+        bool skipBenchmarks = false;
+        bool benchmarkNoAnalysis = false;
+        unsigned benchmarkSamples = 100;
+        unsigned benchmarkResamples = 100000;
+        double benchmarkConfidenceInterval = 0.95;
+        std::chrono::milliseconds benchmarkWarmupTime{100};
+
+        // History and analysis.
+        std::string historyDirectory;
+        bool historyEnabled = true;
+        QuarantineMode quarantine = QuarantineMode::kAuto;
+        bool replayFailures = false;
+        bool analyticsJson = false;
+
+        // Output.
+        Verbosity verbosity = Verbosity::kNormal;
+        ColorMode color = ColorMode::kAuto;
+        std::string junitPath;
+        std::string jsonPath;
+        std::string tracePath;
+        unsigned slowest = 0;
+        /// Created when the run starts and removed when it ends normally, so
+        /// a file left behind shows that the run ended early.
+        std::string exitGuardPath;
+    };
+
+    /// Reads a command line. `arguments` does not include the program.
+    [[nodiscard]] Expected<Options>
+    ParseOptions(const std::vector<std::string> &arguments);
+
+    /// The help text, for `--help`.
+    [[nodiscard]] std::string
+    HelpText(const std::string &programName);
+
+    /// The arguments a worker is started with to behave like `options`.
+    [[nodiscard]] std::vector<std::string>
+    WorkerArguments(const Options &options);
+} // namespace Progmasoft::Catch3::Runner
+
+#include <chrono>
+#include <cstdint>
+#include <map>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// One test the run will start, with everything decided in advance.
+    struct PlannedTest final
+    {
+        const TestEntry *entry = nullptr;
+        std::string selectionReason;
+        double failureProbability = 0.0;
+        std::int64_t predictedMicroseconds = 0;
+        /// Zero: no limit.
+        std::chrono::milliseconds timeout{0};
+        bool timeoutLearned = false;
+        unsigned retryLimit = 0;
+        bool quarantined = false;
+        std::string quarantineReason;
+        /// The history shows the test passing and failing with the same
+        /// inputs.
+        bool flakyHistory = false;
+        /// Positions in `Plan::tests` of the tests this one waits for.
+        std::vector<std::size_t> dependencies;
+        /// What the result depends on; equal for an unchanged test.
+        std::string fingerprint;
+        /// For --replay: the tests (catalog indices) to run before it in the
+        /// same fresh process, and the seed it failed with.
+        std::optional<std::vector<std::size_t>> replaySequence;
+        std::optional<std::uint32_t> replaySeed;
+    };
+
+    /// What a run will do, decided before the first test starts.
+    struct Plan final
+    {
+        /// In the order the scheduler should prefer.
+        std::vector<PlannedTest> tests;
+        /// Tests whose earlier result stands: up to date or out of the
+        /// selection but needed by nothing.
+        std::vector<TestResult> kept;
+        std::vector<std::string> unmatchedSpecs;
+        std::vector<std::string> notes;
+        /// Tests that matched the specs, before selection and sharding.
+        std::size_t candidates = 0;
+        std::map<std::string, std::string> fingerprints;
+    };
+
+    /// What the planner reads besides the options.
+    struct PlanInputs final
+    {
+        const Catalog *catalog = nullptr;
+        /// The tests the specs matched, in registration order.
+        std::vector<std::size_t> matched;
+        std::vector<std::string> unmatchedSpecs;
+        const History *history = nullptr;
+        /// Present when Git answered.
+        const Changes *changes = nullptr;
+        /// A digest of the test binary.
+        std::string binaryFingerprint;
+    };
+
+    [[nodiscard]] Expected<Plan>
+    MakePlan(const Options &options, const PlanInputs &inputs);
+
+    /// The shard of a group of tests that must stay together, by a hash of
+    /// its first key. Every machine computes the same answer.
+    [[nodiscard]] unsigned
+    StableShard(const std::string &key, unsigned count) noexcept;
+} // namespace Progmasoft::Catch3::Runner
+
+
+#include <string>
+
+namespace Progmasoft::Catch3::Runner
+{
+    struct AnalysisInputs final
+    {
+        /// The history before this run.
+        const History *history = nullptr;
+        const Changes *changes = nullptr;
+        const Plan *plan = nullptr;
+        /// The binary, for the replay command.
+        std::string program;
+        std::string changesSince;
+    };
+
+    /// Classifies every failure of the run and writes down what the runner
+    /// can tell about its cause: a signature shared with other failures,
+    /// the failure's history, the change it follows, where a crash or a
+    /// hang happened, and a command that replays it.
+    void
+    Analyze(RunResult &run, const AnalysisInputs &inputs);
+
+    /// The signature of a failed attempt: its category, the location of the
+    /// first failure and its message with numbers and addresses replaced.
+    [[nodiscard]] std::string
+    FailureSignature(const Attempt &attempt);
+
+    /// A test spec that matches exactly this name.
+    [[nodiscard]] std::string
+    QuoteTestSpec(const std::string &name);
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+
+#include <cstddef>
+#include <cstdio>
+#include <string>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// The report on the terminal: progress while the run goes on, then the
+    /// failures with their analysis and a summary.
+    class ConsoleReport final
+    {
+    public:
+        ConsoleReport(const Options &options, std::FILE *output);
+
+        void
+        RunStarting(std::size_t tests,
+                    std::size_t workers,
+                    std::uint32_t seed,
+                    const std::vector<std::string> &notes);
+
+        void
+        TestFinished(const TestResult &test);
+
+        void
+        Retrying(const TestResult &test, const Attempt &attempt);
+
+        void
+        RunEnded(const RunResult &run);
+
+        /// Text in a colour, when colours are on.
+        [[nodiscard]] std::string
+        Paint(std::string_view text, const char *colour) const;
+
+    private:
+        void
+        ClearProgress();
+
+        void
+        PrintFailure(const TestResult &test);
+
+        const Options &options_;
+        std::FILE *output_;
+        bool colour_ = false;
+        bool terminal_ = false;
+        std::size_t total_ = 0;
+        std::size_t finished_ = 0;
+        std::size_t failed_ = 0;
+        bool progressShown_ = false;
+    };
+
+    /// Writes a trace of the run in the Trace Event Format that
+    /// chrome://tracing and Perfetto open: one track per worker, one slice
+    /// per attempt and section.
+    [[nodiscard]] std::string
+    TraceJson(const RunResult &run);
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <functional>
+#include <memory>
+#include <string>
+
+
+namespace Catch
+{
+    struct ConfigData;
+} // namespace Catch
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// The Catch2 configuration a process that runs tests uses for
+    /// `options`.
+    [[nodiscard]] Catch::ConfigData
+    ToConfigData(const Options &options, const std::string &programName);
+
+    /// Receives the events of the tests a `TestExecutor` runs, as the JSON
+    /// messages a worker sends; see `Protocol.hpp`.
+    using EventSink = std::function<void(const JsonValue &)>;
+
+    /// Runs tests of this binary in this process with Catch2's engine: the
+    /// sections, generators, assertions and listeners are Catch2's.
+    ///
+    /// One executor lives for the whole process, because Catch2 allows one
+    /// run context per process; listeners see one test run, from the first
+    /// test to the destruction of the executor.
+    class TestExecutor final
+    {
+    public:
+        TestExecutor(const Options &options,
+                     const Catalog &catalog,
+                     const std::string &programName,
+                     EventSink sink);
+        TestExecutor(const TestExecutor &) = delete;
+        TestExecutor &
+        operator=(const TestExecutor &) = delete;
+        ~TestExecutor();
+
+        /// Runs one test. `temporaryDirectory` becomes TMPDIR, TMP and TEMP
+        /// while it runs; empty leaves them alone.
+        void
+        Run(std::size_t index,
+            std::size_t attempt,
+            const std::string &temporaryDirectory);
+
+        /// The executor's Catch2 configuration and run context.
+        struct State;
+
+    private:
+        std::unique_ptr<State> state_;
+    };
+
+    /// Serves a runner over the standard streams until it says to stop.
+    [[nodiscard]] int
+    RunWorker(const Options &options, const std::string &programName);
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+#include <chrono>
+#include <filesystem>
+#include <string>
+#include <string_view>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// A lock between processes: a file created exclusively beside the one
+    /// it protects. A lock file older than `stale` belongs to a process that
+    /// died and is broken.
+    class FileLock final
+    {
+    public:
+        FileLock(const std::filesystem::path &file,
+                 std::chrono::milliseconds wait,
+                 std::chrono::milliseconds stale = std::chrono::seconds(30));
+        FileLock(const FileLock &) = delete;
+        FileLock &
+        operator=(const FileLock &) = delete;
+        ~FileLock();
+
+        /// Whether the lock was taken before `wait` ran out.
+        [[nodiscard]] bool
+        Held() const noexcept
+        {
+            return held_;
+        }
+
+    private:
+        std::filesystem::path path_;
+        bool held_ = false;
+    };
+
+    [[nodiscard]] Expected<std::string>
+    ReadFile(const std::filesystem::path &file);
+
+    /// Replaces `file` with `contents` in one rename, so that a reader sees
+    /// the old or the new file, never half of one. Creates the directory.
+    Status
+    WriteFileAtomically(const std::filesystem::path &file,
+                        std::string_view contents);
+
+    /// Creates an empty file only the user can read and write, truncating a
+    /// regular file of that name. A symbolic link or anything else that is
+    /// not a regular file is refused, so the path cannot redirect the write.
+    Status
+    CreatePrivateFile(const std::filesystem::path &file);
+
+    /// A name for a temporary file that no other process or thread uses.
+    [[nodiscard]] std::string
+    UniqueName();
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+#include <array>
+#include <cstdint>
+#include <filesystem>
+#include <string>
+#include <string_view>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// SHA-256, for fingerprints that must not collide by accident: the
+    /// test binary, the source files a test depends on.
+    class Sha256 final
+    {
+    public:
+        Sha256();
+
+        void
+        Update(const void *data, std::size_t size);
+
+        void
+        Update(std::string_view text)
+        {
+            Update(text.data(), text.size());
+        }
+
+        /// The digest as 64 lowercase hexadecimal digits. The object cannot
+        /// be updated afterwards.
+        [[nodiscard]] std::string
+        HexDigest();
+
+    private:
+        void
+        Compress(const std::uint8_t *block);
+
+        std::array<std::uint32_t, 8> state_{};
+        std::array<std::uint8_t, 64> buffer_{};
+        std::size_t bufferSize_ = 0;
+        std::uint64_t totalSize_ = 0;
+    };
+
+    [[nodiscard]] std::string
+    Sha256Hex(std::string_view text);
+
+    /// The SHA-256 of a file's contents.
+    [[nodiscard]] Expected<std::string>
+    Sha256File(const std::filesystem::path &path);
+
+    /// FNV-1a: a fast, stable 64-bit hash for sharding and signatures,
+    /// where a collision only costs balance or merges two groups.
+    [[nodiscard]] std::uint64_t
+    Fnv1a64(std::string_view text) noexcept;
+
+    /// The value as 16 lowercase hexadecimal digits.
+    [[nodiscard]] std::string
+    ToHex(std::uint64_t value);
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <chrono>
+#include <cstdint>
+#include <filesystem>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// How a process ended.
+    struct ExitStatus final
+    {
+        enum class Kind : std::uint8_t
+        {
+            /// It returned from `main` or called `exit` with `code`.
+            kExited,
+            /// A signal ended it (POSIX); `code` is the signal number.
+            kSignaled,
+            /// It ended with a structured exception (Windows); `code` is the
+            /// exception code, such as 0xC0000005 for an access violation.
+            kException,
+        };
+
+        Kind kind = Kind::kExited;
+        std::int64_t code = 0;
+
+        [[nodiscard]] bool
+        Succeeded() const noexcept
+        {
+            return kind == Kind::kExited && code == 0;
+        }
+
+        /// Whether the process died rather than exiting.
+        [[nodiscard]] bool
+        Crashed() const noexcept
+        {
+            return kind != Kind::kExited;
+        }
+
+        /// A description such as "exit code 3", "signal 11 (SIGSEGV)" or
+        /// "exception 0xC0000005 (access violation)".
+        [[nodiscard]] std::string
+        Describe() const;
+    };
+
+    /// The end of a pipe this process reads from.
+    class PipeReader final
+    {
+    public:
+        PipeReader() = default;
+        explicit PipeReader(std::intptr_t handle) noexcept
+            : handle_{ handle }
+        {}
+        PipeReader(const PipeReader &) = delete;
+        PipeReader &
+        operator=(const PipeReader &) = delete;
+        PipeReader(PipeReader &&other) noexcept;
+        PipeReader &
+        operator=(PipeReader &&other) noexcept;
+        ~PipeReader();
+
+        /// Reads at most `size` bytes. Returns the number read, 0 at the end
+        /// of the stream and -1 on an error.
+        [[nodiscard]] std::int64_t
+        Read(char *buffer, std::size_t size) noexcept;
+
+        void
+        Close() noexcept;
+
+        [[nodiscard]] bool
+        IsOpen() const noexcept;
+
+    private:
+        std::intptr_t handle_ = -1;
+    };
+
+    /// The end of a pipe this process writes to.
+    class PipeWriter final
+    {
+    public:
+        PipeWriter() = default;
+        explicit PipeWriter(std::intptr_t handle) noexcept
+            : handle_{ handle }
+        {}
+        PipeWriter(const PipeWriter &) = delete;
+        PipeWriter &
+        operator=(const PipeWriter &) = delete;
+        PipeWriter(PipeWriter &&other) noexcept;
+        PipeWriter &
+        operator=(PipeWriter &&other) noexcept;
+        ~PipeWriter();
+
+        /// Writes all of `data`, or reports why it could not.
+        Status
+        Write(std::string_view data) noexcept;
+
+        void
+        Close() noexcept;
+
+        [[nodiscard]] bool
+        IsOpen() const noexcept;
+
+    private:
+        std::intptr_t handle_ = -1;
+    };
+
+    /// What to start, and how.
+    struct ChildOptions final
+    {
+        /// The program and its arguments. The program is a path; it is not
+        /// looked up on `PATH` unless `searchPath` is set.
+        std::vector<std::string> arguments;
+        /// Variables added to, or replacing, those of this process.
+        std::vector<std::pair<std::string, std::string>> environment;
+        /// The working directory; empty keeps the current one.
+        std::filesystem::path workingDirectory;
+        bool searchPath = false;
+    };
+
+    /// A child process with its standard streams connected to pipes.
+    ///
+    /// The child and every process it starts in turn form one group (a job
+    /// object on Windows, a process group elsewhere), so `Kill` ends a test
+    /// together with the helpers it spawned. Pipes are not inherited by
+    /// any other child, so the end of a stream is seen as soon as its
+    /// process is gone.
+    class ChildProcess final
+    {
+    public:
+        ChildProcess(const ChildProcess &) = delete;
+        ChildProcess &
+        operator=(const ChildProcess &) = delete;
+        ~ChildProcess();
+
+        [[nodiscard]] static Expected<std::unique_ptr<ChildProcess>>
+        Start(const ChildOptions &options);
+
+        /// The child's standard input.
+        [[nodiscard]] PipeWriter &
+        Input() noexcept
+        {
+            return input_;
+        }
+
+        /// The child's standard output.
+        [[nodiscard]] PipeReader &
+        Output() noexcept
+        {
+            return output_;
+        }
+
+        /// The child's standard error.
+        [[nodiscard]] PipeReader &
+        Errors() noexcept
+        {
+            return errors_;
+        }
+
+        /// Ends the child and every process it started. Safe to call more
+        /// than once and after the child ended.
+        void
+        Kill() noexcept;
+
+        /// Waits for the child to end.
+        [[nodiscard]] ExitStatus
+        Wait() noexcept;
+
+        /// Waits at most `timeout`; nothing when the child still runs.
+        [[nodiscard]] std::optional<ExitStatus>
+        WaitFor(std::chrono::milliseconds timeout) noexcept;
+
+        [[nodiscard]] std::int64_t
+        Id() const noexcept
+        {
+            return id_;
+        }
+
+    private:
+        ChildProcess() = default;
+
+        PipeWriter input_;
+        PipeReader output_;
+        PipeReader errors_;
+        std::int64_t id_ = 0;
+        std::intptr_t process_ = -1;
+        std::intptr_t group_ = -1;
+        std::optional<ExitStatus> exit_;
+    };
+
+    /// The result of a command run to completion.
+    struct CapturedRun final
+    {
+        ExitStatus status;
+        std::string output;
+        std::string errors;
+    };
+
+    /// Runs a command with no input and collects its output.
+    [[nodiscard]] Expected<CapturedRun>
+    RunAndCapture(const ChildOptions &options);
+
+    /// The two streams a worker talks to the runner over.
+    struct WorkerStreams final
+    {
+        PipeReader commands;
+        PipeWriter events;
+    };
+
+    /// Takes standard input and output of this process for the runner
+    /// protocol. Afterwards standard input reads nothing and standard output
+    /// goes to standard error, so what a test prints cannot corrupt a
+    /// message.
+    [[nodiscard]] Expected<WorkerStreams>
+    TakeStandardStreams();
+
+    /// The path of the running executable.
+    [[nodiscard]] std::filesystem::path
+    CurrentExecutable(const char *argumentZero);
+
+    /// The number of hardware threads, at least 1.
+    [[nodiscard]] unsigned
+    HardwareThreads() noexcept;
+
+    /// The value of an environment variable; empty when it is not set.
+    [[nodiscard]] std::string
+    ReadEnvironment(const char *name);
+
+    [[nodiscard]] bool
+    HasEnvironment(const char *name);
+
+    /// Whether standard output is a terminal.
+    [[nodiscard]] bool
+    IsStandardOutputTerminal() noexcept;
+
+    /// Turns on ANSI colour sequences on a Windows console; true when the
+    /// terminal shows them.
+    [[nodiscard]] bool
+    EnableTerminalColours() noexcept;
+
+    /// Keeps a crash of a worker on Windows from opening an error-reporting
+    /// dialog that would wait for a person. Elsewhere it does nothing.
+    void
+    QuietCrashReporting() noexcept;
+
+    /// The id of this process.
+    [[nodiscard]] std::int64_t
+    CurrentProcessId() noexcept;
+
+    /// Writes `text` to descriptor 2 directly, past any stream buffer or
+    /// redirection, as far as it goes; for use while the process exits.
+    void
+    WriteStandardError(std::string_view text) noexcept;
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+#include <mutex>
+#include <optional>
+#include <string>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// The runner and its workers exchange one JSON object per line. Every
+    /// object has a member "t" naming its kind.
+    ///
+    /// From the runner to a worker:
+    ///   run    {index, attempt, temp}  run one test
+    ///   quit   {}                      end the process
+    ///
+    /// From a worker to the runner:
+    ///   hello     {pid, identity, tests, protocol}
+    ///   start     {index, attempt}
+    ///   section   {begin: true, name, file, line, depth, at}
+    ///   section   {begin: false, depth, at, duration}
+    ///   at        {location}           the last assertion started
+    ///   assertion {an AssertionRecord}
+    ///   benchmark {a BenchmarkRecord}
+    ///   fatal     {message, location}  sent before the worker dies
+    ///   end       {index, attempt, outcome, category, passed, failed,
+    ///              duration, stdout, stderr}
+    inline constexpr int kWorkerProtocolVersion = 1;
+
+    /// Reads lines from a pipe.
+    class LineReader final
+    {
+    public:
+        explicit LineReader(PipeReader &pipe)
+            : pipe_{pipe}
+        {
+        }
+
+        /// The next line without its end, or nothing at the end of the
+        /// stream.
+        [[nodiscard]] std::optional<std::string>
+        Next();
+
+    private:
+        PipeReader &pipe_;
+        std::string buffer_;
+        std::size_t scanned_ = 0;
+        bool ended_ = false;
+    };
+
+    /// Writes messages to a pipe, one line each; safe from several
+    /// threads, since a test may assert from threads of its own.
+    class MessageWriter final
+    {
+    public:
+        explicit MessageWriter(PipeWriter &pipe)
+            : pipe_{pipe}
+        {
+        }
+
+        Status
+        Send(const JsonValue &message);
+
+    private:
+        PipeWriter &pipe_;
+        std::mutex mutex_;
+    };
+
+    /// A message of kind `kind` with no other members yet.
+    [[nodiscard]] JsonValue
+    Message(std::string_view kind);
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// The version of the JSON shapes below. It is written into every
+    /// report and protocol stream; a reader refuses a newer major version.
+    inline constexpr int kResultsFormatVersion = 1;
+
+    [[nodiscard]] JsonValue
+    ToJson(const AssertionRecord &assertion);
+
+    [[nodiscard]] AssertionRecord
+    AssertionFromJson(const JsonValue &value);
+
+    [[nodiscard]] JsonValue
+    ToJson(const BenchmarkRecord &benchmark);
+
+    [[nodiscard]] BenchmarkRecord
+    BenchmarkFromJson(const JsonValue &value);
+
+    [[nodiscard]] JsonValue
+    ToJson(const SectionRecord &section);
+
+    [[nodiscard]] SectionRecord
+    SectionFromJson(const JsonValue &value);
+
+    [[nodiscard]] JsonValue
+    ToJson(const Attempt &attempt);
+
+    [[nodiscard]] Attempt
+    AttemptFromJson(const JsonValue &value);
+
+    [[nodiscard]] JsonValue
+    ToJson(const TestResult &test);
+
+    [[nodiscard]] TestResult
+    TestResultFromJson(const JsonValue &value);
+
+    /// The whole run, with a summary: the `--json` report.
+    [[nodiscard]] JsonValue
+    ToJson(const RunResult &run);
+
+    [[nodiscard]] Expected<RunResult>
+    RunResultFromJson(const JsonValue &value);
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+
+#include <functional>
+#include <string>
+#include <vector>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// Hooks the console report uses to show progress.
+    struct SchedulerEvents final
+    {
+        /// A test has its verdict.
+        std::function<void(const TestResult &)> testFinished;
+        /// An attempt ended and another will follow: a retry, a repeat.
+        std::function<void(const TestResult &, const Attempt &)> retrying;
+    };
+
+    struct ScheduleOutcome final
+    {
+        /// One result per planned test, in plan order.
+        std::vector<TestResult> tests;
+        std::size_t workers = 0;
+        std::vector<std::string> notes;
+        /// The workers could not be started at all.
+        bool infrastructureFailed = false;
+    };
+
+    /// Runs a plan: in worker processes started from `program`, or in this
+    /// process with `--in-process`.
+    ///
+    /// Tests go to whichever worker is free, most important first. A worker
+    /// that crashes or hangs is replaced; the test it was running is
+    /// recorded as crashed or timed out. A failure is retried as the plan
+    /// allows, first in a fresh process: a test that then passes was either
+    /// flaky or broken by a test that ran before it in the same process,
+    /// and the scheduler finds that test by bisecting the ones that ran
+    /// before.
+    [[nodiscard]] ScheduleOutcome
+    RunPlan(const Options &options,
+            const Plan &plan,
+            const Catalog &catalog,
+            const std::string &program,
+            const std::string &programName,
+            const SchedulerEvents &events);
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+// The state the scheduler keeps of jobs, workers and tests.
+
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <thread>
+#include <vector>
+
+
+namespace Progmasoft::Catch3::Runner::Scheduling
+{
+    using Clock = std::chrono::steady_clock;
+
+    inline constexpr std::size_t kMaximumRecordedAssertions = 200;
+    inline constexpr std::size_t kMaximumProcessOutput = 64 * 1024;
+    inline constexpr std::size_t kMaximumProbes = 12;
+    inline constexpr std::size_t kStartupFailuresToGiveUp = 3;
+    inline constexpr std::chrono::milliseconds kStartupTimeout{ 60000 };
+
+    inline std::int64_t
+    Microseconds(Clock::duration duration)
+    {
+        return std::chrono::duration_cast<std::chrono::microseconds>(duration)
+            .count();
+    }
+
+    inline void
+    AppendBounded(std::string &target, std::string_view text)
+    {
+        target.append(text);
+        if (target.size() > kMaximumProcessOutput)
+        {
+            // The end of the output says most about a crash.
+            target.erase(0, target.size() - kMaximumProcessOutput);
+        }
+    }
+
+    inline bool
+    Satisfies(Outcome outcome)
+    {
+        return outcome == Outcome::kPassed
+               || outcome == Outcome::kFailedAsExpected
+               || outcome == Outcome::kUpToDate;
+    }
+
+    inline bool
+    Passing(Outcome outcome)
+    {
+        return outcome == Outcome::kPassed
+               || outcome == Outcome::kFailedAsExpected
+               || outcome == Outcome::kSkipped;
+    }
+
+    /// What a worker is asked to do: run tests in order, the last one
+    /// being the one the job is about.
+    struct Job final
+    {
+        enum class Kind : std::uint8_t
+        {
+            /// An attempt of a planned test.
+            kAttempt,
+            /// A run that tells whether a failure depends on the tests
+            /// before it; its result is not an attempt.
+            kProbe,
+        };
+
+        Kind kind = Kind::kAttempt;
+        std::size_t test = 0;
+        /// Catalog indices to run first, in the same process.
+        std::vector<std::size_t> before;
+        bool fresh = false;
+        std::optional<std::uint32_t> seed;
+        /// For a probe: the tests that ran before it.
+        std::vector<std::size_t> probeSequence;
+    };
+
+    /// One test being run in a worker.
+    struct Running final
+    {
+        std::size_t catalogIndex = 0;
+        bool target = false;
+        Attempt attempt;
+        Clock::time_point start;
+        Clock::time_point deadline = Clock::time_point::max();
+        bool fatal = false;
+    };
+
+    struct Worker final
+    {
+        std::size_t id = 0;
+        std::unique_ptr<ChildProcess> process;
+        std::thread outputReader;
+        std::thread errorReader;
+        bool ready = false;
+        bool dedicated = false;
+        bool quitting = false;
+        bool outputClosed = false;
+        bool errorsClosed = false;
+        bool killedForTimeout = false;
+        std::optional<std::uint32_t> seed;
+        Clock::time_point started;
+        std::optional<Job> job;
+        /// Index into `job->before`, or its size for the target.
+        std::size_t step = 0;
+        std::optional<Running> running;
+        /// Catalog indices this process has run, in order.
+        std::vector<std::size_t> history;
+        std::string startupOutput;
+    };
+
+    struct Event final
+    {
+        enum class Kind : std::uint8_t
+        {
+            kLine,
+            kErrors,
+            kOutputClosed,
+            kErrorsClosed,
+        };
+        std::size_t worker = 0;
+        Kind kind = Kind::kLine;
+        std::string text;
+    };
+
+    /// The search for the test that leaves state behind.
+    struct Bisection final
+    {
+        enum class Stage : std::uint8_t
+        {
+            kNone,
+            kConfirming,
+            kSearching,
+            kDone,
+        };
+        Stage stage = Stage::kNone;
+        std::vector<std::size_t> candidates;
+        std::vector<std::size_t> probing;
+        std::size_t probes = 0;
+        std::optional<std::size_t> culprit;
+        bool reproduced = false;
+    };
+
+    struct TestState final
+    {
+        TestResult result;
+        bool queued = false;
+        bool finished = false;
+        std::size_t pendingJobs = 0;
+        std::size_t retriesUsed = 0;
+        std::size_t repeatsLeft = 0;
+        Bisection bisection;
+    };
+} // namespace Progmasoft::Catch3::Runner::Scheduling
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <array>
+#include <optional>
+#include <string>
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// Gives the test that runs while it lives a temporary directory of its
+    /// own: it creates the directory, points TMPDIR, TMP and TEMP at it and
+    /// makes `TestTemporaryDirectory` return it. The variables get their
+    /// previous values back afterwards; the directory stays, because the
+    /// runner decides whether to keep it.
+    class TemporaryDirectoryScope final
+    {
+    public:
+        explicit TemporaryDirectoryScope(const std::string &directory);
+        TemporaryDirectoryScope(const TemporaryDirectoryScope &) = delete;
+        TemporaryDirectoryScope &
+        operator=(const TemporaryDirectoryScope &) = delete;
+        ~TemporaryDirectoryScope();
+
+    private:
+        bool active_ = false;
+        std::array<std::optional<std::string>, 3> previous_;
+    };
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <filesystem>
+#include <string>
+#include <vector>
+
+namespace Progmasoft::Catch3
+{
+    /// Runs the tests of this binary as `arguments` say and returns the exit
+    /// code. `arguments` starts with the program, as `argv` does.
+    ///
+    /// `Catch::Session::run` and the `main` of `Catch2::Catch2WithMain` call
+    /// this; a test binary with its own `main` may call it directly.
+    [[nodiscard]] int
+    RunTests(const std::vector<std::string> &arguments);
+
+    /// Prints the options of the runner to standard output.
+    void
+    PrintHelp(const std::string &programName);
+
+    /// The directory the running test may keep temporary files in.
+    ///
+    /// Every attempt of every test gets its own, so tests that run at the
+    /// same time in different workers never share a file by accident. The
+    /// runner also points TMPDIR, TMP and TEMP at it while the test runs, so
+    /// `std::filesystem::temp_directory_path()` and `tmpfile` use it too.
+    /// It is removed after a passing attempt and kept after a failing one,
+    /// for inspection. Outside a test it is the system temporary directory.
+    [[nodiscard]] std::filesystem::path
+    TestTemporaryDirectory();
+} // namespace Progmasoft::Catch3
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+namespace Progmasoft::Catch3
+{
+    /// The version of Catch3: of its runner, its tools and its formats.
+    inline constexpr const char *kVersion = "0.3.0";
+} // namespace Progmasoft::Catch3
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <iosfwd>
+#include <string>
+
+namespace Progmasoft::Catch3
+{
+    struct RunResult;
+
+    /// Writes a run as JUnit XML without timestamps or global state, so the
+    /// same run gives the same bytes.
+    ///
+    /// A failed test gets `<failure>`, a crash, timeout or infrastructure
+    /// problem `<error>`, and earlier failed attempts `<rerunFailure>`. A
+    /// test that failed and then passed is a success with `<flakyFailure>`
+    /// elements, the convention of Maven Surefire that Jenkins, GitLab and
+    /// most CI dashboards read. Skipped, blocked and not-run tests are
+    /// `<skipped>` with the reason as the message.
+    class JUnitXmlWriter final
+    {
+    public:
+        /// Returns false when the stream failed.
+        [[nodiscard]] static bool
+        Write(const RunResult &run, std::ostream &output);
+
+        [[nodiscard]] static std::string
+        ToString(const RunResult &run);
+    };
+} // namespace Progmasoft::Catch3
 
 
 
@@ -770,82 +2885,7 @@ namespace Catch {
 
 
 
-#include <fstream>
-
 namespace Catch {
-
-    namespace {
-        static bool enableBazelEnvSupport() {
-#if defined( CATCH_CONFIG_BAZEL_SUPPORT )
-            return true;
-#else
-            return Detail::getEnv( "BAZEL_TEST" ) != nullptr;
-#endif
-        }
-
-        struct bazelShardingOptions {
-            unsigned int shardIndex, shardCount;
-            std::string shardFilePath;
-        };
-
-        static Optional<bazelShardingOptions> readBazelShardingOptions() {
-            const auto bazelShardIndex = Detail::getEnv( "TEST_SHARD_INDEX" );
-            const auto bazelShardTotal = Detail::getEnv( "TEST_TOTAL_SHARDS" );
-            const auto bazelShardInfoFile = Detail::getEnv( "TEST_SHARD_STATUS_FILE" );
-
-
-            const bool has_all =
-                bazelShardIndex && bazelShardTotal && bazelShardInfoFile;
-            if ( !has_all ) {
-                // We provide nice warning message if the input is
-                // misconfigured.
-                auto warn = []( const char* env_var ) {
-                    Catch::cerr()
-                        << "Warning: Bazel shard configuration is missing '"
-                        << env_var << "'. Shard configuration is skipped.\n";
-                };
-                if ( !bazelShardIndex ) {
-                    warn( "TEST_SHARD_INDEX" );
-                }
-                if ( !bazelShardTotal ) {
-                    warn( "TEST_TOTAL_SHARDS" );
-                }
-                if ( !bazelShardInfoFile ) {
-                    warn( "TEST_SHARD_STATUS_FILE" );
-                }
-                return {};
-            }
-
-            auto shardIndex = parseUInt( bazelShardIndex );
-            if ( !shardIndex ) {
-                Catch::cerr()
-                    << "Warning: could not parse 'TEST_SHARD_INDEX' ('" << bazelShardIndex
-                    << "') as unsigned int.\n";
-                return {};
-            }
-            auto shardTotal = parseUInt( bazelShardTotal );
-            if ( !shardTotal ) {
-                Catch::cerr()
-                    << "Warning: could not parse 'TEST_TOTAL_SHARD' ('"
-                    << bazelShardTotal << "') as unsigned int.\n";
-                return {};
-            }
-
-            return bazelShardingOptions{
-                *shardIndex, *shardTotal, bazelShardInfoFile };
-
-        }
-    } // end namespace
-
-
-    bool operator==( ProcessedReporterSpec const& lhs,
-                     ProcessedReporterSpec const& rhs ) {
-        return lhs.name == rhs.name &&
-               lhs.outputFilename == rhs.outputFilename &&
-               lhs.colourMode == rhs.colourMode &&
-               lhs.verbosity == rhs.verbosity &&
-               lhs.customOptions == rhs.customOptions;
-    }
 
     bool operator==( PathFilter const& lhs, PathFilter const& rhs ) {
         return lhs.type == rhs.type && lhs.filter == rhs.filter;
@@ -856,33 +2896,10 @@ namespace Catch {
         // We need to trim filter specs to avoid trouble with superfluous
         // whitespace (esp. important for bdd macros, as those are manually
         // aligned with whitespace).
-
         for (auto& elem : m_data.testsOrTags) {
             elem = trim(elem);
         }
 
-        // Insert the default reporter if user hasn't asked for a specific one
-        if ( m_data.reporterSpecifications.empty() ) {
-#if defined( CATCH_CONFIG_DEFAULT_REPORTER )
-            const auto default_spec = CATCH_CONFIG_DEFAULT_REPORTER;
-#else
-            const auto default_spec = "console";
-#endif
-            auto parsed = parseReporterSpec(default_spec);
-            CATCH_ENFORCE( parsed,
-                           "Cannot parse the provided default reporter spec: '"
-                               << default_spec << '\'' );
-            m_data.reporterSpecifications.push_back( std::move( *parsed ) );
-        }
-
-        // Reading bazel env vars can change some parts of the config data,
-        // so we have to process the bazel env before acting on the config.
-        if ( enableBazelEnvSupport() ) {
-            readBazelEnvVars();
-        }
-
-        // Bazel support can modify the test specs, so parsing has to happen
-        // after reading Bazel env vars.
         TestSpecParser parser( ITagAliasRegistry::get() );
         if ( !m_data.testsOrTags.empty() ) {
             m_hasTestFilters = true;
@@ -891,59 +2908,16 @@ namespace Catch {
             }
         }
         m_testSpec = parser.testSpec();
-
-
-        // We now fixup the reporter specs to handle default output spec,
-        // default colour spec, etc
-        bool defaultOutputUsed = false;
-        for ( auto const& reporterSpec : m_data.reporterSpecifications ) {
-            // We do the default-output check separately, while always
-            // using the default output below to make the code simpler
-            // and avoid superfluous copies.
-            if ( reporterSpec.outputFile().none() ) {
-                CATCH_ENFORCE( !defaultOutputUsed,
-                               "Internal error: cannot use default output for "
-                               "multiple reporters" );
-                defaultOutputUsed = true;
-            }
-
-            m_processedReporterSpecs.push_back( ProcessedReporterSpec{
-                reporterSpec.name(),
-                reporterSpec.outputFile() ? *reporterSpec.outputFile()
-                                          : data.defaultOutputFilename,
-                reporterSpec.colourMode().valueOr( data.defaultColourMode ),
-                reporterSpec.verbosity().valueOr( data.verbosity ),
-                reporterSpec.customOptions() } );
-        }
     }
 
     Config::~Config() = default;
-
-
-    bool Config::listTests() const          { return m_data.listTests; }
-    bool Config::listTags() const           { return m_data.listTags; }
-    bool Config::listReporters() const      { return m_data.listReporters; }
-    bool Config::listListeners() const      { return m_data.listListeners; }
 
     std::vector<std::string> const& Config::getTestsOrTags() const { return m_data.testsOrTags; }
     std::vector<PathFilter> const& Config::getPathFilters() const { return m_data.pathFilters; }
     bool Config::useNewFilterBehaviour() const { return m_data.useNewPathFilteringBehaviour; }
 
-    std::vector<ReporterSpec> const& Config::getReporterSpecs() const {
-        return m_data.reporterSpecifications;
-    }
-
-    std::vector<ProcessedReporterSpec> const&
-    Config::getProcessedReporterSpecs() const {
-        return m_processedReporterSpecs;
-    }
-
     TestSpec const& Config::testSpec() const { return m_testSpec; }
     bool Config::hasTestFilters() const { return m_hasTestFilters; }
-
-    bool Config::showHelp() const { return m_data.showHelp; }
-
-    std::string const& Config::getExitGuardFilePath() const { return m_data.prematureExitGuardFilePath; }
 
     // IConfig interface
     bool Config::allowThrows() const                   { return !m_data.noThrow; }
@@ -978,60 +2952,6 @@ namespace Catch {
     double Config::benchmarkConfidenceInterval() const            { return m_data.benchmarkConfidenceInterval; }
     unsigned int Config::benchmarkResamples() const               { return m_data.benchmarkResamples; }
     std::chrono::milliseconds Config::benchmarkWarmupTime() const { return std::chrono::milliseconds(m_data.benchmarkWarmupTime); }
-
-    void Config::readBazelEnvVars() {
-        // Register a JUnit reporter for Bazel. Bazel sets an environment
-        // variable with the path to XML output. If this file is written to
-        // during test, Bazel will not generate a default XML output.
-        // This allows the XML output file to contain higher level of detail
-        // than what is possible otherwise.
-        const auto bazelOutputFile = Detail::getEnv( "XML_OUTPUT_FILE" );
-
-        if ( bazelOutputFile ) {
-            m_data.reporterSpecifications.push_back(
-                { "junit", std::string( bazelOutputFile ), {}, {}, {} } );
-        }
-
-        const auto bazelTestSpec = Detail::getEnv( "TESTBRIDGE_TEST_ONLY" );
-        if ( bazelTestSpec ) {
-            // Presumably the test spec from environment should overwrite
-            // the one we got from CLI (if we got any)
-            m_data.testsOrTags.clear();
-            m_data.testsOrTags.push_back( bazelTestSpec );
-        }
-
-        const auto bazelShardOptions = readBazelShardingOptions();
-        if ( bazelShardOptions ) {
-            std::ofstream f( bazelShardOptions->shardFilePath,
-                             std::ios_base::out | std::ios_base::trunc );
-            if ( f.is_open() ) {
-                f << "";
-                m_data.shardIndex = bazelShardOptions->shardIndex;
-                m_data.shardCount = bazelShardOptions->shardCount;
-            }
-        }
-
-        const auto bazelExitGuardFile = Detail::getEnv( "TEST_PREMATURE_EXIT_FILE" );
-        if (bazelExitGuardFile) {
-            m_data.prematureExitGuardFilePath = bazelExitGuardFile;
-        }
-
-        const auto bazelRandomSeed = Detail::getEnv( "TEST_RANDOM_SEED" );
-        if ( bazelRandomSeed ) {
-            auto parsedSeed = parseUInt( bazelRandomSeed, 0 );
-            if ( !parsedSeed ) {
-                // Currently we handle issues with parsing other Bazel Env
-                // options by warning and ignoring the issue. So we do the
-                // same for random seed option.
-                Catch::cerr()
-                    << "Warning: could not parse 'TEST_RANDOM_SEED' ('"
-                    << bazelRandomSeed << "') as proper seed.\n";
-            } else {
-                m_data.rngSeed = *parsedSeed;
-                m_data.rngSeedWasFixed = true;
-            }
-        }
-    }
 
 } // end namespace Catch
 
@@ -1191,9 +3111,6 @@ namespace Catch {
             }
 
         public: // IMutableRegistryHub
-            void registerReporter( std::string const& name, IReporterFactoryPtr factory ) override {
-                m_reporterRegistry.registerReporter( name, CATCH_MOVE(factory) );
-            }
             void registerListener( Detail::unique_ptr<EventListenerFactory> factory ) override {
                 m_reporterRegistry.registerListener( CATCH_MOVE(factory) );
             }
@@ -1247,253 +3164,8 @@ namespace Catch {
 
 
 
-#include <cassert>
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <exception>
-#include <iomanip>
-
-#if defined( _WIN32 )
-#    include <fcntl.h>
-#    include <io.h>
-#    include <sys/stat.h>
-#else
-#    include <fcntl.h>
-#    include <sys/stat.h>
-#    include <unistd.h>
-#endif
 
 namespace Catch {
-
-    namespace {
-        IEventListenerPtr createReporter(std::string const& reporterName, ReporterConfig&& config) {
-            auto reporter = Catch::getRegistryHub().getReporterRegistry().create(reporterName, CATCH_MOVE(config));
-            CATCH_ENFORCE(reporter, "No reporter registered with name: '" << reporterName << '\'');
-
-            return reporter;
-        }
-
-        IEventListenerPtr prepareReporters(Config const* config) {
-            if (Catch::getRegistryHub().getReporterRegistry().getListeners().empty()
-                    && config->getProcessedReporterSpecs().size() == 1) {
-                auto const& spec = config->getProcessedReporterSpecs()[0];
-                return createReporter(
-                    spec.name,
-                    ReporterConfig( config,
-                                    makeStream( spec.outputFilename ),
-                                    spec.colourMode,
-                                    spec.verbosity,
-                                    spec.customOptions ) );
-            }
-
-            auto multi = Detail::make_unique<MultiReporter>(config);
-
-            auto const& listeners = Catch::getRegistryHub().getReporterRegistry().getListeners();
-            for (auto const& listener : listeners) {
-                multi->addListener(listener->create(config));
-            }
-
-            for ( auto const& reporterSpec : config->getProcessedReporterSpecs() ) {
-                multi->addReporter( createReporter(
-                    reporterSpec.name,
-                    ReporterConfig( config,
-                                    makeStream( reporterSpec.outputFilename ),
-                                    reporterSpec.colourMode,
-                                    reporterSpec.verbosity,
-                                    reporterSpec.customOptions ) ) );
-            }
-
-            return multi;
-        }
-
-        class TestGroup {
-        public:
-            explicit TestGroup(IEventListenerPtr&& reporter, Config const* config):
-                m_reporter(reporter.get()),
-                m_config{config},
-                m_context{config, CATCH_MOVE(reporter)} {
-
-                assert( m_config->testSpec().getInvalidSpecs().empty() &&
-                        "Invalid test specs should be handled before running tests" );
-
-                // Note that we are working with pointers into this vector
-                // of sorted test cases, so sorting/unique-ing the pointers
-                // keeps the user-specified order.
-                auto const& allTestCases = getAllTestCasesSorted(*m_config);
-                auto const& testSpec = m_config->testSpec();
-                m_tests.reserve( allTestCases.size() );
-                if ( !testSpec.hasFilters() ) {
-                    for ( auto const& test : allTestCases ) {
-                        if ( !test.getTestCaseInfo().isHidden() ) {
-                            m_tests.push_back( &test );
-                        }
-                    }
-                } else {
-                    m_matches = testSpec.matchesByFilter( allTestCases, *m_config );
-                    for ( auto const& match : m_matches ) {
-                        m_tests.insert( m_tests.end(),
-                                        match.tests.begin(),
-                                        match.tests.end() );
-                    }
-                    std::sort( m_tests.begin(), m_tests.end() );
-                    m_tests.erase(
-                        std::unique( m_tests.begin(), m_tests.end() ),
-                        m_tests.end() );
-                }
-
-                m_tests = createShard(CATCH_MOVE(m_tests), m_config->shardCount(), m_config->shardIndex());
-            }
-
-            Totals execute() {
-                Totals totals;
-                for (auto const& testCase : m_tests) {
-                    if (!m_context.aborting())
-                        totals += m_context.runTest(*testCase);
-                    else
-                        m_reporter->skipTest(testCase->getTestCaseInfo());
-                }
-
-                for (auto const& match : m_matches) {
-                    if (match.tests.empty()) {
-                        m_unmatchedTestSpecs = true;
-                        m_reporter->noMatchingTestCases( match.name );
-                    }
-                }
-
-                return totals;
-            }
-
-            bool hadUnmatchedTestSpecs() const {
-                return m_unmatchedTestSpecs;
-            }
-
-
-        private:
-            IEventListener* m_reporter;
-            Config const* m_config;
-            RunContext m_context;
-            std::vector<TestCaseHandle const*> m_tests;
-            TestSpec::Matches m_matches;
-            bool m_unmatchedTestSpecs = false;
-        };
-
-        void applyFilenamesAsTags() {
-            getMutableRegistryHub().getMutableTestCaseRegistry().enableFilenameTags();
-        }
-
-        std::FILE* openGuardFile( std::string const& guardFilePath,
-                                  int& error ) {
-#if defined( _MSC_VER )
-            std::FILE* file = nullptr;
-            error = fopen_s( &file, guardFilePath.c_str(), "w" );
-            return error ? nullptr : file;
-#elif defined( _WIN32 )
-            const int descriptor = _open( guardFilePath.c_str(),
-                                          _O_WRONLY | _O_CREAT | _O_TRUNC |
-                                              _O_BINARY | _O_NOINHERIT,
-                                          _S_IREAD | _S_IWRITE );
-            if ( descriptor == -1 ) {
-                error = errno;
-                return nullptr;
-            }
-            std::FILE* const file = _fdopen( descriptor, "w" );
-            if ( file == nullptr ) {
-                error = errno;
-                _close( descriptor );
-            }
-            return file;
-#else
-            int flags = O_WRONLY | O_CREAT | O_TRUNC;
-#    if defined( O_NONBLOCK )
-            flags |= O_NONBLOCK;
-#    endif
-#    if defined( O_CLOEXEC )
-            flags |= O_CLOEXEC;
-#    endif
-#    if defined( O_NOFOLLOW )
-            // Do not let a stale guard-file symlink redirect this write.
-            flags |= O_NOFOLLOW;
-#    endif
-            const int descriptor =
-                ::open( guardFilePath.c_str(), flags, S_IRUSR | S_IWUSR );
-            if ( descriptor == -1 ) {
-                error = errno;
-                return nullptr;
-            }
-
-            struct stat fileStatus = {};
-            if ( ::fstat( descriptor, &fileStatus ) != 0 ) {
-                error = errno;
-                ::close( descriptor );
-                return nullptr;
-            }
-            if ( !S_ISREG( fileStatus.st_mode ) ) {
-                error = EINVAL;
-                ::close( descriptor );
-                return nullptr;
-            }
-            // The creation mode is already owner-only; also tighten an
-            // existing regular guard file before it is reused.
-            if ( ::fchmod( descriptor, S_IRUSR | S_IWUSR ) != 0 ) {
-                error = errno;
-                ::close( descriptor );
-                return nullptr;
-            }
-
-            std::FILE* const file = ::fdopen( descriptor, "w" );
-            if ( file == nullptr ) {
-                error = errno;
-                ::close( descriptor );
-            }
-            return file;
-#endif
-        }
-
-        // Creates an owner-only guard file. The path must be writable; we do
-        // not create its parent directories.
-        void setUpGuardFile( std::string const& guardFilePath ) {
-            if ( !guardFilePath.empty() ) {
-                int err = 0;
-                std::FILE* const file = openGuardFile( guardFilePath, err );
-                if ( file == nullptr ) {
-#if defined( _MSC_VER )
-                    char msgBuffer[100] = {};
-#endif
-                    std::string errMsg;
-#if defined( _MSC_VER )
-                    if ( !strerror_s( msgBuffer, err ) ) {
-                        errMsg = msgBuffer;
-                    } else {
-                        errMsg = "Could not translate errno to a string";
-                    }
-#else
-                    const char* const message = std::strerror( err );
-                    errMsg = message ? message : "Unknown error";
-#endif
-                    CATCH_RUNTIME_ERROR( "Could not open the exit guard file '"
-                                         << guardFilePath << "' because '"
-                                         << errMsg << "' (" << err << ')' );
-                }
-                const int ret = std::fclose( file );
-                CATCH_ENFORCE(
-                    ret == 0,
-                    "Error when closing the exit guard file: " << ret );
-            }
-        }
-
-        // Removes file at path. Assuming we created it in setUpGuardFile.
-        void tearDownGuardFile( std::string const& guardFilePath ) {
-            if ( !guardFilePath.empty() ) {
-                const int ret = std::remove( guardFilePath.c_str() );
-                CATCH_ENFORCE(
-                    ret == 0,
-                    "Error when removing the exit guard file: " << ret );
-            }
-        }
-
-    } // anon namespace
 
     Session::Session() {
         static bool alreadyInstantiated = false;
@@ -1501,243 +3173,38 @@ namespace Catch {
             CATCH_TRY { CATCH_INTERNAL_ERROR( "Only one instance of Catch::Session can ever be used" ); }
             CATCH_CATCH_ALL { getMutableRegistryHub().registerStartupException(); }
         }
-
-        // There cannot be exceptions at startup in no-exception mode.
-#if !defined(CATCH_CONFIG_DISABLE_EXCEPTIONS)
-        const auto& exceptions = getRegistryHub().getStartupExceptionRegistry().getExceptions();
-        if ( !exceptions.empty() ) {
-            config();
-            getCurrentMutableContext().setConfig(m_config.get());
-
-            m_startupExceptions = true;
-            auto errStream = makeStream( "%stderr" );
-            auto colourImpl = makeColourImpl(
-                ColourMode::PlatformDefault, errStream.get() );
-            auto guard = colourImpl->guardColour( Colour::Red );
-            errStream->stream() << "Errors occurred during startup!" << '\n';
-            // iterate over all exceptions and notify user
-            for ( const auto& ex_ptr : exceptions ) {
-                try {
-                    std::rethrow_exception(ex_ptr);
-                } catch ( std::exception const& ex ) {
-                    errStream->stream() << TextFlow::Column( ex.what() ).indent(2) << '\n';
-                }
-            }
-        }
-#endif
-
         alreadyInstantiated = true;
-        m_cli = makeCommandLineParser( m_configData );
     }
     Session::~Session() {
         Catch::cleanUp();
     }
 
     void Session::showHelp() const {
-        Catch::cout()
-                << "\nCatch2 v" << libraryVersion() << '\n'
-                << m_cli << '\n'
-                << "For more detailed usage please see the project docs\n\n" << std::flush;
-    }
-    void Session::libIdentify() {
-        Catch::cout()
-                << std::left << std::setw(16) << "description: " << "A Catch2 test executable\n"
-                << std::left << std::setw(16) << "category: " << "testframework\n"
-                << std::left << std::setw(16) << "framework: " << "Catch2\n"
-                << std::left << std::setw(16) << "version: " << libraryVersion() << '\n' << std::flush;
+        Progmasoft::Catch3::PrintHelp( m_arguments.empty() ? std::string( "tests" )
+                                                           : m_arguments.front() );
     }
 
     int Session::applyCommandLine( int argc, char const * const * argv ) {
-        if ( m_startupExceptions ) { return UnspecifiedErrorExitCode; }
-
-        auto result = m_cli.parse( Clara::Args( argc, argv ) );
-
-        if( !result ) {
-            config();
-            getCurrentMutableContext().setConfig(m_config.get());
-            auto errStream = makeStream( "%stderr" );
-            auto colour = makeColourImpl( ColourMode::PlatformDefault, errStream.get() );
-
-            errStream->stream()
-                << colour->guardColour( Colour::Red )
-                << "\nError(s) in input:\n"
-                << TextFlow::Column( result.errorMessage() ).indent( 2 )
-                << "\n\n";
-            errStream->stream() << "Run with -? for usage\n\n" << std::flush;
-            return UnspecifiedErrorExitCode;
-        }
-
-        if( m_configData.showHelp )
-            showHelp();
-        if( m_configData.libIdentify )
-            libIdentify();
-
-        m_config.reset();
+        m_arguments.assign( argv, argv + argc );
         return 0;
     }
 
 #if defined(CATCH_CONFIG_WCHAR) && defined(_WIN32) && defined(UNICODE)
     int Session::applyCommandLine( int argc, wchar_t const * const * argv ) {
-
-        char **utf8Argv = new char *[ argc ];
-
+        m_arguments.clear();
         for ( int i = 0; i < argc; ++i ) {
             int bufSize = WideCharToMultiByte( CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr );
-
-            utf8Argv[ i ] = new char[ bufSize ];
-
-            WideCharToMultiByte( CP_UTF8, 0, argv[i], -1, utf8Argv[i], bufSize, nullptr, nullptr );
+            std::string utf8( static_cast<std::size_t>( bufSize ), '\0' );
+            WideCharToMultiByte( CP_UTF8, 0, argv[i], -1, &utf8[0], bufSize, nullptr, nullptr );
+            if ( !utf8.empty() ) { utf8.pop_back(); } // the terminator
+            m_arguments.push_back( utf8 );
         }
-
-        int returnCode = applyCommandLine( argc, utf8Argv );
-
-        for ( int i = 0; i < argc; ++i )
-            delete [] utf8Argv[ i ];
-
-        delete [] utf8Argv;
-
-        return returnCode;
+        return 0;
     }
 #endif
-
-    void Session::useConfigData( ConfigData const& configData ) {
-        m_configData = configData;
-        m_config.reset();
-    }
 
     int Session::run() {
-        if( ( m_configData.waitForKeypress & WaitForKeypress::BeforeStart ) != 0 ) {
-            Catch::cout() << "...waiting for enter/ return before starting\n" << std::flush;
-            static_cast<void>(std::getchar());
-        }
-        int exitCode = runInternal();
-
-        if( ( m_configData.waitForKeypress & WaitForKeypress::BeforeExit ) != 0 ) {
-            Catch::cout() << "...waiting for enter/ return before exiting, with code: " << exitCode << '\n' << std::flush;
-            static_cast<void>(std::getchar());
-        }
-        return exitCode;
-    }
-
-    Clara::Parser const& Session::cli() const {
-        return m_cli;
-    }
-    void Session::cli( Clara::Parser const& newParser ) {
-        m_cli = newParser;
-    }
-    ConfigData& Session::configData() {
-        return m_configData;
-    }
-    Config& Session::config() {
-        if( !m_config )
-            m_config = Detail::make_unique<Config>( m_configData );
-        return *m_config;
-    }
-
-    int Session::runInternal() {
-        if ( m_startupExceptions ) { return UnspecifiedErrorExitCode; }
-
-        if (m_configData.showHelp || m_configData.libIdentify) {
-            return 0;
-        }
-
-        if ( m_configData.shardIndex >= m_configData.shardCount ) {
-            Catch::cerr() << "The shard count (" << m_configData.shardCount
-                          << ") must be greater than the shard index ("
-                          << m_configData.shardIndex << ")\n"
-                          << std::flush;
-            return UnspecifiedErrorExitCode;
-        }
-
-        CATCH_TRY {
-            config(); // Force config to be constructed
-
-            if ( m_config->shardCount() > 1 &&
-                 m_config->runOrder() == TestRunOrder::Randomized &&
-                 !m_config->rngSeedWasFixed() ) {
-                Catch::cerr()
-                    << "Warning: using sharding (--shard-count) with random "
-                       "order (--order rand, the default) and without a fixed "
-                       "numeric --rng-seed does not guarantee disjoint coverage "
-                       "between shard invocations. Pass the same numeric "
-                       "--rng-seed to every shard, or use --order decl or "
-                       "--order lex instead.\n"
-                    << std::flush;
-            }
-
-            // We need to retrieve potential Bazel config with the full Config
-            // constructor, so we have to create the guard file after it is created.
-            setUpGuardFile( m_config->getExitGuardFilePath() );
-
-            seedRng( *m_config );
-
-            if (m_configData.filenamesAsTags) {
-                applyFilenamesAsTags();
-            }
-
-            // Set up global config instance before we start calling into other functions
-            getCurrentMutableContext().setConfig(m_config.get());
-
-            // Create reporter(s) so we can route listings through them
-            IEventListenerPtr reporter;
-            CATCH_TRY {
-                auto reporter_ = prepareReporters( m_config.get() );
-                swap( reporter, reporter_ );
-            }
-#if !defined( CATCH_CONFIG_DISABLE_EXCEPTIONS )
-            catch ( std::exception& ex ) {
-                Catch::cerr() << "Error when creating reporter: " << ex.what() << '\n' << std::flush;
-                return ReporterConstructionErrorExitCode;
-            }
-#endif
-
-            auto const& invalidSpecs = m_config->testSpec().getInvalidSpecs();
-            if ( !invalidSpecs.empty() ) {
-                for ( auto const& spec : invalidSpecs ) {
-                    reporter->reportInvalidTestSpec( spec );
-                }
-                return InvalidTestSpecExitCode;
-            }
-
-
-            // Handle list request
-            if (list(*reporter, *m_config)) {
-                return 0;
-            }
-
-            TestGroup tests { CATCH_MOVE(reporter), m_config.get() };
-            auto const totals = tests.execute();
-
-            // If we got here, running the tests finished normally-enough.
-            // They might've failed, but that would've been reported elsewhere.
-            tearDownGuardFile( m_config->getExitGuardFilePath() );
-
-            if ( tests.hadUnmatchedTestSpecs()
-                && m_config->warnAboutUnmatchedTestSpecs() ) {
-                return UnmatchedTestSpecExitCode;
-            }
-
-            if ( totals.testCases.total() == 0
-                && !m_config->zeroTestsCountAsSuccess() ) {
-                return NoTestsRunExitCode;
-            }
-
-            if ( totals.testCases.total() > 0 &&
-                 totals.testCases.total() == totals.testCases.skipped
-                && !m_config->zeroTestsCountAsSuccess() ) {
-                return AllTestsSkippedExitCode;
-            }
-
-            if ( totals.assertions.failed ) { return TestFailureExitCode; }
-            return 0;
-
-        }
-#if !defined(CATCH_CONFIG_DISABLE_EXCEPTIONS)
-        catch( std::exception& ex ) {
-            Catch::cerr() << ex.what() << '\n' << std::flush;
-            return UnspecifiedErrorExitCode;
-        }
-#endif
+        return Progmasoft::Catch3::RunTests( m_arguments );
     }
 
 } // end namespace Catch
@@ -1797,6 +3264,17 @@ namespace Catch {
             return tcp != TestCaseProperties::None;
         }
 
+        bool isRunnerTagWithValue( StringRef tag ) {
+            for ( StringRef prefix : { "!resource:"_sr, "!depends:"_sr,
+                                       "!timeout:"_sr, "!retries:"_sr } ) {
+                if ( tag.size() >= prefix.size() &&
+                     tag.substr( 0, prefix.size() ) == prefix ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         TestCaseProperties propertiesFromTag( StringRef tag, SourceLineInfo const& _lineInfo ) {
             if ( tag.empty() ) { return TestCaseProperties::None; }
             // All tags starting with alphanumeric characters are normal.
@@ -1811,6 +3289,16 @@ namespace Catch {
             else if ( tag == "!benchmark"_sr ) {
                 return TestCaseProperties::Benchmark |
                        TestCaseProperties::IsHidden;
+            }
+            // Read by the Catch3 runner: scheduling, limits and quarantine.
+            else if ( tag == "!serial"_sr || tag == "!isolated"_sr ||
+                      tag == "!quarantine"_sr ) {
+                return TestCaseProperties::None;
+            } else if ( isRunnerTagWithValue( tag ) ) {
+                CATCH_ENFORCE( tag[tag.size() - 1] != ':',
+                               "Tag name: [" << tag << "] needs a value after ':'\n"
+                                             << _lineInfo );
+                return TestCaseProperties::None;
             } else {
                 CATCH_RUNTIME_ERROR(
                     "Tag name: [" << tag << "] is not allowed.\n"
@@ -2791,33 +4279,6 @@ namespace Catch {
 
 namespace Catch {
 
-    ReporterConfig::ReporterConfig(
-        IConfig const* _fullConfig,
-        Detail::unique_ptr<IStream> _stream,
-        ColourMode colourMode,
-        Verbosity verbosity,
-        std::map<std::string, std::string> customOptions ):
-        m_stream( CATCH_MOVE(_stream) ),
-        m_fullConfig( _fullConfig ),
-        m_colourMode( colourMode ),
-        m_verbosity( verbosity ),
-        m_customOptions( CATCH_MOVE( customOptions ) ) {}
-
-    Detail::unique_ptr<IStream> ReporterConfig::takeStream() && {
-        assert( m_stream );
-        return CATCH_MOVE( m_stream );
-    }
-    IConfig const * ReporterConfig::fullConfig() const { return m_fullConfig; }
-    ColourMode ReporterConfig::colourMode() const { return m_colourMode; }
-    Verbosity ReporterConfig::verbosity() const { return m_verbosity; }
-
-    std::map<std::string, std::string> const&
-    ReporterConfig::customOptions() const {
-        return m_customOptions;
-    }
-
-    ReporterConfig::~ReporterConfig() = default;
-
     AssertionStats::AssertionStats( AssertionResult const& _assertionResult,
                                     std::vector<MessageInfo> const& _infoMessages,
                                     Totals const& _totals )
@@ -2875,7 +4336,6 @@ namespace Catch {
 
 
 namespace Catch {
-    IReporterFactory::~IReporterFactory() = default;
     EventListenerFactory::~EventListenerFactory() = default;
 }
 
@@ -2991,1096 +4451,6 @@ namespace Catch {
 
 
 
-
-#include <algorithm>
-#include <ostream>
-
-namespace {
-    bool isOptPrefix( char c ) {
-        return c == '-'
-#ifdef CATCH_PLATFORM_WINDOWS
-               || c == '/'
-#endif
-            ;
-    }
-
-    Catch::StringRef normaliseOpt( Catch::StringRef optName ) {
-        if ( optName[0] == '-'
-#if defined(CATCH_PLATFORM_WINDOWS)
-             || optName[0] == '/'
-#endif
-        ) {
-            return optName.substr( 1, optName.size() );
-        }
-
-        return optName;
-    }
-
-    static size_t find_first_separator(Catch::StringRef sr) {
-        auto is_separator = []( char c ) {
-            return c == ' ' || c == ':' || c == '=';
-        };
-        size_t pos = 0;
-        while (pos < sr.size()) {
-            if (is_separator(sr[pos])) { return pos; }
-            ++pos;
-        }
-
-        return Catch::StringRef::npos;
-    }
-
-} // namespace
-
-namespace Catch {
-    namespace Clara {
-        namespace Detail {
-
-            void TokenStream::loadBuffer() {
-                m_tokenBuffer.clear();
-
-                // Skip any empty strings
-                while ( it != itEnd && it->empty() ) {
-                    ++it;
-                }
-
-                if ( it != itEnd ) {
-                    StringRef next = *it;
-                    if ( isOptPrefix( next[0] ) ) {
-                        auto delimiterPos = find_first_separator(next);
-                        if ( delimiterPos != StringRef::npos ) {
-                            m_tokenBuffer.push_back(
-                                { TokenType::Option,
-                                  next.substr( 0, delimiterPos ) } );
-                            m_tokenBuffer.push_back(
-                                { TokenType::Argument,
-                                  next.substr( delimiterPos + 1, next.size() ) } );
-                        } else {
-                            if ( next.size() > 1 && next[1] != '-' && next.size() > 2 ) {
-                                // Combined short args, e.g. "-ab" for "-a -b"
-                                for ( size_t i = 1; i < next.size(); ++i ) {
-                                    m_tokenBuffer.push_back(
-                                        { TokenType::Option,
-                                          next.substr( i, 1 ) } );
-                                }
-                            } else {
-                                m_tokenBuffer.push_back(
-                                    { TokenType::Option, next } );
-                            }
-                        }
-                    } else {
-                        m_tokenBuffer.push_back(
-                            { TokenType::Argument, next } );
-                    }
-                }
-            }
-
-            TokenStream::TokenStream( Args const& args ):
-                TokenStream( args.m_args.begin(), args.m_args.end() ) {}
-
-            TokenStream::TokenStream( Iterator it_, Iterator itEnd_ ):
-                it( it_ ), itEnd( itEnd_ ) {
-                loadBuffer();
-            }
-
-            TokenStream& TokenStream::operator++() {
-                if ( m_tokenBuffer.size() >= 2 ) {
-                    m_tokenBuffer.erase( m_tokenBuffer.begin() );
-                } else {
-                    if ( it != itEnd )
-                        ++it;
-                    loadBuffer();
-                }
-                return *this;
-            }
-
-            ParserResult convertInto( std::string const& source,
-                                      std::string& target ) {
-                target = source;
-                return ParserResult::ok( ParseResultType::Matched );
-            }
-
-            ParserResult convertInto( std::string const& source,
-                                      bool& target ) {
-                std::string srcLC = toLower( source );
-
-                if ( srcLC == "y" || srcLC == "1" || srcLC == "true" ||
-                     srcLC == "yes" || srcLC == "on" ) {
-                    target = true;
-                } else if ( srcLC == "n" || srcLC == "0" || srcLC == "false" ||
-                            srcLC == "no" || srcLC == "off" ) {
-                    target = false;
-                } else {
-                    return ParserResult::runtimeError(
-                        "Expected a boolean value but did not recognise: '" +
-                        source + '\'' );
-                }
-                return ParserResult::ok( ParseResultType::Matched );
-            }
-
-            size_t ParserBase::cardinality() const { return 1; }
-
-            InternalParseResult ParserBase::parse( Args const& args ) const {
-                return parse( static_cast<std::string>(args.exeName()), TokenStream( args ) );
-            }
-
-            ParseState::ParseState( ParseResultType type,
-                                    TokenStream remainingTokens ):
-                m_type( type ), m_remainingTokens( CATCH_MOVE(remainingTokens) ) {}
-
-            ParserResult BoundFlagRef::setFlag( bool flag ) {
-                m_ref = flag;
-                return ParserResult::ok( ParseResultType::Matched );
-            }
-
-            ResultBase::~ResultBase() = default;
-
-            bool BoundRef::isContainer() const { return false; }
-
-            bool BoundRef::isFlag() const { return false; }
-
-            bool BoundFlagRefBase::isFlag() const { return true; }
-
-} // namespace Detail
-
-        Detail::InternalParseResult Arg::parse(std::string const&,
-                                               Detail::TokenStream tokens) const {
-            auto validationResult = validate();
-            if (!validationResult)
-                return Detail::InternalParseResult(validationResult);
-
-            auto token = *tokens;
-            if (token.type != Detail::TokenType::Argument)
-                return Detail::InternalParseResult::ok(Detail::ParseState(
-                    ParseResultType::NoMatch, CATCH_MOVE(tokens)));
-
-            assert(!m_ref->isFlag());
-            auto valueRef =
-                static_cast<Detail::BoundValueRefBase*>(m_ref.get());
-
-            auto result = valueRef->setValue(static_cast<std::string>(token.token));
-            if ( !result )
-                return Detail::InternalParseResult( result );
-            else
-                return Detail::InternalParseResult::ok(
-                    Detail::ParseState( ParseResultType::Matched,
-                                        CATCH_MOVE( ++tokens ) ) );
-        }
-
-        Opt::Opt(bool& ref) :
-            ParserRefImpl(std::make_shared<Detail::BoundFlagRef>(ref)) {}
-
-        Detail::HelpColumns Opt::getHelpColumns() const {
-            ReusableStringStream oss;
-            bool first = true;
-            for (auto const& opt : m_optNames) {
-                if (first)
-                    first = false;
-                else
-                    oss << ", ";
-                oss << opt;
-            }
-            if (!m_hint.empty())
-                oss << " <" << m_hint << '>';
-            return { oss.str(), m_description };
-        }
-
-        bool Opt::isMatch(StringRef optToken) const {
-            auto normalisedToken = normaliseOpt(optToken);
-            for (auto const& name : m_optNames) {
-                if (normaliseOpt(name) == normalisedToken)
-                    return true;
-            }
-            return false;
-        }
-
-        Detail::InternalParseResult Opt::parse(std::string const&,
-                                       Detail::TokenStream tokens) const {
-            auto validationResult = validate();
-            if (!validationResult)
-                return Detail::InternalParseResult(validationResult);
-
-            if (tokens &&
-                tokens->type == Detail::TokenType::Option) {
-                auto const& token = *tokens;
-                if (isMatch(token.token)) {
-                    if (m_ref->isFlag()) {
-                        auto flagRef =
-                            static_cast<Detail::BoundFlagRefBase*>(
-                                m_ref.get());
-                        auto result = flagRef->setFlag(true);
-                        if (!result)
-                            return Detail::InternalParseResult(result);
-                        if (result.value() ==
-                            ParseResultType::ShortCircuitAll)
-                            return Detail::InternalParseResult::ok(Detail::ParseState(
-                                result.value(), CATCH_MOVE(tokens)));
-                    } else {
-                        auto valueRef =
-                            static_cast<Detail::BoundValueRefBase*>(
-                                m_ref.get());
-                        ++tokens;
-                        if (!tokens)
-                            return Detail::InternalParseResult::runtimeError(
-                                "Expected argument following " +
-                                token.token);
-                        auto const& argToken = *tokens;
-                        if (argToken.type != Detail::TokenType::Argument)
-                            return Detail::InternalParseResult::runtimeError(
-                                "Expected argument following " +
-                                token.token);
-                        const auto result = valueRef->setValue(static_cast<std::string>(argToken.token));
-                        if (!result)
-                            return Detail::InternalParseResult(result);
-                        if (result.value() ==
-                            ParseResultType::ShortCircuitAll)
-                            return Detail::InternalParseResult::ok(Detail::ParseState(
-                                result.value(), CATCH_MOVE(tokens)));
-                    }
-                    return Detail::InternalParseResult::ok(Detail::ParseState(
-                        ParseResultType::Matched, CATCH_MOVE(++tokens)));
-                }
-            }
-            return Detail::InternalParseResult::ok(
-                Detail::ParseState(ParseResultType::NoMatch, CATCH_MOVE(tokens)));
-        }
-
-        Detail::Result Opt::validate() const {
-            if (m_optNames.empty())
-                return Detail::Result::logicError("No options supplied to Opt");
-            for (auto const& name : m_optNames) {
-                if (name.empty())
-                    return Detail::Result::logicError(
-                        "Option name cannot be empty");
-#ifdef CATCH_PLATFORM_WINDOWS
-                if (name[0] != '-' && name[0] != '/')
-                    return Detail::Result::logicError(
-                        "Option name must begin with '-' or '/'");
-#else
-                if (name[0] != '-')
-                    return Detail::Result::logicError(
-                        "Option name must begin with '-'");
-#endif
-            }
-            return ParserRefImpl::validate();
-        }
-
-        ExeName::ExeName() :
-            m_name(std::make_shared<std::string>("<executable>")) {}
-
-        ExeName::ExeName(std::string& ref) : ExeName() {
-            m_ref = std::make_shared<Detail::BoundValueRef<std::string>>(ref);
-        }
-
-        Detail::InternalParseResult
-            ExeName::parse(std::string const&,
-                           Detail::TokenStream tokens) const {
-            return Detail::InternalParseResult::ok(
-                Detail::ParseState(ParseResultType::NoMatch, CATCH_MOVE(tokens)));
-        }
-
-        ParserResult ExeName::set(std::string const& newName) {
-            auto lastSlash = newName.find_last_of("\\/");
-            auto filename = (lastSlash == std::string::npos)
-                ? newName
-                : newName.substr(lastSlash + 1);
-
-            *m_name = filename;
-            if (m_ref)
-                return m_ref->setValue(filename);
-            else
-                return ParserResult::ok(ParseResultType::Matched);
-        }
-
-
-
-
-        Parser& Parser::operator|=( Parser const& other ) {
-            m_options.insert( m_options.end(),
-                              other.m_options.begin(),
-                              other.m_options.end() );
-            m_args.insert(
-                m_args.end(), other.m_args.begin(), other.m_args.end() );
-            return *this;
-        }
-
-        std::vector<Detail::HelpColumns> Parser::getHelpColumns() const {
-            std::vector<Detail::HelpColumns> cols;
-            cols.reserve( m_options.size() );
-            for ( auto const& o : m_options ) {
-                cols.push_back(o.getHelpColumns());
-            }
-            return cols;
-        }
-
-        void Parser::writeToStream( std::ostream& os ) const {
-            if ( !m_exeName.name().empty() ) {
-                os << "usage:\n"
-                   << "  " << m_exeName.name() << ' ';
-                bool required = true, first = true;
-                for ( auto const& arg : m_args ) {
-                    if ( first )
-                        first = false;
-                    else
-                        os << ' ';
-                    if ( arg.isOptional() && required ) {
-                        os << '[';
-                        required = false;
-                    }
-                    os << '<' << arg.hint() << '>';
-                    if ( arg.cardinality() == 0 )
-                        os << " ... ";
-                }
-                if ( !required )
-                    os << ']';
-                if ( !m_options.empty() )
-                    os << " options";
-                os << "\n\nwhere options are:\n";
-            }
-
-            auto rows = getHelpColumns();
-            size_t consoleWidth = CATCH_CONFIG_CONSOLE_WIDTH;
-            size_t optWidth = 0;
-            for ( auto const& cols : rows )
-                optWidth = ( std::max )( optWidth, cols.left.size() + 2 );
-
-            optWidth = ( std::min )( optWidth, consoleWidth / 2 );
-
-            for ( auto& cols : rows ) {
-                auto row = TextFlow::Column( CATCH_MOVE(cols.left) )
-                               .width( optWidth )
-                               .indent( 2 ) +
-                           TextFlow::Spacer( 4 ) +
-                           TextFlow::Column( static_cast<std::string>(cols.descriptions) )
-                               .width( consoleWidth - 7 - optWidth );
-                os << row << '\n';
-            }
-        }
-
-        Detail::Result Parser::validate() const {
-            for ( auto const& opt : m_options ) {
-                auto result = opt.validate();
-                if ( !result )
-                    return result;
-            }
-            for ( auto const& arg : m_args ) {
-                auto result = arg.validate();
-                if ( !result )
-                    return result;
-            }
-            return Detail::Result::ok();
-        }
-
-        Detail::InternalParseResult
-        Parser::parse( std::string const& exeName,
-                       Detail::TokenStream tokens ) const {
-
-            struct ParserInfo {
-                ParserBase const* parser = nullptr;
-                size_t count = 0;
-            };
-            std::vector<ParserInfo> parseInfos;
-            parseInfos.reserve( m_options.size() + m_args.size() );
-            for ( auto const& opt : m_options ) {
-                parseInfos.push_back( { &opt, 0 } );
-            }
-            for ( auto const& arg : m_args ) {
-                parseInfos.push_back( { &arg, 0 } );
-            }
-
-            m_exeName.set( exeName );
-
-            auto result = Detail::InternalParseResult::ok(
-                Detail::ParseState( ParseResultType::NoMatch, CATCH_MOVE(tokens) ) );
-            while ( result.value().remainingTokens() ) {
-                bool tokenParsed = false;
-
-                for ( auto& parseInfo : parseInfos ) {
-                    if ( parseInfo.parser->cardinality() == 0 ||
-                         parseInfo.count < parseInfo.parser->cardinality() ) {
-                        result = parseInfo.parser->parse(
-                            exeName, CATCH_MOVE(result).value().remainingTokens() );
-                        if ( !result )
-                            return result;
-                        if ( result.value().type() !=
-                             ParseResultType::NoMatch ) {
-                            tokenParsed = true;
-                            ++parseInfo.count;
-                            break;
-                        }
-                    }
-                }
-
-                if ( result.value().type() == ParseResultType::ShortCircuitAll )
-                    return result;
-                if ( !tokenParsed )
-                    return Detail::InternalParseResult::runtimeError(
-                        "Unrecognised token: " +
-                        result.value().remainingTokens()->token );
-            }
-            // !TBD Check missing required options
-            return result;
-        }
-
-        Args::Args(int argc, char const* const* argv) :
-            m_exeName(argv[0]), m_args(argv + 1, argv + argc) {}
-
-        Args::Args(std::initializer_list<StringRef> args) :
-            m_exeName(*args.begin()),
-            m_args(args.begin() + 1, args.end()) {}
-
-
-        Help::Help( bool& showHelpFlag ):
-            Opt( [&]( bool flag ) {
-                showHelpFlag = flag;
-                return ParserResult::ok( ParseResultType::ShortCircuitAll );
-            } ) {
-            static_cast<Opt&> ( *this )(
-                "display usage information" )["-?"]["-h"]["--help"]
-                .optional();
-        }
-
-    } // namespace Clara
-} // namespace Catch
-
-
-
-
-#include <fstream>
-#include <string>
-
-namespace Catch {
-
-    Clara::Parser makeCommandLineParser( ConfigData& config ) {
-
-        using namespace Clara;
-
-        auto const setWarning = [&]( std::string const& warning ) {
-            if ( warning == "NoAssertions" ) {
-                config.warnings = static_cast<WarnAbout::What>(config.warnings | WarnAbout::NoAssertions);
-                return ParserResult::ok( ParseResultType::Matched );
-            } else if ( warning == "UnmatchedTestSpec" ) {
-                config.warnings = static_cast<WarnAbout::What>(config.warnings | WarnAbout::UnmatchedTestSpec);
-                return ParserResult::ok( ParseResultType::Matched );
-            } else if ( warning == "InfiniteGenerators" ) {
-                config.warnings = static_cast<WarnAbout::What>(config.warnings | WarnAbout::InfiniteGenerator);
-                return ParserResult::ok( ParseResultType::Matched );
-            }
-
-            return ParserResult ::runtimeError(
-                "Unrecognised warning option: '" + warning + '\'' );
-        };
-        auto const loadTestNamesFromFile = [&]( std::string const& filename ) {
-                std::ifstream f( filename.c_str() );
-                if( !f.is_open() )
-                    return ParserResult::runtimeError( "Unable to load input file: '" + filename + '\'' );
-
-                std::string line;
-                while( std::getline( f, line ) ) {
-                    line = trim(line);
-                    if( !line.empty() && !startsWith( line, '#' ) ) {
-                        if( !startsWith( line, '"' ) )
-                            line = '"' + CATCH_MOVE(line) + '"';
-                        config.testsOrTags.push_back( line );
-                        config.testsOrTags.emplace_back( "," );
-                    }
-                }
-                //Remove comma in the end
-                if(!config.testsOrTags.empty())
-                    config.testsOrTags.erase( config.testsOrTags.end()-1 );
-
-                return ParserResult::ok( ParseResultType::Matched );
-            };
-        auto const setTestOrder = [&]( std::string const& order ) {
-                if( startsWith( "declared", order ) )
-                    config.runOrder = TestRunOrder::Declared;
-                else if( startsWith( "lexical", order ) )
-                    config.runOrder = TestRunOrder::LexicographicallySorted;
-                else if( startsWith( "random", order ) )
-                    config.runOrder = TestRunOrder::Randomized;
-                else
-                    return ParserResult::runtimeError( "Unrecognised ordering: '" + order + '\'' );
-                return ParserResult::ok( ParseResultType::Matched );
-            };
-        auto const setRngSeed = [&]( std::string const& seed ) {
-                if( seed == "time" ) {
-                    config.rngSeed = generateRandomSeed(GenerateFrom::Time);
-                    config.rngSeedWasFixed = false;
-                    return ParserResult::ok(ParseResultType::Matched);
-                } else if (seed == "random-device") {
-                    config.rngSeed = generateRandomSeed(GenerateFrom::RandomDevice);
-                    config.rngSeedWasFixed = false;
-                    return ParserResult::ok(ParseResultType::Matched);
-                }
-
-                // TODO: ideally we should be parsing uint32_t directly
-                //       fix this later when we add new parse overload
-                auto parsedSeed = parseUInt( seed, 0 );
-                if ( !parsedSeed ) {
-                    return ParserResult::runtimeError( "Could not parse '" + seed + "' as seed" );
-                }
-                config.rngSeed = *parsedSeed;
-                config.rngSeedWasFixed = true;
-                return ParserResult::ok( ParseResultType::Matched );
-            };
-        auto const setDefaultColourMode = [&]( std::string const& colourMode ) {
-            Optional<ColourMode> maybeMode = Catch::Detail::stringToColourMode(toLower( colourMode ));
-            if ( !maybeMode ) {
-                return ParserResult::runtimeError(
-                    "colour mode must be one of: default, ansi, win32, "
-                    "or none. '" +
-                    colourMode + "' is not recognised" );
-            }
-            auto mode = *maybeMode;
-            if ( !isColourImplAvailable( mode ) ) {
-                return ParserResult::runtimeError(
-                    "colour mode '" + colourMode +
-                    "' is not supported in this binary" );
-            }
-            config.defaultColourMode = mode;
-            return ParserResult::ok( ParseResultType::Matched );
-        };
-        auto const setWaitForKeypress = [&]( std::string const& keypress ) {
-                auto keypressLc = toLower( keypress );
-                if (keypressLc == "never")
-                    config.waitForKeypress = WaitForKeypress::Never;
-                else if( keypressLc == "start" )
-                    config.waitForKeypress = WaitForKeypress::BeforeStart;
-                else if( keypressLc == "exit" )
-                    config.waitForKeypress = WaitForKeypress::BeforeExit;
-                else if( keypressLc == "both" )
-                    config.waitForKeypress = WaitForKeypress::BeforeStartAndExit;
-                else
-                    return ParserResult::runtimeError( "keypress argument must be one of: never, start, exit or both. '" + keypress + "' not recognised" );
-            return ParserResult::ok( ParseResultType::Matched );
-            };
-        auto const setVerbosity = [&]( std::string const& verbosity ) {
-            auto lcVerbosity = toLower( verbosity );
-            if( lcVerbosity == "quiet" )
-                config.verbosity = Verbosity::Quiet;
-            else if( lcVerbosity == "normal" )
-                config.verbosity = Verbosity::Normal;
-            else if( lcVerbosity == "high" )
-                config.verbosity = Verbosity::High;
-            else
-                return ParserResult::runtimeError( "Unrecognised verbosity, '" + verbosity + '\'' );
-            return ParserResult::ok( ParseResultType::Matched );
-        };
-        auto const setReporter = [&]( std::string const& userReporterSpec ) {
-            if ( userReporterSpec.empty() ) {
-                return ParserResult::runtimeError( "Received empty reporter spec." );
-            }
-
-            Optional<ReporterSpec> parsed =
-                parseReporterSpec( userReporterSpec );
-            if ( !parsed ) {
-                return ParserResult::runtimeError(
-                    "Could not parse reporter spec '" + userReporterSpec +
-                    "'" );
-            }
-
-            auto const& reporterSpec = *parsed;
-
-            auto const& factories =
-                getRegistryHub().getReporterRegistry().getFactories();
-            auto result = factories.find( reporterSpec.name() );
-
-            if ( result == factories.end() ) {
-                return ParserResult::runtimeError(
-                    "Unrecognized reporter, '" + reporterSpec.name() +
-                    "'. Check available with --list-reporters" );
-            }
-
-
-            const bool hadOutputFile = reporterSpec.outputFile().some();
-            config.reporterSpecifications.push_back( CATCH_MOVE( *parsed ) );
-            // It would be enough to check this only once at the very end, but
-            // there is  not a place where we could call this check, so do it
-            // every time it could fail. For valid inputs, this is still called
-            // at most once.
-            if (!hadOutputFile) {
-                int n_reporters_without_file = 0;
-                for (auto const& spec : config.reporterSpecifications) {
-                    if (spec.outputFile().none()) {
-                        n_reporters_without_file++;
-                    }
-                }
-                if (n_reporters_without_file > 1) {
-                    return ParserResult::runtimeError( "Only one reporter may have unspecified output file." );
-                }
-            }
-
-            return ParserResult::ok( ParseResultType::Matched );
-        };
-        auto const setShardCount = [&]( std::string const& shardCount ) {
-            auto parsedCount = parseUInt( shardCount );
-            if ( !parsedCount ) {
-                return ParserResult::runtimeError(
-                    "Could not parse '" + shardCount + "' as shard count" );
-            }
-            if ( *parsedCount == 0 ) {
-                return ParserResult::runtimeError(
-                    "Shard count must be positive" );
-            }
-            config.shardCount = *parsedCount;
-            return ParserResult::ok( ParseResultType::Matched );
-        };
-        auto const setBenchmarkSamples = [&]( std::string const& samples ) {
-            auto parsedSamples = parseUInt( samples );
-            if ( !parsedSamples ) {
-                return ParserResult::runtimeError(
-                    "Could not parse '" + samples + "' as benchmark samples" );
-            }
-            if ( *parsedSamples == 0 ) {
-                return ParserResult::runtimeError(
-                    "Benchmark samples must be greater than 0" );
-            }
-            config.benchmarkSamples = *parsedSamples;
-            return ParserResult::ok( ParseResultType::Matched );
-        };
-
-        auto const setShardIndex = [&](std::string const& shardIndex) {
-            auto parsedIndex = parseUInt( shardIndex );
-            if ( !parsedIndex ) {
-                return ParserResult::runtimeError(
-                    "Could not parse '" + shardIndex + "' as shard index" );
-            }
-            config.shardIndex = *parsedIndex;
-            return ParserResult::ok( ParseResultType::Matched );
-        };
-
-        auto const setSectionFilter = [&]( std::string const& sectionFilter ) {
-            config.pathFilters.emplace_back( PathFilter::For::Section, trim(sectionFilter) );
-            return ParserResult::ok( ParseResultType::Matched );
-        };
-        auto const setGeneratorFilter = [&]( std::string const& generatorFilter ) {
-            if (generatorFilter != "*") {
-                // TODO: avoid re-parsing the index?
-                auto parsedIndex = parseUInt( generatorFilter );
-                if ( !parsedIndex ) {
-                    return ParserResult::runtimeError( "Could not parse '" +
-                                                       generatorFilter +
-                                                       "' as generator index" );
-                }
-            }
-            config.useNewPathFilteringBehaviour = true;
-            config.pathFilters.emplace_back( PathFilter::For::Generator, trim(generatorFilter) );
-            return ParserResult::ok( ParseResultType::Matched );
-        };
-        // Copy-capturing other `setFoo` functions enables calling them later,
-        // as the config ref remains valid, but the local lambda vars won't.
-        auto const setPathFilter = [=, &config]( std::string const& pathFilter ) {
-            config.useNewPathFilteringBehaviour = true;
-            if ( pathFilter.size() < 3 ) {
-                return ParserResult::runtimeError(
-                    "Path filter '" + pathFilter + "' is too short" );
-            }
-            if ( startsWith( pathFilter, "g:" ) ) {
-                return setGeneratorFilter( pathFilter.substr( 2 ) );
-            }
-            if ( startsWith( pathFilter, "c:" ) ) {
-                return setSectionFilter( pathFilter.substr( 2 ) );
-            }
-            return ParserResult::runtimeError( "Path filter '" + pathFilter +
-                                               "' has unknown type prefix" );
-        };
-
-
-        auto cli
-            = ExeName( config.processName )
-            | Help( config.showHelp )
-            | Opt( config.showSuccessfulTests )
-                ["-s"]["--success"]
-                ( "include successful tests in output" )
-            | Opt( config.shouldDebugBreak )
-                ["-b"]["--break"]
-                ( "break into debugger on failure" )
-            | Opt( config.noThrow )
-                ["-e"]["--nothrow"]
-                ( "skip exception tests" )
-            | Opt( config.showInvisibles )
-                ["-i"]["--invisibles"]
-                ( "show invisibles (tabs, newlines)" )
-            | Opt( config.defaultOutputFilename, "filename" )
-                ["-o"]["--out"]
-                ( "default output filename" )
-            | Opt( accept_many, setReporter, "name[::key=value]*" )
-                ["-r"]["--reporter"]
-                ( "reporter to use (defaults to console)" )
-            | Opt( config.name, "name" )
-                ["-n"]["--name"]
-                ( "suite name" )
-            | Opt( [&]( bool ){ config.abortAfter = 1; } )
-                ["-a"]["--abort"]
-                ( "abort at first failure" )
-            | Opt( [&]( int x ){ config.abortAfter = x; }, "no. failures" )
-                ["-x"]["--abortx"]
-                ( "abort after x failures" )
-            | Opt( accept_many, setWarning, "warning name" )
-                ["-w"]["--warn"]
-                ( "enable warnings" )
-            | Opt( [&]( bool flag ) { config.showDurations = flag ? ShowDurations::Always : ShowDurations::Never; }, "yes|no" )
-                ["-d"]["--durations"]
-                ( "show test durations" )
-            | Opt( config.minDuration, "seconds" )
-                ["-D"]["--min-duration"]
-                ( "show test durations for tests taking at least the given number of seconds" )
-            | Opt( loadTestNamesFromFile, "filename" )
-                ["-f"]["--input-file"]
-                ( "load test names to run from a file" )
-            | Opt( config.filenamesAsTags )
-                ["-#"]["--filenames-as-tags"]
-                ( "adds a tag for the filename" )
-            | Opt( accept_many, setSectionFilter, "section name" )
-                ["-c"]["--section"]
-                ( "specify section to run" )
-            | Opt( accept_many, setGeneratorFilter, "index spec" )
-                ["-g"]["--generator-index"]
-                ( "specify generator elements to try" )
-            | Opt( accept_many, setPathFilter, "path filter spec" )
-                ["-p"]["--path-filter"]
-                ( "qualified path filter" )
-            | Opt( setVerbosity, "quiet|normal|high" )
-                ["-v"]["--verbosity"]
-                ( "set output verbosity" )
-            | Opt( config.listTests )
-                ["--list-tests"]
-                ( "list all/matching test cases" )
-            | Opt( config.listTags )
-                ["--list-tags"]
-                ( "list all/matching tags" )
-            | Opt( config.listReporters )
-                ["--list-reporters"]
-                ( "list all available reporters" )
-            | Opt( config.listListeners )
-                ["--list-listeners"]
-                ( "list all listeners" )
-            | Opt( setTestOrder, "decl|lex|rand" )
-                ["--order"]
-                ( "test case order (defaults to rand)" )
-            | Opt( setRngSeed, "'time'|'random-device'|number" )
-                ["--rng-seed"]
-                ( "set a specific seed for random numbers" )
-            | Opt( setDefaultColourMode, "ansi|win32|none|default" )
-                ["--colour-mode"]
-                ( "what color mode should be used as default" )
-            | Opt( config.libIdentify )
-                ["--libidentify"]
-                ( "report name and version according to libidentify standard" )
-            | Opt( setWaitForKeypress, "never|start|exit|both" )
-                ["--wait-for-keypress"]
-                ( "waits for a keypress before exiting" )
-            | Opt( config.skipBenchmarks)
-                ["--skip-benchmarks"]
-                ( "disable running benchmarks")
-            | Opt( setBenchmarkSamples, "samples"  )
-                ["--benchmark-samples"]
-                ( "number of samples to collect (default: 100)" )
-            | Opt( config.benchmarkResamples, "resamples" )
-                ["--benchmark-resamples"]
-                ( "number of resamples for the bootstrap (default: 100000)" )
-            | Opt( config.benchmarkConfidenceInterval, "confidence interval" )
-                ["--benchmark-confidence-interval"]
-                ( "confidence interval for the bootstrap (between 0 and 1, default: 0.95)" )
-            | Opt( config.benchmarkNoAnalysis )
-                ["--benchmark-no-analysis"]
-                ( "perform only measurements; do not perform any analysis" )
-            | Opt( config.benchmarkWarmupTime, "benchmarkWarmupTime" )
-                ["--benchmark-warmup-time"]
-                ( "amount of time in milliseconds spent on warming up each test (default: 100)" )
-            | Opt( setShardCount, "shard count" )
-                ["--shard-count"]
-                ( "split the tests to execute into this many groups" )
-            | Opt( setShardIndex, "shard index" )
-                ["--shard-index"]
-                ( "index of the group of tests to execute (see --shard-count)" )
-            | Opt( config.allowZeroTests )
-                ["--allow-running-no-tests"]
-                ( "Treat 'No tests run' as a success" )
-            | Opt( config.prematureExitGuardFilePath, "path" )
-                ["--premature-exit-guard-file"]
-                ( "create a file before running tests and delete it during clean exit" )
-            | Arg( config.testsOrTags, "test name|pattern|tags" )
-                ( "which test or tests to use" );
-
-        return cli;
-    }
-
-} // end namespace Catch
-
-
-#if defined(__clang__)
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wexit-time-destructors"
-#endif
-
-
-
-#include <cassert>
-#include <ostream>
-#include <utility>
-
-namespace Catch {
-
-    ColourImpl::~ColourImpl() = default;
-
-    ColourImpl::ColourGuard ColourImpl::guardColour( Colour::Code colourCode ) {
-        return ColourGuard(colourCode, this );
-    }
-
-    void ColourImpl::ColourGuard::engageImpl( std::ostream& stream ) {
-        assert( &stream == &m_colourImpl->m_stream->stream() &&
-                "Engaging colour guard for different stream than used by the "
-                "parent colour implementation" );
-        static_cast<void>( stream );
-
-        m_engaged = true;
-        m_colourImpl->use( m_code );
-    }
-
-    ColourImpl::ColourGuard::ColourGuard( Colour::Code code,
-                                          ColourImpl const* colour ):
-        m_colourImpl( colour ), m_code( code ) {
-    }
-    ColourImpl::ColourGuard::ColourGuard( ColourGuard&& rhs ) noexcept:
-        m_colourImpl( rhs.m_colourImpl ),
-        m_code( rhs.m_code ),
-        m_engaged( rhs.m_engaged ) {
-        rhs.m_engaged = false;
-    }
-    ColourImpl::ColourGuard&
-    ColourImpl::ColourGuard::operator=( ColourGuard&& rhs ) noexcept {
-        using std::swap;
-        swap( m_colourImpl, rhs.m_colourImpl );
-        swap( m_code, rhs.m_code );
-        swap( m_engaged, rhs.m_engaged );
-
-        return *this;
-    }
-    ColourImpl::ColourGuard::~ColourGuard() {
-        if ( m_engaged ) {
-            m_colourImpl->use( Colour::None );
-        }
-    }
-
-    ColourImpl::ColourGuard&
-    ColourImpl::ColourGuard::engage( std::ostream& stream ) & {
-        engageImpl( stream );
-        return *this;
-    }
-
-    ColourImpl::ColourGuard&&
-    ColourImpl::ColourGuard::engage( std::ostream& stream ) && {
-        engageImpl( stream );
-        return CATCH_MOVE(*this);
-    }
-
-    namespace {
-        //! A do-nothing implementation of colour, used as fallback for unknown
-        //! platforms, and when the user asks to deactivate all colours.
-        class NoColourImpl final : public ColourImpl {
-        public:
-            NoColourImpl( IStream* stream ): ColourImpl( stream ) {}
-
-        private:
-            void use( Colour::Code ) const override {}
-        };
-    } // namespace
-
-
-} // namespace Catch
-
-
-#if defined ( CATCH_CONFIG_COLOUR_WIN32 ) /////////////////////////////////////////
-
-namespace Catch {
-namespace {
-
-    class Win32ColourImpl final : public ColourImpl {
-    public:
-        Win32ColourImpl(IStream* stream):
-            ColourImpl(stream) {
-            CONSOLE_SCREEN_BUFFER_INFO csbiInfo;
-            GetConsoleScreenBufferInfo( GetStdHandle( STD_OUTPUT_HANDLE ),
-                                        &csbiInfo );
-            originalForegroundAttributes = csbiInfo.wAttributes & ~( BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_BLUE | BACKGROUND_INTENSITY );
-            originalBackgroundAttributes = csbiInfo.wAttributes & ~( FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY );
-        }
-
-        static bool useImplementationForStream(IStream const& stream) {
-            // Win32 text colour APIs can only be used on console streams
-            // We cannot check that the output hasn't been redirected,
-            // so we just check that the original stream is console stream.
-            return stream.isConsole();
-        }
-
-    private:
-        void use( Colour::Code _colourCode ) const override {
-            switch( _colourCode ) {
-                case Colour::None:      return setTextAttribute( originalForegroundAttributes );
-                case Colour::White:     return setTextAttribute( FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE );
-                case Colour::Red:       return setTextAttribute( FOREGROUND_RED );
-                case Colour::Green:     return setTextAttribute( FOREGROUND_GREEN );
-                case Colour::Blue:      return setTextAttribute( FOREGROUND_BLUE );
-                case Colour::Cyan:      return setTextAttribute( FOREGROUND_BLUE | FOREGROUND_GREEN );
-                case Colour::Yellow:    return setTextAttribute( FOREGROUND_RED | FOREGROUND_GREEN );
-                case Colour::Grey:      return setTextAttribute( 0 );
-
-                case Colour::LightGrey:     return setTextAttribute( FOREGROUND_INTENSITY );
-                case Colour::BrightRed:     return setTextAttribute( FOREGROUND_INTENSITY | FOREGROUND_RED );
-                case Colour::BrightGreen:   return setTextAttribute( FOREGROUND_INTENSITY | FOREGROUND_GREEN );
-                case Colour::BrightWhite:   return setTextAttribute( FOREGROUND_INTENSITY | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE );
-                case Colour::BrightYellow:  return setTextAttribute( FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN );
-
-                case Colour::Bright: CATCH_INTERNAL_ERROR( "not a colour" );
-
-                default:
-                    CATCH_ERROR( "Unknown colour requested" );
-            }
-        }
-
-        void setTextAttribute( WORD _textAttribute ) const {
-            SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ),
-                                     _textAttribute |
-                                         originalBackgroundAttributes );
-        }
-        WORD originalForegroundAttributes;
-        WORD originalBackgroundAttributes;
-    };
-
-} // end anon namespace
-} // end namespace Catch
-
-#endif // Windows/ ANSI/ None
-
-
-#if defined( CATCH_PLATFORM_LINUX ) \
- || defined( CATCH_PLATFORM_MAC ) \
- || defined( __GLIBC__ ) \
- || (defined( __FreeBSD__ ) \
-     /* PlayStation platform does not have `isatty()` */ \
-     && !defined(CATCH_PLATFORM_PLAYSTATION)) \
- || defined( CATCH_PLATFORM_QNX )
-#    define CATCH_INTERNAL_HAS_ISATTY
-#    include <unistd.h>
-#endif
-
-namespace Catch {
-namespace {
-
-    class ANSIColourImpl final : public ColourImpl {
-    public:
-        ANSIColourImpl( IStream* stream ): ColourImpl( stream ) {}
-
-        static bool useImplementationForStream(IStream const& stream) {
-            // This is kinda messy due to trying to support a bunch of
-            // different platforms at once.
-            // The basic idea is that if we are asked to do autodetection (as
-            // opposed to being told to use posixy colours outright), then we
-            // only want to use the colours if we are writing to console.
-            // However, console might be redirected, so we make an attempt at
-            // checking for that on platforms where we know how to do that.
-            bool useColour = stream.isConsole();
-#if defined( CATCH_INTERNAL_HAS_ISATTY ) && \
-    !( defined( __DJGPP__ ) && defined( __STRICT_ANSI__ ) )
-            ErrnoGuard _; // for isatty
-            useColour = useColour && isatty( STDOUT_FILENO );
-#    endif
-#    if defined( CATCH_PLATFORM_MAC ) || defined( CATCH_PLATFORM_IPHONE )
-            useColour = useColour && !isDebuggerActive();
-#    endif
-
-            return useColour;
-        }
-
-    private:
-        void use( Colour::Code _colourCode ) const override {
-            auto setColour = [&out =
-                                  m_stream->stream()]( char const* escapeCode ) {
-                // The escape sequence must be flushed to console, otherwise
-                // if stdin and stderr are intermixed, we'd get accidentally
-                // coloured output.
-                out << '\033' << escapeCode << std::flush;
-            };
-            switch( _colourCode ) {
-                case Colour::None:
-                case Colour::White:     return setColour( "[0m" );
-                case Colour::Red:       return setColour( "[0;31m" );
-                case Colour::Green:     return setColour( "[0;32m" );
-                case Colour::Blue:      return setColour( "[0;34m" );
-                case Colour::Cyan:      return setColour( "[0;36m" );
-                case Colour::Yellow:    return setColour( "[0;33m" );
-                case Colour::Grey:      return setColour( "[1;30m" );
-
-                case Colour::LightGrey:     return setColour( "[0;37m" );
-                case Colour::BrightRed:     return setColour( "[1;31m" );
-                case Colour::BrightGreen:   return setColour( "[1;32m" );
-                case Colour::BrightWhite:   return setColour( "[1;37m" );
-                case Colour::BrightYellow:  return setColour( "[1;33m" );
-
-                case Colour::Bright: CATCH_INTERNAL_ERROR( "not a colour" );
-                default: CATCH_INTERNAL_ERROR( "Unknown colour requested" );
-            }
-        }
-    };
-
-} // end anon namespace
-} // end namespace Catch
-
-namespace Catch {
-
-    Detail::unique_ptr<ColourImpl> makeColourImpl( ColourMode colourSelection,
-                                                   IStream* stream ) {
-#if defined( CATCH_CONFIG_COLOUR_WIN32 )
-        if ( colourSelection == ColourMode::Win32 ) {
-            return Detail::make_unique<Win32ColourImpl>( stream );
-        }
-#endif
-        if ( colourSelection == ColourMode::ANSI ) {
-            return Detail::make_unique<ANSIColourImpl>( stream );
-        }
-        if ( colourSelection == ColourMode::None ) {
-            return Detail::make_unique<NoColourImpl>( stream );
-        }
-
-        if ( colourSelection == ColourMode::PlatformDefault) {
-#if defined( CATCH_CONFIG_COLOUR_WIN32 )
-            if ( Win32ColourImpl::useImplementationForStream( *stream ) ) {
-                return Detail::make_unique<Win32ColourImpl>( stream );
-            }
-#endif
-            if ( ANSIColourImpl::useImplementationForStream( *stream ) ) {
-                return Detail::make_unique<ANSIColourImpl>( stream );
-            }
-            return Detail::make_unique<NoColourImpl>( stream );
-        }
-
-        CATCH_ERROR( "Could not create colour impl for selection " << static_cast<int>(colourSelection) );
-    }
-
-    bool isColourImplAvailable( ColourMode colourSelection ) {
-        switch ( colourSelection ) {
-#if defined( CATCH_CONFIG_COLOUR_WIN32 )
-        case ColourMode::Win32:
-#endif
-        case ColourMode::ANSI:
-        case ColourMode::None:
-        case ColourMode::PlatformDefault:
-            return true;
-        default:
-            return false;
-        }
-    }
-
-
-} // end namespace Catch
-
-#if defined(__clang__)
-#    pragma clang diagnostic pop
-#endif
-
-
-
-
 namespace Catch {
 
     Context Context::currentContext;
@@ -4095,40 +4465,6 @@ namespace Catch {
     }
 
 }
-
-
-
-
-
-#include <ostream>
-
-#if defined(CATCH_CONFIG_ANDROID_LOGWRITE)
-#include <android/log.h>
-
-    namespace Catch {
-        void writeToDebugConsole( std::string const& text ) {
-            __android_log_write( ANDROID_LOG_DEBUG, "Catch", text.c_str() );
-        }
-    }
-
-#elif defined(CATCH_PLATFORM_WINDOWS)
-
-    namespace Catch {
-        void writeToDebugConsole( std::string const& text ) {
-            ::OutputDebugStringA( text.c_str() );
-        }
-    }
-
-#else
-
-    namespace Catch {
-        void writeToDebugConsole( std::string const& text ) {
-            // !TBD: Need a version for Mac/ XCode and other IDEs
-            Catch::cout() << text;
-        }
-    }
-
-#endif // Platform
 
 
 
@@ -4740,353 +5076,6 @@ namespace Catch {
 
 
 
-#include <cstdio>
-#include <fstream>
-
-namespace Catch {
-
-    Catch::IStream::~IStream() = default;
-
-namespace Detail {
-    namespace {
-        template<typename WriterF, std::size_t bufferSize=256>
-        class StreamBufImpl final : public std::streambuf {
-            char data[bufferSize];
-            WriterF m_writer;
-
-        public:
-            StreamBufImpl() {
-                setp( data, data + sizeof(data) );
-            }
-
-            ~StreamBufImpl() noexcept override {
-                StreamBufImpl::sync();
-            }
-
-        private:
-            int overflow( int c ) override {
-                sync();
-
-                if( c != EOF ) {
-                    if( pbase() == epptr() )
-                        m_writer( std::string( 1, static_cast<char>( c ) ) );
-                    else
-                        sputc( static_cast<char>( c ) );
-                }
-                return 0;
-            }
-
-            int sync() override {
-                if( pbase() != pptr() ) {
-                    m_writer( std::string( pbase(), static_cast<std::string::size_type>( pptr() - pbase() ) ) );
-                    setp( pbase(), epptr() );
-                }
-                return 0;
-            }
-        };
-
-        ///////////////////////////////////////////////////////////////////////////
-
-        struct OutputDebugWriter {
-
-            void operator()( std::string const& str ) {
-                if ( !str.empty() ) {
-                    writeToDebugConsole( str );
-                }
-            }
-        };
-
-        ///////////////////////////////////////////////////////////////////////////
-
-        class FileStream final : public IStream {
-            std::ofstream m_ofs;
-        public:
-            FileStream( std::string const& filename ) {
-                m_ofs.open( filename.c_str() );
-                CATCH_ENFORCE( !m_ofs.fail(), "Unable to open file: '" << filename << '\'' );
-                m_ofs << std::unitbuf;
-            }
-        public: // IStream
-            std::ostream& stream() override {
-                return m_ofs;
-            }
-        };
-
-        ///////////////////////////////////////////////////////////////////////////
-
-        class CoutStream final : public IStream {
-            std::ostream m_os;
-        public:
-            // Store the streambuf from cout up-front because
-            // cout may get redirected when running tests
-            CoutStream() : m_os( Catch::cout().rdbuf() ) {}
-
-        public: // IStream
-            std::ostream& stream() override { return m_os; }
-            bool isConsole() const override { return true; }
-        };
-
-        class CerrStream : public IStream {
-            std::ostream m_os;
-
-        public:
-            // Store the streambuf from cerr up-front because
-            // cout may get redirected when running tests
-            CerrStream(): m_os( Catch::cerr().rdbuf() ) {}
-
-        public: // IStream
-            std::ostream& stream() override { return m_os; }
-            bool isConsole() const override { return true; }
-        };
-
-        ///////////////////////////////////////////////////////////////////////////
-
-        class DebugOutStream final : public IStream {
-            Detail::unique_ptr<StreamBufImpl<OutputDebugWriter>> m_streamBuf;
-            std::ostream m_os;
-        public:
-            DebugOutStream()
-            :   m_streamBuf( Detail::make_unique<StreamBufImpl<OutputDebugWriter>>() ),
-                m_os( m_streamBuf.get() )
-            {}
-
-        public: // IStream
-            std::ostream& stream() override { return m_os; }
-        };
-
-    } // unnamed namespace
-} // namespace Detail
-
-    ///////////////////////////////////////////////////////////////////////////
-
-    auto makeStream( std::string const& filename ) -> Detail::unique_ptr<IStream> {
-        if ( filename.empty() || filename == "-" ) {
-            return Detail::make_unique<Detail::CoutStream>();
-        }
-        if( filename[0] == '%' ) {
-            if ( filename == "%debug" ) {
-                return Detail::make_unique<Detail::DebugOutStream>();
-            } else if ( filename == "%stderr" ) {
-                return Detail::make_unique<Detail::CerrStream>();
-            } else if ( filename == "%stdout" ) {
-                return Detail::make_unique<Detail::CoutStream>();
-            } else {
-                CATCH_ERROR( "Unrecognised stream: '" << filename << '\'' );
-            }
-        }
-        return Detail::make_unique<Detail::FileStream>( filename );
-    }
-
-}
-
-
-
-#include <cmath>
-#include <locale>
-
-namespace Catch {
-
-    namespace {
-        struct EscapeLUT {
-            bool escape[256] = {};
-            constexpr EscapeLUT() {
-                escape[static_cast<unsigned char>( '"' )] = true;
-                escape[static_cast<unsigned char>( '\\' )] = true;
-                escape[static_cast<unsigned char>( '\b' )] = true;
-                escape[static_cast<unsigned char>( '\f' )] = true;
-                escape[static_cast<unsigned char>( '\n' )] = true;
-                escape[static_cast<unsigned char>( '\r' )] = true;
-                escape[static_cast<unsigned char>( '\t' )] = true;
-            }
-        };
-        static constexpr EscapeLUT escapeLUT{};
-
-        static constexpr bool needsEscape( char c ) {
-            return escapeLUT.escape[static_cast<unsigned char>( c )];
-        }
-
-        static Catch::StringRef makeEscapeStringRef( char c ) {
-            if ( c == '"' ) {
-                return "\\\""_sr;
-            } else if ( c == '\\' ) {
-                return "\\\\"_sr;
-            } else if ( c == '\b' ) {
-                return "\\b"_sr;
-            } else if ( c == '\f' ) {
-                return "\\f"_sr;
-            } else if ( c == '\n' ) {
-                return "\\n"_sr;
-            } else if ( c == '\r' ) {
-                return "\\r"_sr;
-            } else if ( c == '\t' ) {
-                return "\\t"_sr;
-            }
-            Catch::Detail::Unreachable();
-        }
-    } // namespace
-
-    void JsonUtils::indent( std::ostream& os, std::uint64_t level ) {
-        for ( std::uint64_t i = 0; i < level; ++i ) {
-            os << "  ";
-        }
-    }
-    void JsonUtils::appendCommaNewline( std::ostream& os,
-                                        bool& should_comma,
-                                        std::uint64_t level ) {
-        if ( should_comma ) { os << ','; }
-        should_comma = true;
-        os << '\n';
-        indent( os, level );
-    }
-
-    JsonObjectWriter::JsonObjectWriter( std::ostream& os ):
-        JsonObjectWriter{ os, 0 } {}
-
-    JsonObjectWriter::JsonObjectWriter( std::ostream& os,
-                                        std::uint64_t indent_level ):
-        m_os{ os }, m_indent_level{ indent_level } {
-        m_os << '{';
-    }
-    JsonObjectWriter::JsonObjectWriter( JsonObjectWriter&& source ) noexcept:
-        m_os{ source.m_os },
-        m_indent_level{ source.m_indent_level },
-        m_should_comma{ source.m_should_comma },
-        m_active{ source.m_active } {
-        source.m_active = false;
-    }
-
-    JsonObjectWriter::~JsonObjectWriter() {
-        if ( !m_active ) { return; }
-
-        m_os << '\n';
-        JsonUtils::indent( m_os, m_indent_level );
-        m_os << '}';
-    }
-
-    JsonValueWriter JsonObjectWriter::write( StringRef key ) {
-        JsonUtils::appendCommaNewline(
-            m_os, m_should_comma, m_indent_level + 1 );
-
-        m_os << '"' << key << "\": ";
-        return JsonValueWriter{ m_os, m_indent_level + 1 };
-    }
-
-    JsonArrayWriter::JsonArrayWriter( std::ostream& os ):
-        JsonArrayWriter{ os, 0 } {}
-    JsonArrayWriter::JsonArrayWriter( std::ostream& os,
-                                      std::uint64_t indent_level ):
-        m_os{ os }, m_indent_level{ indent_level } {
-        m_os << '[';
-    }
-    JsonArrayWriter::JsonArrayWriter( JsonArrayWriter&& source ) noexcept:
-        m_os{ source.m_os },
-        m_indent_level{ source.m_indent_level },
-        m_should_comma{ source.m_should_comma },
-        m_active{ source.m_active } {
-        source.m_active = false;
-    }
-    JsonArrayWriter::~JsonArrayWriter() {
-        if ( !m_active ) { return; }
-
-        m_os << '\n';
-        JsonUtils::indent( m_os, m_indent_level );
-        m_os << ']';
-    }
-
-    JsonObjectWriter JsonArrayWriter::writeObject() {
-        JsonUtils::appendCommaNewline(
-            m_os, m_should_comma, m_indent_level + 1 );
-        return JsonObjectWriter{ m_os, m_indent_level + 1 };
-    }
-
-    JsonArrayWriter JsonArrayWriter::writeArray() {
-        JsonUtils::appendCommaNewline(
-            m_os, m_should_comma, m_indent_level + 1 );
-        return JsonArrayWriter{ m_os, m_indent_level + 1 };
-    }
-
-    JsonArrayWriter& JsonArrayWriter::write( bool value ) {
-        return writeImpl( value );
-    }
-
-    JsonValueWriter::JsonValueWriter( std::ostream& os ):
-        JsonValueWriter{ os, 0 } {}
-
-    JsonValueWriter::JsonValueWriter( std::ostream& os,
-                                      std::uint64_t indent_level ):
-        m_os{ os }, m_indent_level{ indent_level } {
-        // We use C locale so that writing of numerical values is locale-independent.
-        m_sstream.imbue( std::locale::classic() );
-    }
-
-    JsonObjectWriter JsonValueWriter::writeObject() && {
-        return JsonObjectWriter{ m_os, m_indent_level };
-    }
-
-    JsonArrayWriter JsonValueWriter::writeArray() && {
-        return JsonArrayWriter{ m_os, m_indent_level };
-    }
-
-    void JsonValueWriter::write( Catch::StringRef value ) && {
-        writeImpl( value, true );
-    }
-
-    void JsonValueWriter::write( float value ) && {
-        writeFloatingPoint( value );
-    }
-
-    void JsonValueWriter::write( double value ) && {
-        writeFloatingPoint( value );
-    }
-
-    void JsonValueWriter::write( bool value ) && {
-        writeImpl( value ? "true"_sr : "false"_sr, false );
-    }
-
-    template <typename T>
-    void JsonValueWriter::writeFloatingPoint( T value ) {
-        if ( Catch::isnan( value ) ) {
-            writeImpl( "NaN"_sr, false );
-        } else if ( std::isinf( value ) ) {
-            writeImpl( value < 0 ? "-Infinity"_sr : "Infinity"_sr, false );
-        } else {
-            m_sstream << value;
-            writeImpl( m_sstream.str(), false );
-        }
-    }
-
-    void JsonValueWriter::writeImpl( Catch::StringRef value, bool quote ) {
-        // Escaping only makes sense for actual strings, which are passed
-        // with `quote == true`. Non-quoted values are things like bools
-        // and numbers, which cannot create inputs that need escaping.
-        if ( !quote ) {
-            m_os << value;
-        } else {
-            m_os << '"';
-            size_t current_start = 0;
-            for ( size_t i = 0; i < value.size(); ++i ) {
-                if ( needsEscape( value[i] ) ) {
-                    if ( current_start < i ) {
-                        m_os
-                            << value.substr( current_start, i - current_start );
-                    }
-                    m_os << makeEscapeStringRef( value[i] );
-                    current_start = i + 1;
-                }
-            }
-            if ( current_start < value.size() ) {
-                m_os << value.substr( current_start,
-                                      value.size() - current_start );
-            }
-            m_os << '"';
-        }
-    }
-
-} // namespace Catch
-
-
-
-
 namespace Catch {
 
     auto operator << (std::ostream& os, LazyExpression const& lazyExpr) -> std::ostream& {
@@ -5135,111 +5124,6 @@ namespace Catch {
 Catch::LeakDetector::~LeakDetector() {
     Catch::cleanUp();
 }
-
-
-
-
-namespace Catch {
-    namespace {
-
-        void listTests(IEventListener& reporter, IConfig const& config) {
-            auto const& testSpec = config.testSpec();
-            auto matchedTestCases = filterTests(getAllTestCasesSorted(config), testSpec, config);
-            reporter.listTests(matchedTestCases);
-        }
-
-        void listTags(IEventListener& reporter, IConfig const& config) {
-            auto const& testSpec = config.testSpec();
-            std::vector<TestCaseHandle> matchedTestCases = filterTests(getAllTestCasesSorted(config), testSpec, config);
-
-            std::map<StringRef, TagInfo, Detail::CaseInsensitiveLess> tagCounts;
-            for (auto const& testCase : matchedTestCases) {
-                for (auto const& tagName : testCase.getTestCaseInfo().tags) {
-                    auto it = tagCounts.find(tagName.original);
-                    if (it == tagCounts.end())
-                        it = tagCounts.insert(std::make_pair(tagName.original, TagInfo())).first;
-                    it->second.add(tagName.original);
-                }
-            }
-
-            std::vector<TagInfo> infos; infos.reserve(tagCounts.size());
-            for (auto& tagc : tagCounts) {
-                infos.push_back(CATCH_MOVE(tagc.second));
-            }
-
-            reporter.listTags(infos);
-        }
-
-        void listReporters(IEventListener& reporter) {
-            std::vector<ReporterDescription> descriptions;
-
-            auto const& factories = getRegistryHub().getReporterRegistry().getFactories();
-            descriptions.reserve(factories.size());
-            for (auto const& fac : factories) {
-                descriptions.push_back({ fac.first, fac.second->getDescription() });
-            }
-
-            reporter.listReporters(descriptions);
-        }
-
-        void listListeners(IEventListener& reporter) {
-            std::vector<ListenerDescription> descriptions;
-
-            auto const& factories =
-                getRegistryHub().getReporterRegistry().getListeners();
-            descriptions.reserve( factories.size() );
-            for ( auto const& fac : factories ) {
-                descriptions.push_back( { fac->getName(), fac->getDescription() } );
-            }
-
-            reporter.listListeners( descriptions );
-        }
-
-    } // end anonymous namespace
-
-    void TagInfo::add( StringRef spelling ) {
-        ++count;
-        spellings.insert( spelling );
-    }
-
-    std::string TagInfo::all() const {
-        // 2 per tag for brackets '[' and ']'
-        size_t size =  spellings.size() * 2;
-        for (auto const& spelling : spellings) {
-            size += spelling.size();
-        }
-
-        std::string out; out.reserve(size);
-        for (auto const& spelling : spellings) {
-            out += '[';
-            out += spelling;
-            out += ']';
-        }
-        return out;
-    }
-
-    bool list( IEventListener& reporter, Config const& config ) {
-        bool listed = false;
-        if (config.listTests()) {
-            listed = true;
-            listTests(reporter, config);
-        }
-        if (config.listTags()) {
-            listed = true;
-            listTags(reporter, config);
-        }
-        if (config.listReporters()) {
-            listed = true;
-            listReporters(reporter);
-        }
-        if ( config.listListeners() ) {
-            listed = true;
-            listListeners( reporter );
-        }
-        return listed;
-    }
-
-} // end namespace Catch
 
 
 
@@ -5804,258 +5688,22 @@ namespace Catch {
 namespace Catch {
     struct ReporterRegistry::ReporterRegistryImpl {
         std::vector<Detail::unique_ptr<EventListenerFactory>> listeners;
-        std::map<std::string, IReporterFactoryPtr, Detail::CaseInsensitiveLess>
-            factories;
     };
 
     ReporterRegistry::ReporterRegistry():
-        m_impl( Detail::make_unique<ReporterRegistryImpl>() ) {
-        // Because it is impossible to move out of initializer list,
-        // we have to add the elements manually
-        m_impl->factories["Automake"] =
-            Detail::make_unique<ReporterFactory<AutomakeReporter>>();
-        m_impl->factories["compact"] =
-            Detail::make_unique<ReporterFactory<CompactReporter>>();
-        m_impl->factories["console"] =
-            Detail::make_unique<ReporterFactory<ConsoleReporter>>();
-        m_impl->factories["JUnit"] =
-            Detail::make_unique<ReporterFactory<JunitReporter>>();
-        m_impl->factories["SonarQube"] =
-            Detail::make_unique<ReporterFactory<SonarQubeReporter>>();
-        m_impl->factories["TAP"] =
-            Detail::make_unique<ReporterFactory<TAPReporter>>();
-        m_impl->factories["TeamCity"] =
-            Detail::make_unique<ReporterFactory<TeamCityReporter>>();
-        m_impl->factories["XML"] =
-            Detail::make_unique<ReporterFactory<XmlReporter>>();
-        m_impl->factories["JSON"] =
-            Detail::make_unique<ReporterFactory<JsonReporter>>();
-    }
+        m_impl( Detail::make_unique<ReporterRegistryImpl>() ) {}
 
     ReporterRegistry::~ReporterRegistry() = default;
 
-    IEventListenerPtr
-    ReporterRegistry::create( std::string const& name,
-                              ReporterConfig&& config ) const {
-        auto it = m_impl->factories.find( name );
-        if ( it == m_impl->factories.end() ) return nullptr;
-        return it->second->create( CATCH_MOVE( config ) );
-    }
-
-    void ReporterRegistry::registerReporter( std::string const& name,
-                                             IReporterFactoryPtr factory ) {
-        CATCH_ENFORCE( name.find( "::" ) == name.npos,
-                       "'::' is not allowed in reporter name: '" + name +
-                           '\'' );
-        auto ret = m_impl->factories.emplace( name, CATCH_MOVE( factory ) );
-        CATCH_ENFORCE( ret.second,
-                       "reporter using '" + name +
-                           "' as name was already registered" );
-    }
     void ReporterRegistry::registerListener(
         Detail::unique_ptr<EventListenerFactory> factory ) {
         m_impl->listeners.push_back( CATCH_MOVE( factory ) );
-    }
-
-    std::map<std::string,
-             IReporterFactoryPtr,
-             Detail::CaseInsensitiveLess> const&
-    ReporterRegistry::getFactories() const {
-        return m_impl->factories;
     }
 
     std::vector<Detail::unique_ptr<EventListenerFactory>> const&
     ReporterRegistry::getListeners() const {
         return m_impl->listeners;
     }
-} // namespace Catch
-
-
-
-
-
-#include <algorithm>
-
-namespace Catch {
-
-    namespace {
-        struct kvPair {
-            StringRef key, value;
-        };
-
-        kvPair splitKVPair(StringRef kvString) {
-            auto splitPos = static_cast<size_t>(
-                std::find( kvString.begin(), kvString.end(), '=' ) -
-                kvString.begin() );
-
-            return { kvString.substr( 0, splitPos ),
-                     kvString.substr( splitPos + 1, kvString.size() ) };
-        }
-    }
-
-    namespace Detail {
-        std::vector<std::string> splitReporterSpec( StringRef reporterSpec ) {
-            static constexpr auto separator = "::";
-            static constexpr size_t separatorSize = 2;
-
-            size_t separatorPos = 0;
-            auto findNextSeparator = [&reporterSpec]( size_t startPos ) {
-                static_assert(
-                    separatorSize == 2,
-                    "The code below currently assumes 2 char separator" );
-
-                auto currentPos = startPos;
-                do {
-                    while ( currentPos < reporterSpec.size() &&
-                            reporterSpec[currentPos] != separator[0] ) {
-                        ++currentPos;
-                    }
-                    if ( currentPos + 1 < reporterSpec.size() &&
-                         reporterSpec[currentPos + 1] == separator[1] ) {
-                        return currentPos;
-                    }
-                    ++currentPos;
-                } while ( currentPos < reporterSpec.size() );
-
-                return static_cast<size_t>( -1 );
-            };
-
-            std::vector<std::string> parts;
-
-            while ( separatorPos < reporterSpec.size() ) {
-                const auto nextSeparator = findNextSeparator( separatorPos );
-                parts.push_back( static_cast<std::string>( reporterSpec.substr(
-                    separatorPos, nextSeparator - separatorPos ) ) );
-
-                if ( nextSeparator == static_cast<size_t>( -1 ) ) {
-                    break;
-                }
-                separatorPos = nextSeparator + separatorSize;
-            }
-
-            // Handle a separator at the end.
-            // This is not a valid spec, but we want to do validation in a
-            // centralized place
-            if ( separatorPos == reporterSpec.size() ) {
-                parts.emplace_back();
-            }
-
-            return parts;
-        }
-
-        Optional<ColourMode> stringToColourMode( StringRef colourMode ) {
-            if ( colourMode == "default" ) {
-                return ColourMode::PlatformDefault;
-            } else if ( colourMode == "ansi" ) {
-                return ColourMode::ANSI;
-            } else if ( colourMode == "win32" ) {
-                return ColourMode::Win32;
-            } else if ( colourMode == "none" ) {
-                return ColourMode::None;
-            } else {
-                return {};
-            }
-        }
-
-        Optional<Verbosity> stringToVerbosity( StringRef verbosity ) {
-            if (verbosity == "quiet") { return Verbosity::Quiet;
-            } else if ( verbosity == "normal" ) {
-                return Verbosity::Normal;
-            } else if ( verbosity == "high" ) {
-                return Verbosity::High;
-            } else {
-                return {};
-            }
-        }
-
-    } // namespace Detail
-
-
-    bool operator==( ReporterSpec const& lhs, ReporterSpec const& rhs ) {
-        return lhs.m_name == rhs.m_name &&
-               lhs.m_outputFileName == rhs.m_outputFileName &&
-               lhs.m_colourMode == rhs.m_colourMode &&
-               lhs.m_verbosity == rhs.m_verbosity &&
-               lhs.m_customOptions == rhs.m_customOptions;
-    }
-
-    Optional<ReporterSpec> parseReporterSpec( StringRef reporterSpec ) {
-        auto parts = Detail::splitReporterSpec( reporterSpec );
-
-        assert( parts.size() > 0 && "Split should never return empty vector" );
-
-        std::map<std::string, std::string> kvPairs;
-        Optional<std::string> outputFileName;
-        Optional<ColourMode> colourMode;
-        Optional<Verbosity> verbosity;
-
-        // First part is always reporter name, so we skip it
-        for ( size_t i = 1; i < parts.size(); ++i ) {
-            auto kv = splitKVPair( parts[i] );
-            auto key = kv.key, value = kv.value;
-
-            if ( key.empty() || value.empty() ) { // NOLINT(bugprone-branch-clone)
-                return {};
-            } else if ( key[0] == 'X' ) {
-                // This is a reporter-specific option, we don't check these
-                // apart from basic sanity checks
-                if ( key.size() == 1 ) {
-                    return {};
-                }
-
-                auto ret = kvPairs.emplace( std::string(kv.key), std::string(kv.value) );
-                if ( !ret.second ) {
-                    // Duplicated key. We might want to handle this differently,
-                    // e.g. by overwriting the existing value?
-                    return {};
-                }
-            } else if ( key == "out" ) {
-                // Duplicated key
-                if ( outputFileName ) {
-                    return {};
-                }
-                outputFileName = static_cast<std::string>( value );
-            } else if ( key == "colour-mode" ) {
-                // Duplicated key
-                if ( colourMode ) {
-                    return {};
-                }
-                colourMode = Detail::stringToColourMode( value );
-                // Parsing failed
-                if ( !colourMode ) {
-                    return {};
-                }
-            } else if ( key == "verbosity" ) {
-                // Duplicated key
-                if ( verbosity ) { return {}; }
-                verbosity = Detail::stringToVerbosity( value );
-                // Parsing failed
-                if ( !verbosity ) { return {}; }
-            } else {
-                // Unrecognized option
-                return {};
-            }
-        }
-
-        return ReporterSpec{ CATCH_MOVE( parts[0] ),
-                             CATCH_MOVE( outputFileName ),
-                             CATCH_MOVE( colourMode ),
-                             CATCH_MOVE( verbosity),
-                             CATCH_MOVE( kvPairs ) };
-    }
-
-ReporterSpec::ReporterSpec(
-        std::string name,
-        Optional<std::string> outputFileName,
-        Optional<ColourMode> colourMode,
-        Optional<Verbosity> verbosity,
-        std::map<std::string, std::string> customOptions ):
-        m_name( CATCH_MOVE( name ) ),
-        m_outputFileName( CATCH_MOVE( outputFileName ) ),
-        m_colourMode( CATCH_MOVE( colourMode ) ),
-        m_verbosity( CATCH_MOVE( verbosity ) ),
-        m_customOptions( CATCH_MOVE( customOptions ) ) {}
-
 } // namespace Catch
 
 
@@ -6846,6 +6494,14 @@ namespace Catch {
         return m_atomicAssertionCount.failed >= m_abortAfterXFailedAssertions;
     }
 
+    std::string RunContext::capturedOutput() {
+        if ( !m_outputRedirect->isActive() ) {
+            return {};
+        }
+        auto _ = scopedDeactivate( *m_outputRedirect );
+        return m_outputRedirect->getStdout() + m_outputRedirect->getStderr();
+    }
+
     void RunContext::runCurrentTest() {
         auto const& testCaseInfo = m_activeTestCase->getTestCaseInfo();
         SectionInfo testCaseSection(testCaseInfo.lineInfo, testCaseInfo.name);
@@ -7573,7 +7229,8 @@ namespace Catch {
                 filtered.push_back(testCase);
             }
         }
-        return createShard(CATCH_MOVE(filtered), config.shardCount(), config.shardIndex());
+        // The Catch3 runner shards the run itself.
+        return filtered;
     }
     std::vector<TestCaseHandle> const& getAllTestCasesSorted( IConfig const& config ) {
         return getRegistryHub().getTestCaseRegistry().getAllTestsSorted( config );
@@ -8211,430 +7868,6 @@ namespace Catch {
 
 
 
-#include <algorithm>
-#include <cstring>
-#include <ostream>
-
-namespace {
-    bool isWhitespace( char c ) {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
-    }
-
-    bool isBreakableBefore( char c ) {
-        static const char chars[] = "[({<|";
-        return std::memchr( chars, c, sizeof( chars ) - 1 ) != nullptr;
-    }
-
-    bool isBreakableAfter( char c ) {
-        static const char chars[] = "])}>.,:;*+-=&/\\";
-        return std::memchr( chars, c, sizeof( chars ) - 1 ) != nullptr;
-    }
-
-    bool isUtf8ContinuationByte( char c ) {
-        return ( static_cast<unsigned char>( c ) & 0xC0 ) == 0x80;
-    }
-
-} // namespace
-
-namespace Catch {
-    namespace TextFlow {
-        void AnsiSkippingString::preprocessString() {
-            // If there are no potential escapes, we can use fast path
-            if ( m_string.find( '\033' ) == std::string::npos ) {
-                size_t size = 0;
-                for ( const char c : m_string ) {
-                    size += !isUtf8ContinuationByte( c );
-                }
-                m_size = size;
-                return;
-            }
-            for ( auto it = m_string.begin(); it != m_string.end(); ) {
-                // try to read through an ansi sequence
-                while ( it != m_string.end() && *it == '\033' &&
-                        it + 1 != m_string.end() && *( it + 1 ) == '[' ) {
-                    auto cursor = it + 2;
-                    while ( cursor != m_string.end() &&
-                            ( isdigit( *cursor ) || *cursor == ';' ) ) {
-                        ++cursor;
-                    }
-                    if ( cursor == m_string.end() || *cursor != 'm' ) {
-                        break;
-                    }
-                    // record the escape sequence's byte range
-                    m_escapes.push_back(
-                        { std::distance( m_string.begin(), it ),
-                          std::distance( m_string.begin(), cursor + 1 ) } );
-                    // if we've read an ansi sequence, set the iterator and
-                    // return to the top of the loop
-                    it = cursor + 1;
-                }
-                if ( it != m_string.end() ) {
-                    ++m_size;
-                    ++it;
-                    // Skip UTF-8 continuation bytes
-                    while ( it != m_string.end() &&
-                            isUtf8ContinuationByte( *it ) ) {
-                        ++it;
-                    }
-                }
-            }
-        }
-
-        AnsiSkippingString::AnsiSkippingString( std::string const& text ):
-            m_string( text ) {
-            preprocessString();
-        }
-
-        AnsiSkippingString::AnsiSkippingString( std::string&& text ):
-            m_string( CATCH_MOVE( text ) ) {
-            preprocessString();
-        }
-
-        AnsiSkippingString::const_iterator AnsiSkippingString::begin() const {
-            return const_iterator( *this );
-        }
-
-        AnsiSkippingString::const_iterator AnsiSkippingString::end() const {
-            return const_iterator( *this, const_iterator::EndTag{} );
-        }
-
-        std::string AnsiSkippingString::substring( const_iterator first,
-                                                   const_iterator last ) const {
-            std::string ret;
-            appendSubstringTo( ret, first, last );
-            return ret;
-        }
-
-        void
-        AnsiSkippingString::appendSubstringTo( std::string& out,
-                                               const_iterator first,
-                                               const_iterator last ) const {
-            // There's one caveat here to an otherwise simple substring: when
-            // making a begin iterator we might have skipped ansi sequences at
-            // the start. If `first` here is a begin iterator, skipped over
-            // initial ansi sequences, we'll use the true beginning of the
-            // string.
-            if ( hasEscapes() && first == begin() ) {
-                out.append( m_string.begin(), last.m_it );
-            } else {
-                out.append( first.m_it, last.m_it );
-            }
-        }
-
-        void AnsiSkippingString::const_iterator::jumpForwardOverEscapes() {
-            // Escapes can only start with '\033'
-            if ( m_it == m_string->m_string.end() || *m_it != '\033' ) {
-                return;
-            }
-            // If we are at '\033', check if we are at an actual escape
-            auto current_pos = std::distance( m_string->m_string.begin(), m_it );
-
-            auto const& escapes = m_string->m_escapes;
-            auto candidate =
-                std::lower_bound( escapes.begin(),
-                                  escapes.end(),
-                                  current_pos,
-                                  []( AnsiSkippingString::EscapeRange const& r,
-                                      std::ptrdiff_t o ) { return r.start < o; } );
-            // Escapes can be consecutive, we need to jump over all of them
-            while ( candidate != escapes.end() && candidate->start == current_pos ) {
-                current_pos = candidate->end;
-                ++candidate;
-            }
-            m_it = m_string->m_string.begin() + current_pos;
-        }
-
-        void AnsiSkippingString::const_iterator::jumpBackOverEscapes() {
-            auto strBegin = m_string->m_string.begin();
-            // Escapes only end with 'm'
-            while ( *m_it == 'm' ) {
-                // If we are at 'm', check if we are at an actual escape
-                const auto current_pos = std::distance( strBegin, m_it );
-
-                auto const& escapes = m_string->m_escapes;
-                auto range = std::lower_bound(
-                    escapes.begin(),
-                    escapes.end(),
-                    current_pos + 1, // to half-open range
-                    []( AnsiSkippingString::EscapeRange const& r,
-                        std::ptrdiff_t o ) { return r.end < o; } );
-                if ( range == escapes.end() || range->end != current_pos + 1 ) {
-                    break;
-                }
-                assert( range->start != 0 &&
-                        "Trying to go back with begin iterator" );
-                m_it = strBegin + range->start - 1;
-            }
-        }
-
-
-        void AnsiSkippingString::const_iterator::advance() {
-            auto strEnd = m_string->m_string.end();
-            assert( m_it != strEnd );
-            m_it++;
-            // Skip UTF-8 continuation bytes
-            while ( m_it != strEnd &&
-                    isUtf8ContinuationByte( *m_it ) ) {
-                m_it++;
-            }
-            if ( m_string->hasEscapes() ) { jumpForwardOverEscapes(); }
-        }
-
-        void AnsiSkippingString::const_iterator::unadvance() {
-            auto strBegin = m_string->m_string.begin();
-            assert( m_it != strBegin );
-            m_it--;
-            if ( m_string->hasEscapes() ) { jumpBackOverEscapes(); }
-            // Skip back over UTF-8 continuation bytes to the leading byte
-            while ( m_it != strBegin &&
-                    isUtf8ContinuationByte( *m_it ) ) {
-                m_it--;
-            }
-        }
-
-        static bool isBoundary( AnsiSkippingString const& line,
-                                AnsiSkippingString::const_iterator it ) {
-            return it == line.end() ||
-                   ( isWhitespace( *it ) &&
-                     !isWhitespace( *it.oneBefore() ) ) ||
-                   isBreakableBefore( *it ) ||
-                   isBreakableAfter( *it.oneBefore() );
-        }
-
-        void Column::const_iterator::calcLength() {
-            m_addHyphen = false;
-            m_parsedTo = m_lineStart;
-            AnsiSkippingString const& current_line = m_column.m_string;
-
-            if ( m_parsedTo == current_line.end() ) {
-                m_lineEnd = m_parsedTo;
-                return;
-            }
-
-            assert( m_lineStart != current_line.end() );
-            if ( *m_lineStart == '\n' ) { ++m_parsedTo; }
-
-            const auto maxLineLength = m_column.m_width - indentSize();
-            std::size_t lineLength = 0;
-            while ( m_parsedTo != current_line.end() &&
-                    lineLength < maxLineLength && *m_parsedTo != '\n' ) {
-                ++m_parsedTo;
-                ++lineLength;
-            }
-
-            // If we encountered a newline before the column is filled,
-            // then we linebreak at the newline and consider this line
-            // finished.
-            if ( lineLength < maxLineLength ) {
-                m_lineEnd = m_parsedTo;
-            } else {
-                // Look for a natural linebreak boundary in the column
-                // (We look from the end, so that the first found boundary is
-                // the right one)
-                m_lineEnd = m_parsedTo;
-                while ( lineLength > 0 &&
-                        !isBoundary( current_line, m_lineEnd ) ) {
-                    --lineLength;
-                    --m_lineEnd;
-                }
-                while ( lineLength > 0 &&
-                        isWhitespace( *m_lineEnd.oneBefore() ) ) {
-                    --lineLength;
-                    --m_lineEnd;
-                }
-
-                // If we found one, then that is where we linebreak, otherwise
-                // we have to split text with a hyphen
-                if ( lineLength == 0 ) {
-                    m_addHyphen = true;
-                    m_lineEnd = m_parsedTo.oneBefore();
-                }
-            }
-        }
-
-        size_t Column::const_iterator::indentSize() const {
-            auto initial = m_lineStart == m_column.m_string.begin()
-                               ? m_column.m_initialIndent
-                               : std::string::npos;
-            return initial == std::string::npos ? m_column.m_indent : initial;
-        }
-
-        std::string Column::const_iterator::addIndentAndSuffix(
-            AnsiSkippingString::const_iterator start,
-            AnsiSkippingString::const_iterator end ) const {
-            std::string ret;
-            const auto desired_indent = indentSize();
-            ret.append( desired_indent, ' ' );
-            m_column.m_string.appendSubstringTo( ret, start, end );
-            if ( m_addHyphen ) { ret.push_back( '-' ); }
-
-            return ret;
-        }
-
-        Column::const_iterator::const_iterator( Column const& column ):
-            m_column( column ),
-            m_lineStart( column.m_string.begin() ),
-            m_lineEnd( column.m_string.begin() ),
-            m_parsedTo( column.m_string.begin() ) {
-            assert( m_column.m_width > m_column.m_indent );
-            assert( m_column.m_initialIndent == std::string::npos ||
-                    m_column.m_width > m_column.m_initialIndent );
-            calcLength();
-            if ( m_lineStart == m_lineEnd ) {
-                m_lineStart = m_column.m_string.end();
-            }
-        }
-
-        std::string Column::const_iterator::operator*() const {
-            assert( m_lineStart <= m_parsedTo );
-            return addIndentAndSuffix( m_lineStart, m_lineEnd );
-        }
-
-        Column::const_iterator& Column::const_iterator::operator++() {
-            m_lineStart = m_lineEnd;
-            AnsiSkippingString const& current_line = m_column.m_string;
-            if ( m_lineStart != current_line.end() && *m_lineStart == '\n' ) {
-                m_lineStart++;
-            } else {
-                while ( m_lineStart != current_line.end() &&
-                        isWhitespace( *m_lineStart ) ) {
-                    ++m_lineStart;
-                }
-            }
-
-            if ( m_lineStart != current_line.end() ) { calcLength(); }
-            return *this;
-        }
-
-        Column::const_iterator Column::const_iterator::operator++( int ) {
-            const_iterator prev( *this );
-            operator++();
-            return prev;
-        }
-
-        std::ostream& operator<<( std::ostream& os, Column const& col ) {
-            bool first = true;
-            for ( auto line : col ) {
-                if ( first ) {
-                    first = false;
-                } else {
-                    os << '\n';
-                }
-                os << line;
-            }
-            return os;
-        }
-
-        Column Spacer( size_t spaceWidth ) {
-            Column ret{ "" };
-            ret.width( spaceWidth );
-            return ret;
-        }
-
-        Columns::iterator::iterator( Columns const& columns, EndTag ):
-            m_columns( columns.m_columns ), m_activeIterators( 0 ) {
-
-            m_iterators.reserve( m_columns.size() );
-            for ( auto const& col : m_columns ) {
-                m_iterators.push_back( col.end() );
-            }
-        }
-
-        Columns::iterator::iterator( Columns const& columns ):
-            m_columns( columns.m_columns ),
-            m_activeIterators( m_columns.size() ) {
-
-            m_iterators.reserve( m_columns.size() );
-            for ( auto const& col : m_columns ) {
-                m_iterators.push_back( col.begin() );
-            }
-        }
-
-        std::string Columns::iterator::operator*() const {
-            std::string row, padding;
-
-            for ( size_t i = 0; i < m_columns.size(); ++i ) {
-                const auto width = m_columns[i].width();
-                if ( m_iterators[i] != m_columns[i].end() ) {
-                    std::string col = *m_iterators[i];
-                    row += padding;
-                    row += col;
-
-                    padding.clear();
-                    if ( col.size() < width ) {
-                        padding.append( width - col.size(), ' ' );
-                    }
-                } else {
-                    padding.append( width, ' ' );
-                }
-            }
-            return row;
-        }
-
-        Columns::iterator& Columns::iterator::operator++() {
-            for ( size_t i = 0; i < m_columns.size(); ++i ) {
-                if ( m_iterators[i] != m_columns[i].end() ) {
-                    ++m_iterators[i];
-                }
-            }
-            return *this;
-        }
-
-        Columns::iterator Columns::iterator::operator++( int ) {
-            iterator prev( *this );
-            operator++();
-            return prev;
-        }
-
-        std::ostream& operator<<( std::ostream& os, Columns const& cols ) {
-            bool first = true;
-            for ( auto line : cols ) {
-                if ( first ) {
-                    first = false;
-                } else {
-                    os << '\n';
-                }
-                os << line;
-            }
-            return os;
-        }
-
-        Columns operator+( Column const& lhs, Column const& rhs ) {
-            Columns cols;
-            cols += lhs;
-            cols += rhs;
-            return cols;
-        }
-        Columns operator+( Column&& lhs, Column&& rhs ) {
-            Columns cols;
-            cols += CATCH_MOVE( lhs );
-            cols += CATCH_MOVE( rhs );
-            return cols;
-        }
-
-        Columns& operator+=( Columns& lhs, Column const& rhs ) {
-            lhs.m_columns.push_back( rhs );
-            return lhs;
-        }
-        Columns& operator+=( Columns& lhs, Column&& rhs ) {
-            lhs.m_columns.push_back( CATCH_MOVE( rhs ) );
-            return lhs;
-        }
-        Columns operator+( Columns const& lhs, Column const& rhs ) {
-            auto combined( lhs );
-            combined += rhs;
-            return combined;
-        }
-        Columns operator+( Columns&& lhs, Column&& rhs ) {
-            lhs += CATCH_MOVE( rhs );
-            return CATCH_MOVE( lhs );
-        }
-
-    } // namespace TextFlow
-} // namespace Catch
-
-
-
 
 #include <exception>
 
@@ -8703,343 +7936,6 @@ namespace Catch {
         }
         default:
             CATCH_INTERNAL_ERROR( "Unknown enum" );
-        }
-    }
-}
-
-
-// Note: swapping these two includes around causes MSVC to error out
-//       while in /permissive- mode. No, I don't know why.
-//       Tested on VS 2019, 18.{3, 4}.x
-
-#include <cstdint>
-#include <iomanip>
-#include <type_traits>
-
-namespace Catch {
-
-namespace {
-
-    size_t trailingBytes(unsigned char c) {
-        if ((c & 0xE0) == 0xC0) {
-            return 2;
-        }
-        if ((c & 0xF0) == 0xE0) {
-            return 3;
-        }
-        if ((c & 0xF8) == 0xF0) {
-            return 4;
-        }
-        CATCH_INTERNAL_ERROR("Invalid multibyte utf-8 start byte encountered");
-    }
-
-    uint32_t headerValue(unsigned char c) {
-        if ((c & 0xE0) == 0xC0) {
-            return c & 0x1F;
-        }
-        if ((c & 0xF0) == 0xE0) {
-            return c & 0x0F;
-        }
-        if ((c & 0xF8) == 0xF0) {
-            return c & 0x07;
-        }
-        CATCH_INTERNAL_ERROR("Invalid multibyte utf-8 start byte encountered");
-    }
-
-    void hexEscapeChar(std::ostream& os, unsigned char c) {
-        std::ios_base::fmtflags f(os.flags());
-        os << "\\x"_sr
-            << std::uppercase << std::hex << std::setfill('0') << std::setw(2)
-            << static_cast<int>(c);
-        os.flags(f);
-    }
-
-    constexpr bool shouldNewline(XmlFormatting fmt) {
-        return !!(static_cast<std::underlying_type_t<XmlFormatting>>(fmt & XmlFormatting::Newline));
-    }
-
-    constexpr bool shouldIndent(XmlFormatting fmt) {
-        return !!(static_cast<std::underlying_type_t<XmlFormatting>>(fmt & XmlFormatting::Indent));
-    }
-
-} // anonymous namespace
-
-    void XmlEncode::encodeTo( std::ostream& os ) const {
-        // Apostrophe escaping not necessary if we always use " to write attributes
-        // (see: http://www.w3.org/TR/xml/#syntax)
-        size_t last_start = 0;
-        auto write_to = [&]( size_t idx ) {
-            if ( last_start < idx ) {
-                os << m_str.substr( last_start, idx - last_start );
-            }
-            last_start = idx + 1;
-        };
-
-        for ( std::size_t idx = 0; idx < m_str.size(); ++idx ) {
-            unsigned char c = static_cast<unsigned char>( m_str[idx] );
-            switch ( c ) {
-            case '<':
-                write_to( idx );
-                os << "&lt;"_sr;
-                break;
-            case '&':
-                write_to( idx );
-                os << "&amp;"_sr;
-                break;
-
-            case '>':
-                // See: http://www.w3.org/TR/xml/#syntax
-                if ( idx > 2 && m_str[idx - 1] == ']' && m_str[idx - 2] == ']' ) {
-                    write_to( idx );
-                    os << "&gt;"_sr;
-                }
-                break;
-
-            case '\"':
-                if ( m_forWhat == ForAttributes ) {
-                    write_to( idx );
-                    os << "&quot;"_sr;
-                }
-                break;
-
-            default:
-                // Check for control characters and invalid utf-8
-
-                // Escape control characters in standard ascii
-                // see
-                // http://stackoverflow.com/questions/404107/why-are-control-characters-illegal-in-xml-1-0
-                if ( c < 0x09 || ( c > 0x0D && c < 0x20 ) || c == 0x7F ) {
-                    write_to( idx );
-                    hexEscapeChar( os, c );
-                    break;
-                }
-
-                // Plain ASCII: Write it to stream
-                if ( c < 0x7F ) {
-                    break;
-                }
-
-                // UTF-8 territory
-                // Check if the encoding is valid and if it is not, hex escape
-                // bytes. Important: We do not check the exact decoded values for
-                // validity, only the encoding format First check that this bytes is
-                // a valid lead byte: This means that it is not encoded as 1111 1XXX
-                // Or as 10XX XXXX
-                if ( c < 0xC0 || c >= 0xF8 ) {
-                    write_to( idx );
-                    hexEscapeChar( os, c );
-                    break;
-                }
-
-                auto encBytes = trailingBytes( c );
-                // Are there enough bytes left to avoid accessing out-of-bounds
-                // memory?
-                if ( idx + encBytes - 1 >= m_str.size() ) {
-                    write_to( idx );
-                    hexEscapeChar( os, c );
-                    break;
-                }
-                // The header is valid, check data
-                // The next encBytes bytes must together be a valid utf-8
-                // This means: bitpattern 10XX XXXX and the extracted value is sane
-                // (ish)
-                bool valid = true;
-                uint32_t value = headerValue( c );
-                for ( std::size_t n = 1; n < encBytes; ++n ) {
-                    unsigned char nc = static_cast<unsigned char>( m_str[idx + n] );
-                    valid &= ( ( nc & 0xC0 ) == 0x80 );
-                    value = ( value << 6 ) | ( nc & 0x3F );
-                }
-
-                if (
-                    // Wrong bit pattern of following bytes
-                    ( !valid ) ||
-                    // Overlong encodings
-                    ( value < 0x80 ) ||
-                    ( 0x80 <= value && value < 0x800 && encBytes > 2 ) ||
-                    ( 0x800 < value && value < 0x10000 && encBytes > 3 ) ||
-                    // Encoded value out of range
-                    ( value >= 0x110000 ) ) {
-                    write_to( idx );
-                    hexEscapeChar( os, c );
-                    break;
-                }
-
-                // If we got here, this is in fact a valid(ish) utf-8 sequence
-                idx += encBytes - 1;
-                break;
-            }
-        }
-
-        write_to( m_str.size() );
-    }
-
-    std::ostream& operator << ( std::ostream& os, XmlEncode const& xmlEncode ) {
-        xmlEncode.encodeTo( os );
-        return os;
-    }
-
-    XmlWriter::ScopedElement::ScopedElement( XmlWriter* writer, XmlFormatting fmt )
-    :   m_writer( writer ),
-        m_fmt(fmt)
-    {}
-
-    XmlWriter::ScopedElement::ScopedElement( ScopedElement&& other ) noexcept
-    :   m_writer( other.m_writer ),
-        m_fmt(other.m_fmt)
-    {
-        other.m_writer = nullptr;
-        other.m_fmt = XmlFormatting::None;
-    }
-    XmlWriter::ScopedElement& XmlWriter::ScopedElement::operator=( ScopedElement&& other ) noexcept {
-        if ( m_writer ) {
-            m_writer->endElement();
-        }
-        m_writer = other.m_writer;
-        other.m_writer = nullptr;
-        m_fmt = other.m_fmt;
-        other.m_fmt = XmlFormatting::None;
-        return *this;
-    }
-
-
-    XmlWriter::ScopedElement::~ScopedElement() {
-        if (m_writer) {
-            m_writer->endElement(m_fmt);
-        }
-    }
-
-    XmlWriter::ScopedElement&
-    XmlWriter::ScopedElement::writeText( StringRef text, XmlFormatting fmt ) {
-        m_writer->writeText( text, fmt );
-        return *this;
-    }
-
-    XmlWriter::ScopedElement&
-    XmlWriter::ScopedElement::writeAttribute( StringRef name,
-                                              StringRef attribute ) {
-        m_writer->writeAttribute( name, attribute );
-        return *this;
-    }
-
-
-    XmlWriter::XmlWriter( std::ostream& os ) : m_os( os )
-    {
-        writeDeclaration();
-    }
-
-    XmlWriter::~XmlWriter() {
-        while (!m_tags.empty()) {
-            endElement();
-        }
-        newlineIfNecessary();
-    }
-
-    XmlWriter& XmlWriter::startElement( std::string const& name, XmlFormatting fmt ) {
-        ensureTagClosed();
-        newlineIfNecessary();
-        if (shouldIndent(fmt)) {
-            m_os << m_indent;
-            m_indent += "  ";
-        }
-        m_os << '<' << name;
-        m_tags.push_back( name );
-        m_tagIsOpen = true;
-        applyFormatting(fmt);
-        return *this;
-    }
-
-    XmlWriter::ScopedElement XmlWriter::scopedElement( std::string const& name, XmlFormatting fmt ) {
-        ScopedElement scoped( this, fmt );
-        startElement( name, fmt );
-        return scoped;
-    }
-
-    XmlWriter& XmlWriter::endElement(XmlFormatting fmt) {
-        m_indent = m_indent.substr(0, m_indent.size() - 2);
-
-        if( m_tagIsOpen ) {
-            m_os << "/>";
-            m_tagIsOpen = false;
-        } else {
-            newlineIfNecessary();
-            if (shouldIndent(fmt)) {
-                m_os << m_indent;
-            }
-            m_os << "</" << m_tags.back() << '>';
-        }
-        m_os << std::flush;
-        applyFormatting(fmt);
-        m_tags.pop_back();
-        return *this;
-    }
-
-    XmlWriter& XmlWriter::writeAttribute( StringRef name,
-                                          StringRef attribute ) {
-        if( !name.empty() && !attribute.empty() )
-            m_os << ' ' << name << "=\"" << XmlEncode( attribute, XmlEncode::ForAttributes ) << '"';
-        return *this;
-    }
-
-    XmlWriter& XmlWriter::writeAttribute( StringRef name, bool attribute ) {
-        writeAttribute(name, (attribute ? "true"_sr : "false"_sr));
-        return *this;
-    }
-
-    XmlWriter& XmlWriter::writeAttribute( StringRef name,
-                                          char const* attribute ) {
-        writeAttribute( name, StringRef( attribute ) );
-        return *this;
-    }
-
-    XmlWriter& XmlWriter::writeText( StringRef text, XmlFormatting fmt ) {
-        CATCH_ENFORCE(!m_tags.empty(), "Cannot write text as top level element");
-        if( !text.empty() ){
-            bool tagWasOpen = m_tagIsOpen;
-            ensureTagClosed();
-            if (tagWasOpen && shouldIndent(fmt)) {
-                m_os << m_indent;
-            }
-            m_os << XmlEncode( text, XmlEncode::ForTextNodes );
-            applyFormatting(fmt);
-        }
-        return *this;
-    }
-
-    XmlWriter& XmlWriter::writeComment( StringRef text, XmlFormatting fmt ) {
-        ensureTagClosed();
-        if (shouldIndent(fmt)) {
-            m_os << m_indent;
-        }
-        m_os << "<!-- " << text << " -->";
-        applyFormatting(fmt);
-        return *this;
-    }
-
-    void XmlWriter::writeStylesheetRef( StringRef url ) {
-        m_os << R"(<?xml-stylesheet type="text/xsl" href=")" << url << R"("?>)" << '\n';
-    }
-
-    void XmlWriter::ensureTagClosed() {
-        if( m_tagIsOpen ) {
-            m_os << '>' << std::flush;
-            newlineIfNecessary();
-            m_tagIsOpen = false;
-        }
-    }
-
-    void XmlWriter::applyFormatting(XmlFormatting fmt) {
-        m_needsNewline = shouldNewline(fmt);
-    }
-
-    void XmlWriter::writeDeclaration() {
-        m_os << R"(<?xml version="1.0" encoding="UTF-8"?>)" << '\n';
-    }
-
-    void XmlWriter::newlineIfNecessary() {
-        if( m_needsNewline ) {
-            m_os << '\n' << std::flush;
-            m_needsNewline = false;
         }
     }
 }
@@ -9540,1135 +8436,6 @@ namespace Catch {
 
 
 
-#include <ostream>
-
-namespace Catch {
-
-    AutomakeReporter::~AutomakeReporter() = default;
-
-    AutomakeReporter::AutomakeReporter( ReporterConfig&& _config ):
-        StreamingReporterBase( CATCH_MOVE( _config ) ) {
-        rejectSuperfluousConfigKeys( m_customOptions, {} );
-
-        m_preferences.shouldReportAllAssertionStarts = false;
-    }
-
-    void AutomakeReporter::testCaseEnded(TestCaseStats const& _testCaseStats) {
-        // Possible values to emit are PASS, XFAIL, SKIP, FAIL, XPASS and ERROR.
-        m_stream << ":test-result: ";
-        if ( _testCaseStats.totals.testCases.skipped > 0 ) {
-            m_stream << "SKIP";
-        } else if (_testCaseStats.totals.assertions.allPassed()) {
-            m_stream << "PASS";
-        } else if (_testCaseStats.totals.assertions.allOk()) {
-            m_stream << "XFAIL";
-        } else {
-            m_stream << "FAIL";
-        }
-        m_stream << ' ' << _testCaseStats.testInfo->name << '\n';
-        StreamingReporterBase::testCaseEnded(_testCaseStats);
-    }
-
-    void AutomakeReporter::skipTest(TestCaseInfo const& testInfo) {
-        m_stream << ":test-result: SKIP " << testInfo.name << '\n';
-    }
-
-} // end namespace Catch
-
-
-
-
-
-
-namespace Catch {
-    ReporterBase::ReporterBase( ReporterConfig&& config ):
-        IEventListener( config.fullConfig() ),
-        m_wrapped_stream( CATCH_MOVE(config).takeStream() ),
-        m_stream( m_wrapped_stream->stream() ),
-        m_colour( makeColourImpl( config.colourMode(), m_wrapped_stream.get() ) ),
-        m_verbosity( config.verbosity() ),
-        m_customOptions( config.customOptions() )
-    {}
-
-    ReporterBase::~ReporterBase() = default;
-
-    void ReporterBase::listReporters(
-        std::vector<ReporterDescription> const& descriptions ) {
-        defaultListReporters( m_stream, descriptions, m_verbosity );
-    }
-
-    void ReporterBase::listListeners(
-        std::vector<ListenerDescription> const& descriptions ) {
-        defaultListListeners( m_stream, descriptions, m_verbosity );
-    }
-
-    void ReporterBase::listTests(std::vector<TestCaseHandle> const& tests) {
-        defaultListTests(m_stream,
-                         m_colour.get(),
-                         tests,
-                         m_config->hasTestFilters(),
-                         m_verbosity);
-    }
-
-    void ReporterBase::listTags(std::vector<TagInfo> const& tags) {
-        defaultListTags( m_stream, tags, m_config->hasTestFilters(), m_verbosity );
-    }
-
-} // namespace Catch
-
-
-
-
-#include <ostream>
-
-namespace Catch {
-namespace {
-
-    // Colour::LightGrey
-    static constexpr Colour::Code compactDimColour = Colour::FileName;
-
-#ifdef CATCH_PLATFORM_MAC
-    static constexpr Catch::StringRef compactFailedString = "FAILED"_sr;
-    static constexpr Catch::StringRef compactPassedString = "PASSED"_sr;
-#else
-    static constexpr Catch::StringRef compactFailedString = "failed"_sr;
-    static constexpr Catch::StringRef compactPassedString = "passed"_sr;
-#endif
-
-// Implementation of CompactReporter formatting
-class AssertionPrinter {
-public:
-    AssertionPrinter& operator= (AssertionPrinter const&) = delete;
-    AssertionPrinter(AssertionPrinter const&) = delete;
-    AssertionPrinter(std::ostream& _stream, AssertionStats const& _stats, bool _printInfoMessages, ColourImpl* colourImpl_)
-        : stream(_stream)
-        , result(_stats.assertionResult)
-        , messages(_stats.infoMessages)
-        , itMessage(_stats.infoMessages.begin())
-        , printInfoMessages(_printInfoMessages)
-        , colourImpl(colourImpl_)
-    {}
-
-    void print() {
-        printSourceInfo();
-
-        itMessage = messages.begin();
-
-        switch (result.getResultType()) {
-        case ResultWas::Ok:
-            printResultType(Colour::ResultSuccess, compactPassedString);
-            printOriginalExpression();
-            printReconstructedExpression();
-            if (!result.hasExpression())
-                printRemainingMessages(Colour::None);
-            else
-                printRemainingMessages();
-            break;
-        case ResultWas::ExpressionFailed:
-            if (result.isOk())
-                printResultType(Colour::ResultSuccess, compactFailedString + " - but was ok"_sr);
-            else
-                printResultType(Colour::Error, compactFailedString);
-            printOriginalExpression();
-            printReconstructedExpression();
-            printRemainingMessages();
-            break;
-        case ResultWas::ThrewException:
-            printResultType(Colour::Error, compactFailedString);
-            printIssue("unexpected exception with message:");
-            printMessage();
-            printExpressionWas();
-            printRemainingMessages();
-            break;
-        case ResultWas::FatalErrorCondition:
-            printResultType(Colour::Error, compactFailedString);
-            printIssue("fatal error condition with message:");
-            printMessage();
-            printExpressionWas();
-            printRemainingMessages();
-            break;
-        case ResultWas::DidntThrowException:
-            printResultType(Colour::Error, compactFailedString);
-            printIssue("expected exception, got none");
-            printExpressionWas();
-            printRemainingMessages();
-            break;
-        case ResultWas::Info:
-            printResultType(Colour::None, "info"_sr);
-            printMessage();
-            printRemainingMessages();
-            break;
-        case ResultWas::Warning:
-            printResultType(Colour::None, "warning"_sr);
-            printMessage();
-            printRemainingMessages();
-            break;
-        case ResultWas::ExplicitFailure:
-            printResultType(Colour::Error, compactFailedString);
-            printIssue("explicitly");
-            printRemainingMessages(Colour::None);
-            break;
-        case ResultWas::ExplicitSkip:
-            printResultType(Colour::Skip, "skipped"_sr);
-            printMessage();
-            printRemainingMessages();
-            break;
-            // These cases are here to prevent compiler warnings
-        case ResultWas::Unknown:
-        case ResultWas::FailureBit:
-        case ResultWas::Exception:
-            printResultType(Colour::Error, "** internal error **");
-            break;
-        }
-    }
-
-private:
-    void printSourceInfo() const {
-        stream << colourImpl->guardColour( Colour::FileName )
-               << result.getSourceInfo() << ':';
-    }
-
-    void printResultType(Colour::Code colour, StringRef passOrFail) const {
-        if (!passOrFail.empty()) {
-            stream << colourImpl->guardColour(colour) << ' ' << passOrFail;
-            stream << ':';
-        }
-    }
-
-    void printIssue(char const* issue) const {
-        stream << ' ' << issue;
-    }
-
-    void printExpressionWas() {
-        if (result.hasExpression()) {
-            stream << ';';
-            {
-                stream << colourImpl->guardColour(compactDimColour) << " expression was:";
-            }
-            printOriginalExpression();
-        }
-    }
-
-    void printOriginalExpression() const {
-        if (result.hasExpression()) {
-            stream << ' ' << result.getExpression();
-        }
-    }
-
-    void printReconstructedExpression() const {
-        if (result.hasExpandedExpression()) {
-            stream << colourImpl->guardColour(compactDimColour) << " for: ";
-            stream << result.getExpandedExpression();
-        }
-    }
-
-    void printMessage() {
-        if (itMessage != messages.end()) {
-            stream << " '" << itMessage->message << '\'';
-            ++itMessage;
-        }
-    }
-
-    void printRemainingMessages(Colour::Code colour = compactDimColour) {
-        if (itMessage == messages.end())
-            return;
-
-        const auto itEnd = messages.cend();
-        const auto N = static_cast<std::size_t>(itEnd - itMessage);
-
-        stream << colourImpl->guardColour( colour ) << " with "
-               << pluralise( N, "message"_sr ) << ':';
-
-        while (itMessage != itEnd) {
-            // If this assertion is a warning ignore any INFO messages
-            if (printInfoMessages || itMessage->type != ResultWas::Info) {
-                printMessage();
-                if (itMessage != itEnd) {
-                    stream << colourImpl->guardColour(compactDimColour) << " and";
-                }
-                continue;
-            }
-            ++itMessage;
-        }
-    }
-
-private:
-    std::ostream& stream;
-    AssertionResult const& result;
-    std::vector<MessageInfo> const& messages;
-    std::vector<MessageInfo>::const_iterator itMessage;
-    bool printInfoMessages;
-    ColourImpl* colourImpl;
-};
-
-} // anon namespace
-
-        std::string CompactReporter::getDescription() {
-            return "Reports test results on a single line, suitable for IDEs";
-        }
-
-        void CompactReporter::noMatchingTestCases( StringRef unmatchedSpec ) {
-            m_stream << "No test cases matched '" << unmatchedSpec << "'\n";
-        }
-
-        void CompactReporter::testRunStarting( TestRunInfo const& ) {
-            if ( m_config->testSpec().hasFilters() ) {
-                m_stream << m_colour->guardColour( Colour::BrightYellow )
-                         << "Filters: "
-                         << m_config->testSpec()
-                         << '\n';
-            }
-            m_stream << "RNG seed: " << getSeed() << '\n'
-                     << std::flush;
-        }
-
-        void CompactReporter::assertionEnded( AssertionStats const& _assertionStats ) {
-            AssertionResult const& result = _assertionStats.assertionResult;
-
-            bool printInfoMessages = true;
-
-            // Drop out if result was successful and we're not printing those
-            if( !m_config->includeSuccessfulResults() && result.isOk() ) {
-                if( result.getResultType() != ResultWas::Warning && result.getResultType() != ResultWas::ExplicitSkip )
-                    return;
-                printInfoMessages = false;
-            }
-
-            AssertionPrinter printer( m_stream, _assertionStats, printInfoMessages, m_colour.get() );
-            printer.print();
-
-            m_stream << '\n' << std::flush;
-        }
-
-        void CompactReporter::sectionEnded(SectionStats const& _sectionStats) {
-            double dur = _sectionStats.durationInSeconds;
-            if ( shouldShowDuration( *m_config, dur ) ) {
-                m_stream << getFormattedDuration( dur ) << " s: " << _sectionStats.sectionInfo.name << '\n' << std::flush;
-            }
-        }
-
-        void CompactReporter::testRunEnded( TestRunStats const& _testRunStats ) {
-            printTestRunTotals( m_stream, *m_colour, _testRunStats.totals );
-            m_stream << "\n\n" << std::flush;
-            StreamingReporterBase::testRunEnded( _testRunStats );
-        }
-
-        CompactReporter::~CompactReporter() = default;
-        CompactReporter::CompactReporter( ReporterConfig&& _config ):
-            StreamingReporterBase( CATCH_MOVE( _config ) ) {
-            rejectSuperfluousConfigKeys( m_customOptions, {} );
-
-            m_preferences.shouldReportAllAssertionStarts = false;
-        }
-
-
-} // end namespace Catch
-
-
-
-
-#include <cstdio>
-
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4061) // Not all labels are EXPLICITLY handled in switch
- // Note that 4062 (not all labels are handled and default is missing) is enabled
-#endif
-
-#if defined(__clang__)
-#  pragma clang diagnostic push
-// For simplicity, benchmarking-only helpers are always enabled
-#  pragma clang diagnostic ignored "-Wunused-function"
-#endif
-
-
-
-namespace Catch {
-
-namespace {
-
-// Formatter impl for ConsoleReporter
-class ConsoleAssertionPrinter {
-public:
-    ConsoleAssertionPrinter& operator= (ConsoleAssertionPrinter const&) = delete;
-    ConsoleAssertionPrinter(ConsoleAssertionPrinter const&) = delete;
-    ConsoleAssertionPrinter(std::ostream& _stream, AssertionStats const& _stats, ColourImpl* colourImpl_, bool _printInfoMessages)
-        : stream(_stream),
-        stats(_stats),
-        result(_stats.assertionResult),
-        colour(Colour::None),
-        messages(_stats.infoMessages),
-        colourImpl(colourImpl_),
-        printInfoMessages(_printInfoMessages) {
-        switch (result.getResultType()) {
-        case ResultWas::Ok:
-            colour = Colour::Success;
-            passOrFail = "PASSED"_sr;
-            //if( result.hasMessage() )
-            if (messages.size() == 1)
-                messageLabel = "with message"_sr;
-            if (messages.size() > 1)
-                messageLabel = "with messages"_sr;
-            break;
-        case ResultWas::ExpressionFailed:
-            if (result.isOk()) {
-                colour = Colour::Success;
-                passOrFail = "FAILED - but was ok"_sr;
-            } else {
-                colour = Colour::Error;
-                passOrFail = "FAILED"_sr;
-            }
-            if (messages.size() == 1)
-                messageLabel = "with message"_sr;
-            if (messages.size() > 1)
-                messageLabel = "with messages"_sr;
-            break;
-        case ResultWas::ThrewException:
-            colour = Colour::Error;
-            passOrFail = "FAILED"_sr;
-            // todo switch
-            switch (messages.size()) { case 0:
-                messageLabel = "due to unexpected exception with "_sr;
-                break;
-            case 1:
-                messageLabel = "due to unexpected exception with message"_sr;
-                break;
-            default:
-                messageLabel = "due to unexpected exception with messages"_sr;
-                break;
-            }
-            break;
-        case ResultWas::FatalErrorCondition:
-            colour = Colour::Error;
-            passOrFail = "FAILED"_sr;
-            messageLabel = "due to a fatal error condition"_sr;
-            break;
-        case ResultWas::DidntThrowException:
-            colour = Colour::Error;
-            passOrFail = "FAILED"_sr;
-            messageLabel = "because no exception was thrown where one was expected"_sr;
-            break;
-        case ResultWas::Info:
-            messageLabel = "info"_sr;
-            break;
-        case ResultWas::Warning:
-            messageLabel = "warning"_sr;
-            break;
-        case ResultWas::ExplicitFailure:
-            passOrFail = "FAILED"_sr;
-            colour = Colour::Error;
-            if (messages.size() == 1)
-                messageLabel = "explicitly with message"_sr;
-            if (messages.size() > 1)
-                messageLabel = "explicitly with messages"_sr;
-            break;
-        case ResultWas::ExplicitSkip:
-            colour = Colour::Skip;
-            passOrFail = "SKIPPED"_sr;
-            if (messages.size() == 1)
-                messageLabel = "explicitly with message"_sr;
-            if (messages.size() > 1)
-                messageLabel = "explicitly with messages"_sr;
-            break;
-            // These cases are here to prevent compiler warnings
-        case ResultWas::Unknown:
-        case ResultWas::FailureBit:
-        case ResultWas::Exception:
-            passOrFail = "** internal error **"_sr;
-            colour = Colour::Error;
-            break;
-        }
-    }
-
-    void print() const {
-        printSourceInfo();
-        if (stats.totals.assertions.total() > 0) {
-            printResultType();
-            printOriginalExpression();
-            printReconstructedExpression();
-        } else {
-            stream << '\n';
-        }
-        printMessage();
-    }
-
-private:
-    void printResultType() const {
-        if (!passOrFail.empty()) {
-            stream << colourImpl->guardColour(colour) << passOrFail << ":\n";
-        }
-    }
-    void printOriginalExpression() const {
-        if (result.hasExpression()) {
-            stream << colourImpl->guardColour( Colour::OriginalExpression )
-                   << "  " << result.getExpressionInMacro() << '\n';
-        }
-    }
-    void printReconstructedExpression() const {
-        if (result.hasExpandedExpression()) {
-            stream << "with expansion:\n";
-            stream << colourImpl->guardColour( Colour::ReconstructedExpression )
-                   << TextFlow::Column( result.getExpandedExpression() )
-                          .indent( 2 )
-                   << '\n';
-        }
-    }
-    void printMessage() const {
-        if (!messageLabel.empty())
-            stream << messageLabel << ':' << '\n';
-        for (auto const& msg : messages) {
-            // If this assertion is a warning ignore any INFO messages
-            if (printInfoMessages || msg.type != ResultWas::Info)
-                stream << TextFlow::Column(msg.message).indent(2) << '\n';
-        }
-    }
-    void printSourceInfo() const {
-        stream << colourImpl->guardColour( Colour::FileName )
-               << result.getSourceInfo() << ": ";
-    }
-
-    std::ostream& stream;
-    AssertionStats const& stats;
-    AssertionResult const& result;
-    Colour::Code colour;
-    StringRef passOrFail;
-    StringRef messageLabel;
-    std::vector<MessageInfo> const& messages;
-    ColourImpl* colourImpl;
-    bool printInfoMessages;
-};
-
-std::size_t makeRatio( std::uint64_t number, std::uint64_t total ) {
-    const auto ratio = total > 0 ? CATCH_CONFIG_CONSOLE_WIDTH * number / total : 0;
-    return (ratio == 0 && number > 0) ? 1 : static_cast<std::size_t>(ratio);
-}
-
-std::size_t&
-findMax( std::size_t& i, std::size_t& j, std::size_t& k, std::size_t& l ) {
-    if (i > j && i > k && i > l)
-        return i;
-    else if (j > k && j > l)
-        return j;
-    else if (k > l)
-        return k;
-    else
-        return l;
-}
-
-struct ColumnBreak {};
-struct RowBreak {};
-struct OutputFlush {};
-
-class Duration {
-    enum class Unit : uint8_t {
-        Auto,
-        Nanoseconds,
-        Microseconds,
-        Milliseconds,
-        Seconds,
-        Minutes
-    };
-    static const uint64_t s_nanosecondsInAMicrosecond = 1000;
-    static const uint64_t s_nanosecondsInAMillisecond = 1000 * s_nanosecondsInAMicrosecond;
-    static const uint64_t s_nanosecondsInASecond = 1000 * s_nanosecondsInAMillisecond;
-    static const uint64_t s_nanosecondsInAMinute = 60 * s_nanosecondsInASecond;
-
-    double m_inNanoseconds;
-    Unit m_units;
-
-public:
-    explicit Duration(double inNanoseconds, Unit units = Unit::Auto)
-        : m_inNanoseconds(inNanoseconds),
-        m_units(units) {
-        if (m_units == Unit::Auto) {
-            if (m_inNanoseconds < s_nanosecondsInAMicrosecond)
-                m_units = Unit::Nanoseconds;
-            else if (m_inNanoseconds < s_nanosecondsInAMillisecond)
-                m_units = Unit::Microseconds;
-            else if (m_inNanoseconds < s_nanosecondsInASecond)
-                m_units = Unit::Milliseconds;
-            else if (m_inNanoseconds < s_nanosecondsInAMinute)
-                m_units = Unit::Seconds;
-            else
-                m_units = Unit::Minutes;
-        }
-
-    }
-
-    auto value() const -> double {
-        switch (m_units) {
-        case Unit::Microseconds:
-            return m_inNanoseconds / static_cast<double>(s_nanosecondsInAMicrosecond);
-        case Unit::Milliseconds:
-            return m_inNanoseconds / static_cast<double>(s_nanosecondsInAMillisecond);
-        case Unit::Seconds:
-            return m_inNanoseconds / static_cast<double>(s_nanosecondsInASecond);
-        case Unit::Minutes:
-            return m_inNanoseconds / static_cast<double>(s_nanosecondsInAMinute);
-        default:
-            return m_inNanoseconds;
-        }
-    }
-    StringRef unitsAsString() const {
-        switch (m_units) {
-        case Unit::Nanoseconds:
-            return "ns"_sr;
-        case Unit::Microseconds:
-            return "us"_sr;
-        case Unit::Milliseconds:
-            return "ms"_sr;
-        case Unit::Seconds:
-            return "s"_sr;
-        case Unit::Minutes:
-            return "m"_sr;
-        default:
-            return "** internal error **"_sr;
-        }
-
-    }
-    friend auto operator << (std::ostream& os, Duration const& duration) -> std::ostream& {
-        return os << duration.value() << ' ' << duration.unitsAsString();
-    }
-};
-} // end anon namespace
-
-enum class Justification : uint8_t {
-    Left,
-    Right
-};
-
-struct ColumnInfo {
-    std::string name;
-    std::size_t width;
-    Justification justification;
-};
-
-class TablePrinter {
-    std::ostream& m_os;
-    std::vector<ColumnInfo> m_columnInfos;
-    ReusableStringStream m_oss;
-    int m_currentColumn = -1;
-    bool m_isOpen = false;
-
-public:
-    TablePrinter( std::ostream& os, std::vector<ColumnInfo> columnInfos )
-    :   m_os( os ),
-        m_columnInfos( CATCH_MOVE( columnInfos ) ) {}
-
-    auto columnInfos() const -> std::vector<ColumnInfo> const& {
-        return m_columnInfos;
-    }
-
-    void open() {
-        if (!m_isOpen) {
-            m_isOpen = true;
-            *this << RowBreak();
-
-			TextFlow::Columns headerCols;
-			for (auto const& info : m_columnInfos) {
-                assert(info.width > 2);
-				headerCols += TextFlow::Column(info.name).width(info.width - 2);
-                headerCols += TextFlow::Spacer( 2 );
-			}
-			m_os << headerCols << '\n';
-
-            m_os << lineOfChars('-') << '\n';
-        }
-    }
-    void close() {
-        if (m_isOpen) {
-            *this << RowBreak();
-            m_os << '\n' << std::flush;
-            m_isOpen = false;
-        }
-    }
-
-    template<typename T>
-    friend TablePrinter& operator<< (TablePrinter& tp, T const& value) {
-        tp.m_oss << value;
-        return tp;
-    }
-
-    friend TablePrinter& operator<< (TablePrinter& tp, ColumnBreak) {
-        auto colStr = tp.m_oss.str();
-        const auto strSize = colStr.size();
-        tp.m_oss.str("");
-        tp.open();
-        if (tp.m_currentColumn == static_cast<int>(tp.m_columnInfos.size() - 1)) {
-            tp.m_currentColumn = -1;
-            tp.m_os << '\n';
-        }
-        tp.m_currentColumn++;
-
-        auto colInfo = tp.m_columnInfos[tp.m_currentColumn];
-        auto padding = (strSize + 1 < colInfo.width)
-            ? std::string(colInfo.width - (strSize + 1), ' ')
-            : std::string();
-        if (colInfo.justification == Justification::Left)
-            tp.m_os << colStr << padding << ' ';
-        else
-            tp.m_os << padding << colStr << ' ';
-        return tp;
-    }
-
-    friend TablePrinter& operator<< (TablePrinter& tp, RowBreak) {
-        if (tp.m_currentColumn > 0) {
-            tp.m_os << '\n';
-            tp.m_currentColumn = -1;
-        }
-        return tp;
-    }
-
-    friend TablePrinter& operator<<(TablePrinter& tp, OutputFlush) {
-        tp.m_os << std::flush;
-        return tp;
-    }
-};
-
-ConsoleReporter::ConsoleReporter(ReporterConfig&& config):
-    StreamingReporterBase( CATCH_MOVE( config ) ),
-    m_tablePrinter(Detail::make_unique<TablePrinter>(m_stream,
-        [&config]() -> std::vector<ColumnInfo> {
-        if (config.fullConfig()->benchmarkNoAnalysis())
-        {
-            return{
-                { "benchmark name", CATCH_CONFIG_CONSOLE_WIDTH - 43, Justification::Left },
-                { "     samples", 14, Justification::Right },
-                { "  iterations", 14, Justification::Right },
-                { "        mean", 14, Justification::Right }
-            };
-        }
-        else
-        {
-            return{
-                { "benchmark name", CATCH_CONFIG_CONSOLE_WIDTH - 43, Justification::Left },
-                { "samples      mean       std dev", 14, Justification::Right },
-                { "iterations   low mean   low std dev", 14, Justification::Right },
-                { "est run time high mean  high std dev", 14, Justification::Right }
-            };
-        }
-    }())) {
-    rejectSuperfluousConfigKeys( m_customOptions, {} );
-    m_preferences.shouldReportAllAssertionStarts = false;
-}
-
-ConsoleReporter::~ConsoleReporter() = default;
-
-std::string ConsoleReporter::getDescription() {
-    return "Reports test results as plain lines of text";
-}
-
-void ConsoleReporter::noMatchingTestCases( StringRef unmatchedSpec ) {
-    m_stream << "No test cases matched '" << unmatchedSpec << "'\n";
-}
-
-void ConsoleReporter::reportInvalidTestSpec( StringRef arg ) {
-    m_stream << "Invalid Filter: " << arg << '\n';
-}
-
-void ConsoleReporter::assertionEnded(AssertionStats const& _assertionStats) {
-    AssertionResult const& result = _assertionStats.assertionResult;
-
-    bool includeResults = m_config->includeSuccessfulResults() || !result.isOk();
-
-    // Drop out if result was successful but we're not printing them.
-    // TODO: Make configurable whether skips should be printed
-    if (!includeResults && result.getResultType() != ResultWas::Warning && result.getResultType() != ResultWas::ExplicitSkip)
-        return;
-
-    lazyPrint();
-
-    ConsoleAssertionPrinter printer(m_stream, _assertionStats, m_colour.get(), includeResults);
-    printer.print();
-    m_stream << '\n' << std::flush;
-}
-
-void ConsoleReporter::sectionStarting(SectionInfo const& _sectionInfo) {
-    m_tablePrinter->close();
-    m_headerPrinted = false;
-    StreamingReporterBase::sectionStarting(_sectionInfo);
-}
-void ConsoleReporter::sectionEnded(SectionStats const& _sectionStats) {
-    m_tablePrinter->close();
-    if (_sectionStats.missingAssertions) {
-        lazyPrint();
-        auto guard =
-            m_colour->guardColour( Colour::ResultError ).engage( m_stream );
-        if (m_sectionStack.size() > 1)
-            m_stream << "\nNo assertions in section";
-        else
-            m_stream << "\nNo assertions in test case";
-        m_stream << " '" << _sectionStats.sectionInfo.name << "'\n\n" << std::flush;
-    }
-    double dur = _sectionStats.durationInSeconds;
-    if (shouldShowDuration(*m_config, dur)) {
-        m_stream << getFormattedDuration(dur) << " s: " << _sectionStats.sectionInfo.name << '\n' << std::flush;
-    }
-    if (m_headerPrinted) {
-        m_headerPrinted = false;
-    }
-    StreamingReporterBase::sectionEnded(_sectionStats);
-}
-
-void ConsoleReporter::benchmarkPreparing( StringRef name ) {
-	lazyPrintWithoutClosingBenchmarkTable();
-
-	auto nameCol = TextFlow::Column( static_cast<std::string>( name ) )
-                       .width( m_tablePrinter->columnInfos()[0].width - 2 );
-
-	bool firstLine = true;
-	for (auto line : nameCol) {
-		if (!firstLine)
-			(*m_tablePrinter) << ColumnBreak() << ColumnBreak() << ColumnBreak();
-		else
-			firstLine = false;
-
-		(*m_tablePrinter) << line << ColumnBreak();
-	}
-}
-
-void ConsoleReporter::benchmarkStarting(BenchmarkInfo const& info) {
-    (*m_tablePrinter) << info.samples << ColumnBreak()
-        << info.iterations << ColumnBreak();
-    if ( !m_config->benchmarkNoAnalysis() ) {
-        ( *m_tablePrinter )
-            << Duration( info.estimatedDuration ) << ColumnBreak();
-    }
-    ( *m_tablePrinter ) << OutputFlush{};
-}
-void ConsoleReporter::benchmarkEnded(BenchmarkStats<> const& stats) {
-    if (m_config->benchmarkNoAnalysis())
-    {
-        (*m_tablePrinter) << Duration(stats.mean.point.count()) << ColumnBreak();
-    }
-    else
-    {
-        (*m_tablePrinter) << ColumnBreak()
-            << Duration(stats.mean.point.count()) << ColumnBreak()
-            << Duration(stats.mean.lower_bound.count()) << ColumnBreak()
-            << Duration(stats.mean.upper_bound.count()) << ColumnBreak() << ColumnBreak()
-            << Duration(stats.standardDeviation.point.count()) << ColumnBreak()
-            << Duration(stats.standardDeviation.lower_bound.count()) << ColumnBreak()
-            << Duration(stats.standardDeviation.upper_bound.count()) << ColumnBreak() << ColumnBreak() << ColumnBreak() << ColumnBreak() << ColumnBreak();
-    }
-}
-
-void ConsoleReporter::benchmarkFailed( StringRef error ) {
-    auto guard = m_colour->guardColour( Colour::Red ).engage( m_stream );
-    (*m_tablePrinter)
-        << "Benchmark failed (" << error << ')'
-        << ColumnBreak() << RowBreak();
-}
-
-void ConsoleReporter::testCaseEnded(TestCaseStats const& _testCaseStats) {
-    m_tablePrinter->close();
-    StreamingReporterBase::testCaseEnded(_testCaseStats);
-    m_headerPrinted = false;
-}
-void ConsoleReporter::testRunEnded(TestRunStats const& _testRunStats) {
-    printTotalsDivider(_testRunStats.totals);
-    printTestRunTotals( m_stream, *m_colour, _testRunStats.totals );
-    m_stream << '\n' << std::flush;
-    StreamingReporterBase::testRunEnded(_testRunStats);
-}
-void ConsoleReporter::testRunStarting(TestRunInfo const& _testRunInfo) {
-    StreamingReporterBase::testRunStarting(_testRunInfo);
-    if ( m_config->testSpec().hasFilters() ) {
-        m_stream << m_colour->guardColour( Colour::BrightYellow ) << "Filters: "
-                 << m_config->testSpec() << '\n';
-    }
-    m_stream << "Randomness seeded to: " << getSeed() << '\n'
-             << std::flush;
-}
-
-void ConsoleReporter::lazyPrint() {
-
-    m_tablePrinter->close();
-    lazyPrintWithoutClosingBenchmarkTable();
-}
-
-void ConsoleReporter::lazyPrintWithoutClosingBenchmarkTable() {
-
-    if ( !m_testRunInfoPrinted ) {
-        lazyPrintRunInfo();
-    }
-    if (!m_headerPrinted) {
-        printTestCaseAndSectionHeader();
-        m_headerPrinted = true;
-    }
-}
-void ConsoleReporter::lazyPrintRunInfo() {
-    m_stream << '\n'
-             << lineOfChars( '~' ) << '\n'
-             << m_colour->guardColour( Colour::SecondaryText )
-             << currentTestRunInfo.name << " is a Catch2 v" << libraryVersion()
-             << " host application.\n"
-             << "Run with -? for options\n\n";
-
-    m_testRunInfoPrinted = true;
-}
-void ConsoleReporter::printTestCaseAndSectionHeader() {
-    assert(!m_sectionStack.empty());
-    printOpenHeader(currentTestCaseInfo->name);
-
-    if (m_sectionStack.size() > 1) {
-        auto guard = m_colour->guardColour( Colour::Headers ).engage( m_stream );
-
-        auto
-            it = m_sectionStack.begin() + 1, // Skip first section (test case)
-            itEnd = m_sectionStack.end();
-        for (; it != itEnd; ++it)
-            printHeaderString(it->name, 2);
-    }
-
-    SourceLineInfo lineInfo = m_sectionStack.back().lineInfo;
-
-
-    m_stream << lineOfChars( '-' ) << '\n'
-             << m_colour->guardColour( Colour::FileName ) << lineInfo << '\n'
-             << lineOfChars( '.' ) << "\n\n"
-             << std::flush;
-}
-
-void ConsoleReporter::printClosedHeader(std::string const& _name) {
-    printOpenHeader(_name);
-    m_stream << lineOfChars('.') << '\n';
-}
-void ConsoleReporter::printOpenHeader(std::string const& _name) {
-    m_stream << lineOfChars('-') << '\n';
-    {
-        auto guard = m_colour->guardColour( Colour::Headers ).engage( m_stream );
-        printHeaderString(_name);
-    }
-}
-
-void ConsoleReporter::printHeaderString(std::string const& _string, std::size_t indent) {
-    // We want to get a bit fancy with line breaking here, so that subsequent
-    // lines start after ":" if one is present, e.g.
-    // ```
-    // blablabla: Fancy
-    //            linebreaking
-    // ```
-    // but we also want to avoid problems with overly long indentation causing
-    // the text to take up too many lines, e.g.
-    // ```
-    // blablabla: F
-    //            a
-    //            n
-    //            c
-    //            y
-    //            .
-    //            .
-    //            .
-    // ```
-    // So we limit the prefix indentation check to first quarter of the possible
-    // width
-    std::size_t idx = _string.find( ": " );
-    if ( idx != std::string::npos && idx < CATCH_CONFIG_CONSOLE_WIDTH / 4 ) {
-        idx += 2;
-    } else {
-        idx = 0;
-    }
-    m_stream << TextFlow::Column( _string )
-                  .indent( indent + idx )
-                  .initialIndent( indent )
-           << '\n';
-}
-
-void ConsoleReporter::printTotalsDivider(Totals const& totals) {
-    if (totals.testCases.total() > 0) {
-        std::size_t failedRatio = makeRatio(totals.testCases.failed, totals.testCases.total());
-        std::size_t failedButOkRatio = makeRatio(totals.testCases.failedButOk, totals.testCases.total());
-        std::size_t passedRatio = makeRatio(totals.testCases.passed, totals.testCases.total());
-        std::size_t skippedRatio = makeRatio(totals.testCases.skipped, totals.testCases.total());
-        while (failedRatio + failedButOkRatio + passedRatio + skippedRatio < CATCH_CONFIG_CONSOLE_WIDTH - 1)
-            findMax(failedRatio, failedButOkRatio, passedRatio, skippedRatio)++;
-        while (failedRatio + failedButOkRatio + passedRatio > CATCH_CONFIG_CONSOLE_WIDTH - 1)
-            findMax(failedRatio, failedButOkRatio, passedRatio, skippedRatio)--;
-
-        m_stream << m_colour->guardColour( Colour::Error )
-                 << std::string( failedRatio, '=' )
-                 << m_colour->guardColour( Colour::ResultExpectedFailure )
-                 << std::string( failedButOkRatio, '=' );
-        if ( totals.testCases.allPassed() ) {
-            m_stream << m_colour->guardColour( Colour::ResultSuccess )
-                     << std::string( passedRatio, '=' );
-        } else {
-            m_stream << m_colour->guardColour( Colour::Success )
-                     << std::string( passedRatio, '=' );
-        }
-        m_stream << m_colour->guardColour( Colour::Skip )
-                 << std::string( skippedRatio, '=' );
-    } else {
-        m_stream << m_colour->guardColour( Colour::Warning )
-                 << std::string( CATCH_CONFIG_CONSOLE_WIDTH - 1, '=' );
-    }
-    m_stream << '\n';
-}
-
-} // end namespace Catch
-
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-#if defined(__clang__)
-#  pragma clang diagnostic pop
-#endif
-
-
-
-
-#include <algorithm>
-#include <cassert>
-
-namespace Catch {
-    namespace {
-        struct BySectionInfo {
-            BySectionInfo( SectionInfo const& other ): m_other( other ) {}
-            BySectionInfo( BySectionInfo const& other ) = default;
-            bool operator()(
-                Detail::unique_ptr<CumulativeReporterBase::SectionNode> const&
-                    node ) const {
-                return node->stats.sectionInfo.name == m_other.name
-                    && node->stats.sectionInfo.lineInfo == m_other.lineInfo;
-            }
-            void operator=( BySectionInfo const& ) = delete;
-
-        private:
-            SectionInfo const& m_other;
-        };
-
-    } // namespace
-
-    namespace Detail {
-        AssertionOrBenchmarkResult::AssertionOrBenchmarkResult(
-            AssertionStats const& assertion ):
-            m_assertion( assertion ) {}
-
-        AssertionOrBenchmarkResult::AssertionOrBenchmarkResult(
-            BenchmarkStats<> const& benchmark ):
-            m_benchmark( benchmark ) {}
-
-        bool AssertionOrBenchmarkResult::isAssertion() const {
-            return m_assertion.some();
-        }
-        bool AssertionOrBenchmarkResult::isBenchmark() const {
-            return m_benchmark.some();
-        }
-
-        AssertionStats const& AssertionOrBenchmarkResult::asAssertion() const {
-            assert(m_assertion.some());
-
-            return *m_assertion;
-        }
-        BenchmarkStats<> const& AssertionOrBenchmarkResult::asBenchmark() const {
-            assert(m_benchmark.some());
-
-            return *m_benchmark;
-        }
-
-    }
-
-    CumulativeReporterBase::~CumulativeReporterBase() = default;
-
-    void CumulativeReporterBase::benchmarkEnded(BenchmarkStats<> const& benchmarkStats) {
-        m_sectionStack.back()->assertionsAndBenchmarks.emplace_back(benchmarkStats);
-    }
-
-    void
-    CumulativeReporterBase::sectionStarting( SectionInfo const& sectionInfo ) {
-        // We need a copy, because SectionStats expect to take ownership
-        SectionStats incompleteStats( SectionInfo(sectionInfo), Counts(), 0, false );
-        SectionNode* node;
-        if ( m_sectionStack.empty() ) {
-            if ( !m_rootSection ) {
-                m_rootSection =
-                    Detail::make_unique<SectionNode>( CATCH_MOVE( incompleteStats ) );
-            }
-            node = m_rootSection.get();
-        } else {
-            SectionNode& parentNode = *m_sectionStack.back();
-            auto it = std::find_if( parentNode.childSections.begin(),
-                                    parentNode.childSections.end(),
-                                    BySectionInfo( sectionInfo ) );
-            if ( it == parentNode.childSections.end() ) {
-                auto newNode =
-                    Detail::make_unique<SectionNode>( CATCH_MOVE( incompleteStats ) );
-                node = newNode.get();
-                parentNode.childSections.push_back( CATCH_MOVE( newNode ) );
-            } else {
-                node = it->get();
-            }
-        }
-
-        m_deepestSection = node;
-        m_sectionStack.push_back( node );
-    }
-
-    void CumulativeReporterBase::assertionEnded(
-        AssertionStats const& assertionStats ) {
-        assert( !m_sectionStack.empty() );
-        // AssertionResult holds a pointer to a temporary DecomposedExpression,
-        // which getExpandedExpression() calls to build the expression string.
-        // Our section stack copy of the assertionResult will likely outlive the
-        // temporary, so it must be expanded or discarded now to avoid calling
-        // a destroyed object later.
-        if ( m_shouldStoreFailedAssertions &&
-             !assertionStats.assertionResult.isOk() ) {
-            static_cast<void>(
-                assertionStats.assertionResult.getExpandedExpression() );
-        }
-        if ( m_shouldStoreSuccesfulAssertions &&
-             assertionStats.assertionResult.isOk() ) {
-            static_cast<void>(
-                assertionStats.assertionResult.getExpandedExpression() );
-        }
-        SectionNode& sectionNode = *m_sectionStack.back();
-        sectionNode.assertionsAndBenchmarks.emplace_back( assertionStats );
-    }
-
-    void CumulativeReporterBase::sectionEnded( SectionStats const& sectionStats ) {
-        assert( !m_sectionStack.empty() );
-        SectionNode& node = *m_sectionStack.back();
-        node.stats = sectionStats;
-        m_sectionStack.pop_back();
-    }
-
-    void CumulativeReporterBase::testCaseEnded(
-        TestCaseStats const& testCaseStats ) {
-        auto node = Detail::make_unique<TestCaseNode>( testCaseStats );
-        assert( m_sectionStack.size() == 0 );
-        node->children.push_back( CATCH_MOVE(m_rootSection) );
-        m_testCases.push_back( CATCH_MOVE(node) );
-
-        assert( m_deepestSection );
-        m_deepestSection->stdOut = testCaseStats.stdOut;
-        m_deepestSection->stdErr = testCaseStats.stdErr;
-    }
-
-
-    void CumulativeReporterBase::testRunEnded( TestRunStats const& testRunStats ) {
-        assert(!m_testRun && "CumulativeReporterBase assumes there can only be one test run");
-        m_testRun = Detail::make_unique<TestRunNode>( testRunStats );
-        m_testRun->children.swap( m_testCases );
-        testRunEndedCumulative();
-    }
-
-    bool CumulativeReporterBase::SectionNode::hasAnyAssertions() const {
-        return std::any_of(
-            assertionsAndBenchmarks.begin(),
-            assertionsAndBenchmarks.end(),
-            []( Detail::AssertionOrBenchmarkResult const& res ) {
-                return res.isAssertion();
-            } );
-    }
-
-} // end namespace Catch
-
-
-
-
 namespace Catch {
 
     void EventListenerBase::fatalErrorEncountered( StringRef ) {}
@@ -10681,12 +8448,6 @@ namespace Catch {
     void EventListenerBase::assertionStarting( AssertionInfo const& ) {}
 
     void EventListenerBase::assertionEnded( AssertionStats const& ) {}
-    void EventListenerBase::listReporters(
-        std::vector<ReporterDescription> const& ) {}
-    void EventListenerBase::listListeners(
-        std::vector<ListenerDescription> const& ) {}
-    void EventListenerBase::listTests( std::vector<TestCaseHandle> const& ) {}
-    void EventListenerBase::listTags( std::vector<TagInfo> const& ) {}
     void EventListenerBase::noMatchingTestCases( StringRef ) {}
     void EventListenerBase::reportInvalidTestSpec( StringRef ) {}
     void EventListenerBase::testRunStarting( TestRunInfo const& ) {}
@@ -10697,1057 +8458,7 @@ namespace Catch {
     void EventListenerBase::testCasePartialEnded(TestCaseStats const&, uint64_t) {}
     void EventListenerBase::testCaseEnded( TestCaseStats const& ) {}
     void EventListenerBase::testRunEnded( TestRunStats const& ) {}
-    void EventListenerBase::skipTest( TestCaseInfo const& ) {}
 } // namespace Catch
-
-
-
-
-#include <algorithm>
-#include <cfloat>
-#include <cmath>
-#include <cstdio>
-#include <ostream>
-#include <iomanip>
-
-namespace Catch {
-
-    namespace {
-        void listTestNamesOnly(std::ostream& out,
-                               std::vector<TestCaseHandle> const& tests) {
-            for (auto const& test : tests) {
-                auto const& testCaseInfo = test.getTestCaseInfo();
-
-                if (startsWith(testCaseInfo.name, '#')) {
-                    out << '"' << testCaseInfo.name << '"';
-                } else {
-                    out << testCaseInfo.name;
-                }
-
-                out << '\n';
-            }
-            out << std::flush;
-        }
-    } // end unnamed namespace
-
-
-    // Because formatting using c++ streams is stateful, drop down to C is
-    // required Alternatively we could use stringstream, but its performance
-    // is... not good.
-    std::string getFormattedDuration( double duration ) {
-        // Max exponent + 1 is required to represent the whole part
-        // + 1 for decimal point
-        // + 3 for the 3 decimal places
-        // + 1 for null terminator
-        const std::size_t maxDoubleSize = DBL_MAX_10_EXP + 1 + 1 + 3 + 1;
-        char buffer[maxDoubleSize];
-
-        // Save previous errno, to prevent sprintf from overwriting it
-        ErrnoGuard guard;
-#ifdef _MSC_VER
-        size_t printedLength = static_cast<size_t>(
-            sprintf_s( buffer, "%.3f", duration ) );
-#else
-        size_t printedLength = static_cast<size_t>(
-            std::snprintf( buffer, maxDoubleSize, "%.3f", duration ) );
-#endif
-        return std::string( buffer, printedLength );
-    }
-
-    bool shouldShowDuration( IConfig const& config, double duration ) {
-        if ( config.showDurations() == ShowDurations::Always ) {
-            return true;
-        }
-        if ( config.showDurations() == ShowDurations::Never ) {
-            return false;
-        }
-        const double min = config.minDuration();
-        return min >= 0 && duration >= min;
-    }
-
-    std::string serializeFilters( std::vector<std::string> const& filters ) {
-        // We add a ' ' separator between each filter
-        size_t serialized_size = filters.size() - 1;
-        for (auto const& filter : filters) {
-            serialized_size += filter.size();
-        }
-
-        std::string serialized;
-        serialized.reserve(serialized_size);
-        bool first = true;
-
-        for (auto const& filter : filters) {
-            if (!first) {
-                serialized.push_back(' ');
-            }
-            first = false;
-            serialized.append(filter);
-        }
-
-        return serialized;
-    }
-
-    std::ostream& operator<<( std::ostream& out, lineOfChars value ) {
-        for ( size_t idx = 0; idx < CATCH_CONFIG_CONSOLE_WIDTH - 1; ++idx ) {
-            out.put( value.c );
-        }
-        return out;
-    }
-
-    void
-    defaultListReporters( std::ostream& out,
-                          std::vector<ReporterDescription> const& descriptions,
-                          Verbosity verbosity ) {
-        out << "Available reporters:\n";
-        const auto maxNameLen =
-            std::max_element( descriptions.begin(),
-                              descriptions.end(),
-                              []( ReporterDescription const& lhs,
-                                  ReporterDescription const& rhs ) {
-                                  return lhs.name.size() < rhs.name.size();
-                              } )
-                ->name.size();
-
-        for ( auto const& desc : descriptions ) {
-            if ( verbosity == Verbosity::Quiet ) {
-                out << TextFlow::Column( desc.name )
-                           .indent( 2 )
-                           .width( 5 + maxNameLen )
-                    << '\n';
-            } else {
-                out << TextFlow::Column( desc.name + ':' )
-                               .indent( 2 )
-                               .width( 5 + maxNameLen ) +
-                           TextFlow::Column( desc.description )
-                               .initialIndent( 0 )
-                               .indent( 2 )
-                               .width( CATCH_CONFIG_CONSOLE_WIDTH - maxNameLen - 8 )
-                    << '\n';
-            }
-        }
-        out << '\n' << std::flush;
-    }
-
-    void defaultListListeners( std::ostream& out,
-                               std::vector<ListenerDescription> const& descriptions,
-                               Verbosity verbosity ) {
-        if ( verbosity == Verbosity::Quiet ) {
-            for ( auto const& desc : descriptions ) {
-                out << desc.name << '\n';
-            }
-            return;
-        }
-
-        out << "Registered listeners:\n";
-
-        if(descriptions.empty()) {
-            return;
-        }
-
-        const auto maxNameLen =
-            std::max_element( descriptions.begin(),
-                              descriptions.end(),
-                              []( ListenerDescription const& lhs,
-                                  ListenerDescription const& rhs ) {
-                                  return lhs.name.size() < rhs.name.size();
-                              } )
-                ->name.size();
-
-        for ( auto const& desc : descriptions ) {
-            out << TextFlow::Column( static_cast<std::string>( desc.name ) +
-                                     ':' )
-                           .indent( 2 )
-                           .width( maxNameLen + 5 ) +
-                       TextFlow::Column( desc.description )
-                           .initialIndent( 0 )
-                           .indent( 2 )
-                           .width( CATCH_CONFIG_CONSOLE_WIDTH - maxNameLen - 8 )
-                << '\n';
-        }
-
-        out << '\n' << std::flush;
-    }
-
-    void defaultListTags( std::ostream& out,
-                          std::vector<TagInfo> const& tags,
-                          bool isFiltered,
-                          Verbosity verbosity ) {
-        if (verbosity == Verbosity::Quiet) {
-            for (auto const& tagCount : tags) {
-                out << tagCount.all() << '\n';
-            }
-            return;
-        }
-        if ( isFiltered ) {
-            out << "Tags for matching test cases:\n";
-        } else {
-            out << "All available tags:\n";
-        }
-
-        // minimum whitespace to pad tag counts, possibly overwritten below
-        int maxTagCountLen = 2;
-
-        // determine necessary padding for tag count column
-        if ( ! tags.empty() ) {
-            const auto maxTagCount =
-                std::max_element( tags.begin(),
-                                  tags.end(),
-                                  []( auto const& lhs, auto const& rhs ) {
-                                      return lhs.count < rhs.count;
-                                  } )
-                    ->count;
-
-            // more padding necessary for 3+ digits
-            if (maxTagCount >= 100) {
-                auto numDigits = 1 + std::floor( std::log10( maxTagCount ) );
-                maxTagCountLen = static_cast<int>( numDigits );
-            }
-        }
-
-        for ( auto const& tagCount : tags ) {
-            ReusableStringStream rss;
-            rss << "  " << std::setw( maxTagCountLen ) << tagCount.count << "  ";
-            auto str = rss.str();
-            auto wrapper = TextFlow::Column( tagCount.all() )
-                               .initialIndent( 0 )
-                               .indent( str.size() )
-                               .width( CATCH_CONFIG_CONSOLE_WIDTH - 10 );
-            out << str << wrapper << '\n';
-        }
-        out << pluralise(tags.size(), "tag"_sr) << "\n\n" << std::flush;
-    }
-
-    void defaultListTests(std::ostream& out, ColourImpl* streamColour, std::vector<TestCaseHandle> const& tests, bool isFiltered, Verbosity verbosity) {
-        // We special case this to provide the equivalent of old
-        // `--list-test-names-only`, which could then be used by the
-        // `--input-file` option.
-        if (verbosity == Verbosity::Quiet) {
-            listTestNamesOnly(out, tests);
-            return;
-        }
-
-        if (isFiltered) {
-            out << "Matching test cases:\n";
-        } else {
-            out << "All available test cases:\n";
-        }
-
-        for (auto const& test : tests) {
-            auto const& testCaseInfo = test.getTestCaseInfo();
-            Colour::Code colour = testCaseInfo.isHidden()
-                ? Colour::SecondaryText
-                : Colour::None;
-            auto colourGuard = streamColour->guardColour( colour ).engage( out );
-
-            out << TextFlow::Column(testCaseInfo.name).indent(2) << '\n';
-            if (verbosity >= Verbosity::High) {
-                out << TextFlow::Column(Catch::Detail::stringify(testCaseInfo.lineInfo)).indent(4) << '\n';
-            }
-            if (!testCaseInfo.tags.empty() &&
-                verbosity > Verbosity::Quiet) {
-                out << TextFlow::Column(testCaseInfo.tagsAsString()).indent(6) << '\n';
-            }
-        }
-
-        if (isFiltered) {
-            out << pluralise(tests.size(), "matching test case"_sr);
-        } else {
-            out << pluralise(tests.size(), "test case"_sr);
-        }
-        out << "\n\n" << std::flush;
-    }
-
-    namespace {
-        class SummaryColumn {
-        public:
-            SummaryColumn( std::string suffix, Colour::Code colour ):
-                m_suffix( CATCH_MOVE( suffix ) ), m_colour( colour ) {}
-
-            SummaryColumn&& addRow( std::uint64_t count ) && {
-                std::string row = std::to_string(count);
-                auto const new_width = std::max( m_width, row.size() );
-                if ( new_width > m_width ) {
-                    for ( auto& oldRow : m_rows ) {
-                        oldRow.insert( 0, new_width - m_width, ' ' );
-                    }
-                } else {
-                    row.insert( 0, m_width - row.size(), ' ' );
-                }
-                m_width = new_width;
-                m_rows.push_back( CATCH_MOVE( row ) );
-                return std::move( *this );
-            }
-
-            std::string const& getSuffix() const { return m_suffix; }
-            Colour::Code getColour() const { return m_colour; }
-            std::string const& getRow( std::size_t index ) const {
-                return m_rows[index];
-            }
-
-        private:
-            std::string m_suffix;
-            Colour::Code m_colour;
-            std::size_t m_width = 0;
-            std::vector<std::string> m_rows;
-        };
-
-        void printSummaryRow( std::ostream& stream,
-                              ColourImpl& colour,
-                              StringRef label,
-                              std::vector<SummaryColumn> const& cols,
-                              std::size_t row ) {
-            for ( auto const& col : cols ) {
-                auto const& value = col.getRow( row );
-                auto const& suffix = col.getSuffix();
-                if ( suffix.empty() ) {
-                    stream << label << ": ";
-                    if ( value != "0" ) {
-                        stream << value;
-                    } else {
-                        stream << colour.guardColour( Colour::Warning )
-                               << "- none -";
-                    }
-                } else if ( value != "0" ) {
-                    stream << colour.guardColour( Colour::LightGrey ) << " | "
-                           << colour.guardColour( col.getColour() ) << value
-                           << ' ' << suffix;
-                }
-            }
-            stream << '\n';
-        }
-    } // namespace
-
-    void printTestRunTotals( std::ostream& stream,
-                             ColourImpl& streamColour,
-                             Totals const& totals ) {
-        if ( totals.testCases.total() == 0 ) {
-            stream << streamColour.guardColour( Colour::Warning )
-                   << "No tests ran\n";
-            return;
-        }
-
-        if ( totals.assertions.total() > 0 && totals.testCases.allPassed() ) {
-            stream << streamColour.guardColour( Colour::ResultSuccess )
-                   << "All tests passed";
-            stream << " ("
-                   << pluralise( totals.assertions.passed, "assertion"_sr )
-                   << " in "
-                   << pluralise( totals.testCases.passed, "test case"_sr )
-                   << ')' << '\n';
-            return;
-        }
-
-        std::vector<SummaryColumn> columns;
-        // Don't include "skipped assertions" in total count
-        const auto totalAssertionCount =
-            totals.assertions.total() - totals.assertions.skipped;
-        columns.push_back( SummaryColumn( "", Colour::None )
-                               .addRow( totals.testCases.total() )
-                               .addRow( totalAssertionCount ) );
-        columns.push_back( SummaryColumn( "passed", Colour::Success )
-                               .addRow( totals.testCases.passed )
-                               .addRow( totals.assertions.passed ) );
-        columns.push_back( SummaryColumn( "failed", Colour::ResultError )
-                               .addRow( totals.testCases.failed )
-                               .addRow( totals.assertions.failed ) );
-        columns.push_back( SummaryColumn( "skipped", Colour::Skip )
-                               .addRow( totals.testCases.skipped )
-                               // Don't print "skipped assertions"
-                               .addRow( 0 ) );
-        columns.push_back(
-            SummaryColumn( "failed as expected", Colour::ResultExpectedFailure )
-                .addRow( totals.testCases.failedButOk )
-                .addRow( totals.assertions.failedButOk ) );
-        printSummaryRow( stream, streamColour, "test cases"_sr, columns, 0 );
-        printSummaryRow( stream, streamColour, "assertions"_sr, columns, 1 );
-    }
-
-    void rejectSuperfluousConfigKeys(
-        std::map<std::string, std::string> const& options,
-        std::initializer_list<StringRef> knownKeys ) {
-        for ( auto const& option : options ) {
-            StringRef key( option.first );
-            CATCH_ENFORCE( std::find( knownKeys.begin(),
-                                      knownKeys.end(),
-                                      key ) != knownKeys.end(),
-                           "Unknown reporter argument: " << key );
-        }
-    }
-
-} // namespace Catch
-
-
-//
-
-namespace Catch {
-    namespace {
-        static size_t kJsonOutputVersion = 2;
-
-        void writeSourceInfo( JsonObjectWriter& writer,
-                              SourceLineInfo const& sourceInfo ) {
-            auto source_location_writer =
-                writer.write( "source-location"_sr ).writeObject();
-            source_location_writer.write( "filename"_sr )
-                .write( sourceInfo.file );
-            source_location_writer.write( "line"_sr ).write( sourceInfo.line );
-        }
-
-        void writeTags( JsonArrayWriter writer, std::vector<Tag> const& tags ) {
-            for ( auto const& tag : tags ) {
-                writer.write( tag.original );
-            }
-        }
-
-        void writeProperties( JsonArrayWriter writer,
-                              TestCaseInfo const& info ) {
-            if ( info.isHidden() ) { writer.write( "is-hidden"_sr ); }
-            if ( info.okToFail() ) { writer.write( "ok-to-fail"_sr ); }
-            if ( info.expectedToFail() ) {
-                writer.write( "expected-to-fail"_sr );
-            }
-            if ( info.throws() ) { writer.write( "throws"_sr ); }
-        }
-
-    } // namespace
-
-    JsonReporter::JsonReporter( ReporterConfig&& config ):
-        StreamingReporterBase{ CATCH_MOVE( config ) } {
-        rejectSuperfluousConfigKeys( m_customOptions, {} );
-
-        m_preferences.shouldRedirectStdOut = true;
-        // TBD: Do we want to report all assertions? XML reporter does
-        //      not, but for machine-parseable reporters I think the answer
-        //      should be yes.
-        m_preferences.shouldReportAllAssertions = true;
-        // We only handle assertions when they end
-        m_preferences.shouldReportAllAssertionStarts = false;
-
-        m_objectWriters.emplace( m_stream );
-        m_writers.emplace( Writer::Object );
-        auto& writer = m_objectWriters.top();
-
-        writer.write( "version"_sr ).write( kJsonOutputVersion );
-
-        {
-            auto metadata_writer = writer.write( "metadata"_sr ).writeObject();
-            metadata_writer.write( "name"_sr ).write( m_config->name() );
-            metadata_writer.write( "rng-seed"_sr ).write( m_config->rngSeed() );
-            metadata_writer.write( "catch2-version"_sr )
-                .write( libraryVersion() );
-            if ( m_config->testSpec().hasFilters() ) {
-                metadata_writer.write( "filters"_sr )
-                    .write( m_config->testSpec() );
-            }
-        }
-    }
-
-    JsonReporter::~JsonReporter() {
-        endListing();
-        // TODO: Ensure this closes the top level object, add asserts
-        assert( m_writers.size() == 1 && "Only the top level object should be open" );
-        assert( m_writers.top() == Writer::Object );
-        endObject();
-        m_stream << '\n' << std::flush;
-        assert( m_writers.empty() );
-    }
-
-    JsonArrayWriter& JsonReporter::startArray() {
-        m_arrayWriters.emplace( m_arrayWriters.top().writeArray() );
-        m_writers.emplace( Writer::Array );
-        return m_arrayWriters.top();
-    }
-    JsonArrayWriter& JsonReporter::startArray( StringRef key ) {
-        m_arrayWriters.emplace(
-            m_objectWriters.top().write( key ).writeArray() );
-        m_writers.emplace( Writer::Array );
-        return m_arrayWriters.top();
-    }
-
-    JsonObjectWriter& JsonReporter::startObject() {
-        m_objectWriters.emplace( m_arrayWriters.top().writeObject() );
-        m_writers.emplace( Writer::Object );
-        return m_objectWriters.top();
-    }
-    JsonObjectWriter& JsonReporter::startObject( StringRef key ) {
-        m_objectWriters.emplace(
-            m_objectWriters.top().write( key ).writeObject() );
-        m_writers.emplace( Writer::Object );
-        return m_objectWriters.top();
-    }
-
-    void JsonReporter::endObject() {
-        assert( isInside( Writer::Object ) );
-        m_objectWriters.pop();
-        m_writers.pop();
-    }
-    void JsonReporter::endArray() {
-        assert( isInside( Writer::Array ) );
-        m_arrayWriters.pop();
-        m_writers.pop();
-    }
-
-    bool JsonReporter::isInside( Writer writer ) {
-        return !m_writers.empty() && m_writers.top() == writer;
-    }
-
-    void JsonReporter::startListing() {
-        if ( !m_startedListing ) { startObject( "listings"_sr ); }
-        m_startedListing = true;
-    }
-    void JsonReporter::endListing() {
-        if ( m_startedListing ) { endObject(); }
-        m_startedListing = false;
-    }
-
-    std::string JsonReporter::getDescription() {
-        return "Outputs listings as JSON. Test listing is Work-in-Progress!";
-    }
-
-    void JsonReporter::testRunStarting( TestRunInfo const& runInfo ) {
-        StreamingReporterBase::testRunStarting( runInfo );
-        endListing();
-
-        assert( isInside( Writer::Object ) );
-        startObject( "test-run"_sr );
-        startArray( "test-cases"_sr );
-    }
-
-     static void writeCounts( JsonObjectWriter&& writer, Counts const& counts ) {
-        writer.write( "passed"_sr ).write( counts.passed );
-        writer.write( "failed"_sr ).write( counts.failed );
-        writer.write( "fail-but-ok"_sr ).write( counts.failedButOk );
-        writer.write( "skipped"_sr ).write( counts.skipped );
-    }
-
-    void JsonReporter::testRunEnded(TestRunStats const& runStats) {
-        assert( isInside( Writer::Array ) );
-        // End "test-cases"
-        endArray();
-
-        {
-            auto totals =
-                m_objectWriters.top().write( "totals"_sr ).writeObject();
-            writeCounts( totals.write( "assertions"_sr ).writeObject(),
-                         runStats.totals.assertions );
-            writeCounts( totals.write( "test-cases"_sr ).writeObject(),
-                         runStats.totals.testCases );
-        }
-
-        // End the "test-run" object
-        endObject();
-    }
-
-    void JsonReporter::testCaseStarting( TestCaseInfo const& tcInfo ) {
-        StreamingReporterBase::testCaseStarting( tcInfo );
-
-        assert( isInside( Writer::Array ) &&
-                "We should be in the 'test-cases' array" );
-        startObject();
-        // "test-info" prelude
-        {
-            auto testInfo =
-                m_objectWriters.top().write( "test-info"_sr ).writeObject();
-            // TODO: handle testName vs className!!
-            testInfo.write( "name"_sr ).write( tcInfo.name );
-            writeSourceInfo(testInfo, tcInfo.lineInfo);
-            writeTags( testInfo.write( "tags"_sr ).writeArray(), tcInfo.tags );
-            writeProperties( testInfo.write( "properties"_sr ).writeArray(),
-                             tcInfo );
-        }
-
-
-        // Start the array for individual test runs (testCasePartial pairs)
-        startArray( "runs"_sr );
-    }
-
-    void JsonReporter::testCaseEnded( TestCaseStats const& tcStats ) {
-        StreamingReporterBase::testCaseEnded( tcStats );
-
-        // We need to close the 'runs' array before finishing the test case
-        assert( isInside( Writer::Array ) );
-        endArray();
-
-        {
-            auto totals =
-                m_objectWriters.top().write( "totals"_sr ).writeObject();
-            writeCounts( totals.write( "assertions"_sr ).writeObject(),
-                         tcStats.totals.assertions );
-            // We do not write the test case totals, because there will always be just one test case here.
-            // TODO: overall "result" -> success, skip, fail here? Or in partial result?
-        }
-        // We do not write out stderr/stdout, because we instead wrote those out in partial runs
-
-        // TODO: aborting?
-
-        // And we also close this test case's object
-        assert( isInside( Writer::Object ) );
-        endObject();
-    }
-
-    void JsonReporter::testCasePartialStarting( TestCaseInfo const& /*tcInfo*/,
-                                                uint64_t index ) {
-        startObject();
-        m_objectWriters.top().write( "run-idx"_sr ).write( index );
-        startArray( "path"_sr );
-        // TODO: we want to delay most of the printing to the 'root' section
-        // TODO: childSection key name?
-    }
-
-    void JsonReporter::testCasePartialEnded( TestCaseStats const& tcStats,
-                                             uint64_t /*index*/ ) {
-        // Fixme: the top level section handles this.
-        //// path object
-        endArray();
-        if ( !tcStats.stdOut.empty() ) {
-            m_objectWriters.top()
-                .write( "captured-stdout"_sr )
-                .write( tcStats.stdOut );
-        }
-        if ( !tcStats.stdErr.empty() ) {
-            m_objectWriters.top()
-                .write( "captured-stderr"_sr )
-                .write( tcStats.stdErr );
-        }
-        {
-            auto totals =
-                m_objectWriters.top().write( "totals"_sr ).writeObject();
-            writeCounts( totals.write( "assertions"_sr ).writeObject(),
-                         tcStats.totals.assertions );
-            // We do not write the test case totals, because there will
-            // always be just one test case here.
-            // TODO: overall "result" -> success, skip, fail here? Or in
-            // partial result?
-        }
-        // TODO: aborting?
-        // run object
-        endObject();
-    }
-
-    void JsonReporter::sectionStarting( SectionInfo const& sectionInfo ) {
-        assert( isInside( Writer::Array ) &&
-                "Section should always start inside an object" );
-        // We want to nest top level sections, even though it shares name
-        // and source loc with the TEST_CASE
-        auto& sectionObject = startObject();
-        sectionObject.write( "kind"_sr ).write( "section"_sr );
-        sectionObject.write( "name"_sr ).write( sectionInfo.name );
-        writeSourceInfo( m_objectWriters.top(), sectionInfo.lineInfo );
-
-
-        // TBD: Do we want to create this event lazily? It would become
-        //      rather complex, but we could do it, and it would look
-        //      better for empty sections. OTOH, empty sections should
-        //      be rare.
-        startArray( "path"_sr );
-    }
-    void JsonReporter::sectionEnded( SectionStats const& /*sectionStats */) {
-        // End the subpath array
-        endArray();
-        // TODO: metadata
-        // TODO: what info do we have here?
-
-        // End the section object
-        endObject();
-    }
-
-    void JsonReporter::assertionEnded( AssertionStats const& assertionStats ) {
-        // TODO: There is lot of different things to handle here, but
-        //       we can fill it in later, after we show that the basic
-        //       outline and streaming reporter impl works well enough.
-        //if ( !m_config->includeSuccessfulResults()
-        //    && assertionStats.assertionResult.isOk() ) {
-        //    return;
-        //}
-        assert( isInside( Writer::Array ) );
-        auto assertionObject = m_arrayWriters.top().writeObject();
-
-        assertionObject.write( "kind"_sr ).write( "assertion"_sr );
-        writeSourceInfo( assertionObject,
-                         assertionStats.assertionResult.getSourceInfo() );
-        assertionObject.write( "status"_sr )
-            .write( assertionStats.assertionResult.isOk() );
-        // TODO: handling of result.
-        // TODO: messages
-        // TODO: totals?
-    }
-
-
-    void JsonReporter::benchmarkPreparing( StringRef name ) { (void)name; }
-    void JsonReporter::benchmarkStarting( BenchmarkInfo const& ) {}
-    void JsonReporter::benchmarkEnded( BenchmarkStats<> const& ) {}
-    void JsonReporter::benchmarkFailed( StringRef error ) { (void)error; }
-
-    void JsonReporter::listReporters(
-        std::vector<ReporterDescription> const& descriptions ) {
-        startListing();
-
-        auto writer =
-            m_objectWriters.top().write( "reporters"_sr ).writeArray();
-        for ( auto const& desc : descriptions ) {
-            auto desc_writer = writer.writeObject();
-            desc_writer.write( "name"_sr ).write( desc.name );
-            desc_writer.write( "description"_sr ).write( desc.description );
-        }
-    }
-    void JsonReporter::listListeners(
-        std::vector<ListenerDescription> const& descriptions ) {
-        startListing();
-
-        auto writer =
-            m_objectWriters.top().write( "listeners"_sr ).writeArray();
-
-        for ( auto const& desc : descriptions ) {
-            auto desc_writer = writer.writeObject();
-            desc_writer.write( "name"_sr ).write( desc.name );
-            desc_writer.write( "description"_sr ).write( desc.description );
-        }
-    }
-    void JsonReporter::listTests( std::vector<TestCaseHandle> const& tests ) {
-        startListing();
-
-        auto writer = m_objectWriters.top().write( "tests"_sr ).writeArray();
-
-        for ( auto const& test : tests ) {
-            auto desc_writer = writer.writeObject();
-            auto const& info = test.getTestCaseInfo();
-
-            desc_writer.write( "name"_sr ).write( info.name );
-            if (!info.className.empty()) {
-                desc_writer.write( "class-name"_sr ).write( info.className );
-            }
-            if ( m_verbosity >= Verbosity::Normal ) {
-                auto tag_writer = desc_writer.write( "tags"_sr ).writeArray();
-                for ( auto const& tag : info.tags ) {
-                    tag_writer.write( tag.original );
-                }
-            }
-            if ( m_verbosity >= Verbosity::High) {
-                writeSourceInfo( desc_writer, info.lineInfo );
-            }
-        }
-    }
-    void JsonReporter::listTags( std::vector<TagInfo> const& tags ) {
-        startListing();
-
-        auto writer = m_objectWriters.top().write( "tags"_sr ).writeArray();
-        for ( auto const& tag : tags ) {
-            auto tag_writer = writer.writeObject();
-            {
-                auto aliases_writer =
-                    tag_writer.write( "aliases"_sr ).writeArray();
-                for ( auto alias : tag.spellings ) {
-                    aliases_writer.write( alias );
-                }
-            }
-            tag_writer.write( "count"_sr ).write( tag.count );
-        }
-    }
-} // namespace Catch
-
-
-
-
-#include <cassert>
-#include <ctime>
-#include <algorithm>
-#include <iomanip>
-
-namespace Catch {
-
-    namespace {
-        std::string getCurrentTimestamp() {
-            time_t rawtime;
-            std::time(&rawtime);
-
-            std::tm timeInfo = {};
-#if defined (_MSC_VER) || defined (__MINGW32__)
-            gmtime_s(&timeInfo, &rawtime);
-#elif defined (CATCH_PLATFORM_PLAYSTATION)
-            gmtime_s(&rawtime, &timeInfo);
-#elif defined (__IAR_SYSTEMS_ICC__)
-            timeInfo = *std::gmtime(&rawtime);
-#else
-            gmtime_r(&rawtime, &timeInfo);
-#endif
-
-            auto const timeStampSize = sizeof("2017-01-16T17:06:45Z");
-            char timeStamp[timeStampSize];
-            const char * const fmt = "%Y-%m-%dT%H:%M:%SZ";
-
-            std::strftime(timeStamp, timeStampSize, fmt, &timeInfo);
-
-            return std::string(timeStamp, timeStampSize - 1);
-        }
-
-        std::string fileNameTag(std::vector<Tag> const& tags) {
-            auto it = std::find_if(begin(tags),
-                                   end(tags),
-                                   [] (Tag const& tag) {
-                                       return tag.original.size() > 0
-                                           && tag.original[0] == '#'; });
-            if (it != tags.end()) {
-                return static_cast<std::string>(
-                    it->original.substr(1, it->original.size() - 1)
-                );
-            }
-            return std::string();
-        }
-
-        // Formats the duration in seconds to 3 decimal places.
-        // This is done because some genius defined Maven Surefire schema
-        // in a way that only accepts 3 decimal places, and tools like
-        // Jenkins use that schema for validation JUnit reporter output.
-        std::string formatDuration( double seconds ) {
-            ReusableStringStream rss;
-            rss << std::fixed << std::setprecision( 3 ) << seconds;
-            return rss.str();
-        }
-
-        static void normalizeNamespaceMarkers(std::string& str) {
-            std::size_t pos = str.find( "::" );
-            while ( pos != std::string::npos ) {
-                str.replace( pos, 2, "." );
-                pos += 1;
-                pos = str.find( "::", pos );
-            }
-        }
-
-    } // anonymous namespace
-
-    JunitReporter::JunitReporter( ReporterConfig&& _config )
-        :   CumulativeReporterBase( CATCH_MOVE(_config) ),
-            xml( m_stream )
-        {
-            rejectSuperfluousConfigKeys( m_customOptions, {} );
-
-            m_preferences.shouldRedirectStdOut = true;
-            m_preferences.shouldReportAllAssertions = false;
-            m_preferences.shouldReportAllAssertionStarts = false;
-            m_shouldStoreSuccesfulAssertions = false;
-    }
-
-    std::string JunitReporter::getDescription() {
-        return "Reports test results in an XML format that looks like Ant's junitreport target";
-    }
-
-    void JunitReporter::testRunStarting( TestRunInfo const& runInfo )  {
-        CumulativeReporterBase::testRunStarting( runInfo );
-        xml.startElement( "testsuites" );
-        suiteTimer.start();
-        stdOutForSuite.clear();
-        stdErrForSuite.clear();
-        unexpectedExceptions = 0;
-    }
-
-    void JunitReporter::testCaseStarting( TestCaseInfo const& testCaseInfo ) {
-        m_okToFail = testCaseInfo.okToFail();
-    }
-
-    void JunitReporter::assertionEnded( AssertionStats const& assertionStats ) {
-        if( assertionStats.assertionResult.getResultType() == ResultWas::ThrewException && !m_okToFail )
-            unexpectedExceptions++;
-        CumulativeReporterBase::assertionEnded( assertionStats );
-    }
-
-    void JunitReporter::testCaseEnded( TestCaseStats const& testCaseStats ) {
-        stdOutForSuite += testCaseStats.stdOut;
-        stdErrForSuite += testCaseStats.stdErr;
-        CumulativeReporterBase::testCaseEnded( testCaseStats );
-    }
-
-    void JunitReporter::testRunEndedCumulative() {
-        const auto suiteTime = suiteTimer.getElapsedSeconds();
-        writeRun( *m_testRun, suiteTime );
-        xml.endElement();
-    }
-
-    void JunitReporter::writeRun( TestRunNode const& testRunNode, double suiteTime ) {
-        XmlWriter::ScopedElement e = xml.scopedElement( "testsuite" );
-
-        TestRunStats const& stats = testRunNode.value;
-        xml.writeAttribute( "name"_sr, stats.runInfo.name );
-        xml.writeAttribute( "errors"_sr, unexpectedExceptions );
-        xml.writeAttribute( "failures"_sr, stats.totals.assertions.failed-unexpectedExceptions );
-        xml.writeAttribute( "skipped"_sr, stats.totals.assertions.skipped );
-        xml.writeAttribute( "tests"_sr, stats.totals.assertions.total() );
-        xml.writeAttribute( "hostname"_sr, "tbd"_sr ); // !TBD
-        if( m_config->showDurations() == ShowDurations::Never )
-            xml.writeAttribute( "time"_sr, ""_sr );
-        else
-            xml.writeAttribute( "time"_sr, formatDuration( suiteTime ) );
-        xml.writeAttribute( "timestamp"_sr, getCurrentTimestamp() );
-
-        // Write properties
-        {
-            auto properties = xml.scopedElement("properties");
-            xml.scopedElement("property")
-                .writeAttribute("name"_sr, "random-seed"_sr)
-                .writeAttribute("value"_sr, m_config->rngSeed());
-            if (m_config->testSpec().hasFilters()) {
-                xml.scopedElement("property")
-                    .writeAttribute("name"_sr, "filters"_sr)
-                    .writeAttribute("value"_sr, m_config->testSpec());
-            }
-        }
-
-        // Write test cases
-        for( auto const& child : testRunNode.children )
-            writeTestCase( *child );
-
-        xml.scopedElement( "system-out" ).writeText( trim( stdOutForSuite ), XmlFormatting::Newline );
-        xml.scopedElement( "system-err" ).writeText( trim( stdErrForSuite ), XmlFormatting::Newline );
-    }
-
-    void JunitReporter::writeTestCase( TestCaseNode const& testCaseNode ) {
-        TestCaseStats const& stats = testCaseNode.value;
-
-        // All test cases have exactly one section - which represents the
-        // test case itself. That section may have 0-n nested sections
-        assert( testCaseNode.children.size() == 1 );
-        SectionNode const& rootSection = *testCaseNode.children.front();
-
-        std::string className =
-            static_cast<std::string>( stats.testInfo->className );
-
-        if( className.empty() ) {
-            className = fileNameTag(stats.testInfo->tags);
-            if ( className.empty() ) {
-                className = "global";
-            }
-        }
-
-        if ( !m_config->name().empty() )
-            className = static_cast<std::string>(m_config->name()) + '.' + className;
-
-        normalizeNamespaceMarkers(className);
-
-        writeSection( className, "", rootSection, stats.testInfo->okToFail() );
-    }
-
-    void JunitReporter::writeSection( std::string const& className,
-                                      std::string const& rootName,
-                                      SectionNode const& sectionNode,
-                                      bool testOkToFail) {
-        std::string name = trim( sectionNode.stats.sectionInfo.name );
-        if( !rootName.empty() )
-            name = rootName + '/' + name;
-
-        if ( sectionNode.stats.assertions.total() > 0
-           || !sectionNode.stdOut.empty()
-           || !sectionNode.stdErr.empty() ) {
-            XmlWriter::ScopedElement e = xml.scopedElement( "testcase" );
-            if( className.empty() ) {
-                xml.writeAttribute( "classname"_sr, name );
-                xml.writeAttribute( "name"_sr, "root"_sr );
-            }
-            else {
-                xml.writeAttribute( "classname"_sr, className );
-                xml.writeAttribute( "name"_sr, name );
-            }
-            xml.writeAttribute( "time"_sr, formatDuration( sectionNode.stats.durationInSeconds ) );
-            // This is not ideal, but it should be enough to mimic gtest's
-            // junit output.
-            // Ideally the JUnit reporter would also handle `skipTest`
-            // events and write those out appropriately.
-            xml.writeAttribute( "status"_sr, "run"_sr );
-
-            if (sectionNode.stats.assertions.failedButOk) {
-                xml.scopedElement("skipped")
-                    .writeAttribute("message", "TEST_CASE tagged with !mayfail");
-            }
-
-            writeAssertions( sectionNode );
-
-
-            if( !sectionNode.stdOut.empty() )
-                xml.scopedElement( "system-out" ).writeText( trim( sectionNode.stdOut ), XmlFormatting::Newline );
-            if( !sectionNode.stdErr.empty() )
-                xml.scopedElement( "system-err" ).writeText( trim( sectionNode.stdErr ), XmlFormatting::Newline );
-        }
-        for( auto const& childNode : sectionNode.childSections )
-            if( className.empty() )
-                writeSection( name, "", *childNode, testOkToFail );
-            else
-                writeSection( className, name, *childNode, testOkToFail );
-    }
-
-    void JunitReporter::writeAssertions( SectionNode const& sectionNode ) {
-        for (auto const& assertionOrBenchmark : sectionNode.assertionsAndBenchmarks) {
-            if (assertionOrBenchmark.isAssertion()) {
-                // JUnit XML format supports only 1 error/failure/skip
-                // assertion elements per test case
-                if (writeAssertion(assertionOrBenchmark.asAssertion())) {
-                    break;
-                }
-            }
-        }
-    }
-
-    bool JunitReporter::writeAssertion( AssertionStats const& stats ) {
-        AssertionResult const& result = stats.assertionResult;
-        if ( result.isOk() &&
-             result.getResultType() != ResultWas::ExplicitSkip ) {
-            return false;
-        }
-        std::string elementName;
-        switch ( result.getResultType() ) {
-        case ResultWas::ThrewException:
-        case ResultWas::FatalErrorCondition:
-            elementName = "error";
-            break;
-        case ResultWas::ExplicitFailure:
-        case ResultWas::ExpressionFailed:
-        case ResultWas::DidntThrowException:
-            elementName = "failure";
-            break;
-        case ResultWas::ExplicitSkip:
-            elementName = "skipped";
-            break;
-        // We should never see these here:
-        case ResultWas::Info:
-        case ResultWas::Warning:
-        case ResultWas::Ok:
-        case ResultWas::Unknown:
-        case ResultWas::FailureBit:
-        case ResultWas::Exception:
-            elementName = "internalError";
-            break;
-        }
-
-        XmlWriter::ScopedElement e = xml.scopedElement( elementName );
-
-        xml.writeAttribute( "message"_sr, result.getExpression() );
-        xml.writeAttribute( "type"_sr, result.getTestMacroName() );
-
-        ReusableStringStream rss;
-        if ( result.getResultType() == ResultWas::ExplicitSkip ) {
-            rss << "SKIPPED\n";
-        } else {
-            rss << "FAILED:\n";
-            if ( result.hasExpression() ) {
-                rss << "  ";
-                rss << result.getExpressionInMacro();
-                rss << '\n';
-            }
-            if ( result.hasExpandedExpression() ) {
-                rss << "with expansion:\n";
-                rss << TextFlow::Column( result.getExpandedExpression() )
-                           .indent( 2 )
-                    << '\n';
-            }
-        }
-
-        if ( result.hasMessage() ) { rss << result.getMessage() << '\n'; }
-        for ( auto const& msg : stats.infoMessages ) {
-            if ( msg.type == ResultWas::Info ) { rss << msg.message << '\n'; }
-        }
-
-        rss << "at " << result.getSourceInfo();
-        xml.writeText( rss.str(), XmlFormatting::Newline );
-        return true;
-    }
-
-} // end namespace Catch
 
 
 
@@ -11906,37 +8617,6 @@ namespace Catch {
     }
 
 
-    void MultiReporter::skipTest( TestCaseInfo const& testInfo ) {
-        for ( auto& reporterish : m_reporterLikes ) {
-            reporterish->skipTest( testInfo );
-        }
-    }
-
-    void MultiReporter::listReporters(std::vector<ReporterDescription> const& descriptions) {
-        for (auto& reporterish : m_reporterLikes) {
-            reporterish->listReporters(descriptions);
-        }
-    }
-
-    void MultiReporter::listListeners(
-        std::vector<ListenerDescription> const& descriptions ) {
-        for ( auto& reporterish : m_reporterLikes ) {
-            reporterish->listListeners( descriptions );
-        }
-    }
-
-    void MultiReporter::listTests(std::vector<TestCaseHandle> const& tests) {
-        for (auto& reporterish : m_reporterLikes) {
-            reporterish->listTests(tests);
-        }
-    }
-
-    void MultiReporter::listTags(std::vector<TagInfo> const& tags) {
-        for (auto& reporterish : m_reporterLikes) {
-            reporterish->listTags(tags);
-        }
-    }
-
 } // end namespace Catch
 
 
@@ -11946,19 +8626,6 @@ namespace Catch {
 namespace Catch {
     namespace Detail {
 
-        void registerReporterImpl( std::string const& name,
-                                   IReporterFactoryPtr reporterPtr ) {
-            CATCH_TRY {
-                getMutableRegistryHub().registerReporter(
-                    name, CATCH_MOVE( reporterPtr ) );
-            }
-            CATCH_CATCH_ALL {
-                // Do not throw when constructing global objects, instead
-                // register the exception to be processed later
-                getMutableRegistryHub().registerStartupException();
-            }
-        }
-
         void registerListenerImpl( Detail::unique_ptr<EventListenerFactory> listenerFactory ) {
             getMutableRegistryHub().registerListener( CATCH_MOVE(listenerFactory) );
         }
@@ -11966,899 +8633,10270 @@ namespace Catch {
 
     } // namespace Detail
 } // namespace Catch
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <array>
+#include <string_view>
+#include <utility>
+
+namespace Progmasoft::Catch3
+{
+    namespace
+    {
+        constexpr std::array<std::pair<Outcome, std::string_view>, 9>
+            kOutcomeNames = {{
+                {Outcome::kPassed, "passed"},
+                {Outcome::kFailed, "failed"},
+                {Outcome::kFailedAsExpected, "failed-as-expected"},
+                {Outcome::kSkipped, "skipped"},
+                {Outcome::kCrashed, "crashed"},
+                {Outcome::kTimedOut, "timed-out"},
+                {Outcome::kBlocked, "blocked"},
+                {Outcome::kNotRun, "not-run"},
+                {Outcome::kUpToDate, "up-to-date"},
+            }};
+
+        constexpr std::array<std::pair<FailureCategory, std::string_view>, 9>
+            kCategoryNames = {{
+                {FailureCategory::kNone, "none"},
+                {FailureCategory::kAssertion, "assertion"},
+                {FailureCategory::kUnexpectedException, "unexpected-exception"},
+                {FailureCategory::kMissingException, "missing-exception"},
+                {FailureCategory::kExplicitFailure, "explicit-failure"},
+                {FailureCategory::kCrash, "crash"},
+                {FailureCategory::kTimeout, "timeout"},
+                {FailureCategory::kInfrastructure, "infrastructure"},
+                {FailureCategory::kDependency, "dependency"},
+            }};
+    } // namespace
+
+    std::int64_t
+    TestResult::DurationMicroseconds() const noexcept
+    {
+        std::int64_t total = 0;
+        for (const auto &attempt : attempts)
+        {
+            total += attempt.durationMicroseconds;
+        }
+        return total;
+    }
+
+    bool
+    TestResult::FailsRun() const noexcept
+    {
+        if (quarantined)
+        {
+            return false;
+        }
+        switch (outcome)
+        {
+            case Outcome::kFailed:
+            case Outcome::kCrashed:
+            case Outcome::kTimedOut:
+            case Outcome::kBlocked:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    RunSummary
+    Summarize(const RunResult &run)
+    {
+        RunSummary summary;
+        summary.tests = run.tests.size();
+        summary.wallMicroseconds = run.wallMicroseconds;
+        for (const auto &test : run.tests)
+        {
+            switch (test.outcome)
+            {
+                case Outcome::kPassed:
+                    ++summary.passed;
+                    break;
+                case Outcome::kFailed:
+                    ++summary.failed;
+                    break;
+                case Outcome::kFailedAsExpected:
+                    ++summary.failedAsExpected;
+                    break;
+                case Outcome::kSkipped:
+                    ++summary.skipped;
+                    break;
+                case Outcome::kCrashed:
+                    ++summary.crashed;
+                    break;
+                case Outcome::kTimedOut:
+                    ++summary.timedOut;
+                    break;
+                case Outcome::kBlocked:
+                    ++summary.blocked;
+                    break;
+                case Outcome::kNotRun:
+                    ++summary.notRun;
+                    break;
+                case Outcome::kUpToDate:
+                    ++summary.upToDate;
+                    break;
+            }
+            summary.flaky += test.flaky ? 1 : 0;
+            summary.quarantined += test.quarantined ? 1 : 0;
+            summary.attempts += test.attempts.size();
+            for (const auto &attempt : test.attempts)
+            {
+                summary.assertionsPassed += attempt.assertionsPassed;
+                summary.assertionsFailed += attempt.assertionsFailed;
+                summary.testMicroseconds += attempt.durationMicroseconds;
+            }
+        }
+        return summary;
+    }
+
+    const char *
+    OutcomeName(Outcome outcome) noexcept
+    {
+        for (const auto &[value, name] : kOutcomeNames)
+        {
+            if (value == outcome)
+            {
+                return name.data();
+            }
+        }
+        return "unknown";
+    }
+
+    std::optional<Outcome>
+    OutcomeFromName(const std::string &name) noexcept
+    {
+        for (const auto &[value, text] : kOutcomeNames)
+        {
+            if (text == name)
+            {
+                return value;
+            }
+        }
+        return std::nullopt;
+    }
+
+    const char *
+    CategoryName(FailureCategory category) noexcept
+    {
+        for (const auto &[value, name] : kCategoryNames)
+        {
+            if (value == category)
+            {
+                return name.data();
+            }
+        }
+        return "unknown";
+    }
+
+    std::optional<FailureCategory>
+    CategoryFromName(const std::string &name) noexcept
+    {
+        for (const auto &[value, text] : kCategoryNames)
+        {
+            if (text == name)
+            {
+                return value;
+            }
+        }
+        return std::nullopt;
+    }
+
+    const char *
+    HistoryName(FailureHistory history) noexcept
+    {
+        switch (history)
+        {
+            case FailureHistory::kUnknown:
+                return "unknown";
+            case FailureHistory::kNew:
+                return "new";
+            case FailureHistory::kPersistent:
+                return "persistent";
+            case FailureHistory::kIntermittent:
+                return "intermittent";
+        }
+        return "unknown";
+    }
+
+    namespace
+    {
+        void
+        AppendIndented(std::string &text, const std::string &block)
+        {
+            std::size_t start = 0;
+            while (start <= block.size())
+            {
+                const auto end = block.find('\n', start);
+                text += "  ";
+                text += block.substr(start,
+                                     end == std::string::npos ? std::string::npos
+                                                              : end - start);
+                text += '\n';
+                if (end == std::string::npos)
+                {
+                    break;
+                }
+                start = end + 1;
+            }
+        }
+
+        std::string
+        JoinSections(const std::vector<std::string> &sections)
+        {
+            std::string text;
+            for (const auto &section : sections)
+            {
+                text += text.empty() ? "" : " / ";
+                text += section;
+            }
+            return text;
+        }
+
+        std::string
+        Seconds(std::int64_t microseconds)
+        {
+            const auto tenths = (microseconds + 50000) / 100000;
+            return std::to_string(tenths / 10) + "." +
+                   std::to_string(tenths % 10) + " s";
+        }
+    } // namespace
+
+    std::string
+    DescribeFailure(const Attempt &attempt)
+    {
+        std::string text;
+        if (attempt.outcome == Outcome::kTimedOut)
+        {
+            text += "timed out after " + Seconds(attempt.durationMicroseconds);
+            text += "\n";
+        }
+        else if (attempt.outcome == Outcome::kCrashed)
+        {
+            text += "crashed";
+            if (!attempt.exitDescription.empty())
+            {
+                text += " with " + attempt.exitDescription;
+            }
+            text += "\n";
+            if (!attempt.fatalMessage.empty())
+            {
+                AppendIndented(text, attempt.fatalMessage);
+            }
+        }
+        if ((attempt.outcome == Outcome::kTimedOut ||
+             attempt.outcome == Outcome::kCrashed) &&
+            !attempt.lastLocation.empty())
+        {
+            text += "last assertion started at " + attempt.lastLocation + "\n";
+        }
+        if ((attempt.outcome == Outcome::kTimedOut ||
+             attempt.outcome == Outcome::kCrashed))
+        {
+            // The innermost section that had not ended is where it stopped.
+            std::vector<std::string> open;
+            for (const auto &section : attempt.sections)
+            {
+                if (section.durationMicroseconds < 0)
+                {
+                    open.resize(section.depth);
+                    open.push_back(section.name);
+                }
+            }
+            if (!open.empty())
+            {
+                text += "in section " + JoinSections(open) + "\n";
+            }
+        }
+        for (const auto &assertion : attempt.assertions)
+        {
+            if (assertion.passed)
+            {
+                continue;
+            }
+            text += assertion.file + ":" + std::to_string(assertion.line) +
+                    ": " + (assertion.allowed ? "FAILED (allowed)" : "FAILED") +
+                    ":\n";
+            if (!assertion.expression.empty())
+            {
+                AppendIndented(text,
+                               assertion.macro.empty()
+                                   ? assertion.expression
+                                   : assertion.macro + "( " +
+                                         assertion.expression + " )");
+            }
+            if (!assertion.expansion.empty() &&
+                assertion.expansion != assertion.expression)
+            {
+                text += "with expansion:\n";
+                AppendIndented(text, assertion.expansion);
+            }
+            if (!assertion.message.empty())
+            {
+                text += assertion.category ==
+                                FailureCategory::kUnexpectedException
+                            ? "due to unexpected exception with message:\n"
+                            : "with message:\n";
+                AppendIndented(text, assertion.message);
+            }
+            for (const auto &context : assertion.context)
+            {
+                text += "with context:\n";
+                AppendIndented(text, context);
+            }
+            if (!assertion.sections.empty())
+            {
+                text += "in section " + JoinSections(assertion.sections) + "\n";
+            }
+        }
+        return text;
+    }
+
+    std::string
+    SummarizeFailure(const Attempt &attempt)
+    {
+        const std::string text = DescribeFailure(attempt);
+        return text.substr(0, text.find('\n'));
+    }
+
+    bool
+    IsFailure(Outcome outcome) noexcept
+    {
+        return outcome == Outcome::kFailed || outcome == Outcome::kCrashed ||
+               outcome == Outcome::kTimedOut;
+    }
+} // namespace Progmasoft::Catch3
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <ostream>
+#include <sstream>
+#include <string_view>
+
+namespace Progmasoft::Catch3
+{
+    namespace
+    {
+        struct DecodedCharacter final
+        {
+            char32_t value = 0;
+            std::size_t length = 0;
+        };
+
+        DecodedCharacter
+        DecodeUtf8(std::string_view text, std::size_t offset) noexcept
+        {
+            const auto first = static_cast<unsigned char>(text[offset]);
+            if (first < 0x80)
+            {
+                return {first, 1};
+            }
+            std::size_t length = 0;
+            char32_t value = 0;
+            char32_t minimum = 0;
+            if (first >= 0xC2 && first <= 0xDF)
+            {
+                length = 2;
+                value = first & 0x1F;
+                minimum = 0x80;
+            }
+            else if (first >= 0xE0 && first <= 0xEF)
+            {
+                length = 3;
+                value = first & 0x0F;
+                minimum = 0x800;
+            }
+            else if (first >= 0xF0 && first <= 0xF4)
+            {
+                length = 4;
+                value = first & 0x07;
+                minimum = 0x10000;
+            }
+            else
+            {
+                return {0xFFFD, 0};
+            }
+            if (offset + length > text.size())
+            {
+                return {0xFFFD, 0};
+            }
+            for (std::size_t index = 1; index < length; ++index)
+            {
+                const auto continuation =
+                    static_cast<unsigned char>(text[offset + index]);
+                if ((continuation & 0xC0) != 0x80)
+                {
+                    return {0xFFFD, 0};
+                }
+                value = static_cast<char32_t>((value << 6) |
+                                              (continuation & 0x3F));
+            }
+            if (value < minimum || value > 0x10FFFF ||
+                (value >= 0xD800 && value <= 0xDFFF))
+            {
+                return {0xFFFD, 0};
+            }
+            return {value, length};
+        }
+
+        bool
+        IsXmlCharacter(char32_t value) noexcept
+        {
+            return value == 0x09 || value == 0x0A || value == 0x0D ||
+                   (value >= 0x20 && value <= 0xD7FF) ||
+                   (value >= 0xE000 && value <= 0xFFFD) ||
+                   (value >= 0x10000 && value <= 0x10FFFF);
+        }
+
+        void
+        WriteEscaped(std::string_view value, std::ostream &output, bool attribute)
+        {
+            for (std::size_t index = 0; index < value.size();)
+            {
+                const DecodedCharacter character = DecodeUtf8(value, index);
+                if (character.length == 0 || !IsXmlCharacter(character.value))
+                {
+                    // A character XML cannot hold is replaced, not dropped,
+                    // so the reader sees that something was there.
+                    output << "&#xFFFD;";
+                    ++index;
+                    continue;
+                }
+                if (character.value < 0x80)
+                {
+                    switch (static_cast<char>(character.value))
+                    {
+                        case '&':
+                            output << "&amp;";
+                            break;
+                        case '<':
+                            output << "&lt;";
+                            break;
+                        case '>':
+                            output << "&gt;";
+                            break;
+                        case '"':
+                            output << (attribute ? "&quot;" : "\"");
+                            break;
+                        case '\'':
+                            output << (attribute ? "&apos;" : "'");
+                            break;
+                        case '\n':
+                            output << (attribute ? "&#10;" : "\n");
+                            break;
+                        default:
+                            output.put(static_cast<char>(character.value));
+                    }
+                }
+                else
+                {
+                    output.write(value.data() + index,
+                                 static_cast<std::streamsize>(character.length));
+                }
+                index += character.length;
+            }
+        }
+
+        void
+        WriteAttribute(std::ostream &output,
+                       std::string_view name,
+                       std::string_view value)
+        {
+            output << ' ' << name << "=\"";
+            WriteEscaped(value, output, true);
+            output << '"';
+        }
+
+        std::string
+        JUnitSeconds(std::int64_t microseconds)
+        {
+            const bool negative = microseconds < 0;
+            const auto magnitude = negative ? -microseconds : microseconds;
+            std::string fraction = std::to_string(magnitude % 1000000);
+            fraction.insert(0, 6 - fraction.size(), '0');
+            return (negative ? "-" : "") + std::to_string(magnitude / 1000000) +
+                   "." + fraction;
+        }
+
+        void
+        WriteIndent(std::ostream &output, unsigned level)
+        {
+            for (unsigned index = 0; index < level; ++index)
+            {
+                output << "  ";
+            }
+        }
+
+        void
+        WriteTextElement(std::ostream &output,
+                         unsigned indent,
+                         std::string_view name,
+                         std::string_view value)
+        {
+            WriteIndent(output, indent);
+            output << '<' << name << '>';
+            WriteEscaped(value, output, false);
+            output << "</" << name << ">\n";
+        }
+
+        std::string
+        Output(const Attempt &attempt, bool errors)
+        {
+            if (errors)
+            {
+                return attempt.standardError + attempt.processOutput;
+            }
+            return attempt.standardOutput;
+        }
+
+        /// An earlier attempt: `<rerunFailure>` before a final failure,
+        /// `<flakyFailure>` before a final pass.
+        void
+        WriteEarlierAttempt(std::ostream &output,
+                            const Attempt &attempt,
+                            std::string_view element)
+        {
+            WriteIndent(output, 3);
+            output << '<' << element;
+            WriteAttribute(output, "message", SummarizeFailure(attempt));
+            WriteAttribute(output, "type", CategoryName(attempt.category));
+            output << ">\n";
+            WriteTextElement(output, 4, "stackTrace", DescribeFailure(attempt));
+            if (!attempt.standardOutput.empty())
+            {
+                WriteTextElement(
+                    output, 4, "system-out", Output(attempt, false));
+            }
+            if (!Output(attempt, true).empty())
+            {
+                WriteTextElement(output, 4, "system-err", Output(attempt, true));
+            }
+            WriteIndent(output, 3);
+            output << "</" << element << ">\n";
+        }
+
+        std::string
+        SkipReason(const TestResult &test)
+        {
+            switch (test.outcome)
+            {
+                case Outcome::kBlocked:
+                    return test.analysis.empty() ? "a dependency did not pass"
+                                                 : test.analysis.front();
+                case Outcome::kNotRun:
+                    return "the run stopped before this test";
+                case Outcome::kUpToDate:
+                    return "passed before; nothing it depends on changed";
+                default:
+                    return "skipped";
+            }
+        }
+
+        void
+        WriteTestCase(std::ostream &output,
+                      const TestResult &test,
+                      std::string_view suiteName)
+        {
+            WriteIndent(output, 2);
+            output << "<testcase";
+            WriteAttribute(output,
+                           "classname",
+                           test.className.empty() ? suiteName : test.className);
+            WriteAttribute(output, "name", test.name);
+            WriteAttribute(output, "time", JUnitSeconds(test.DurationMicroseconds()));
+            if (!test.file.empty())
+            {
+                WriteAttribute(output, "file", test.file);
+                WriteAttribute(output, "line", std::to_string(test.line));
+            }
+            output << ">\n";
+
+            const Attempt *last =
+                test.attempts.empty() ? nullptr : &test.attempts.back();
+            const bool failedRun = IsFailure(test.outcome);
+            if (failedRun && last != nullptr)
+            {
+                const bool error = test.outcome != Outcome::kFailed ||
+                                   last->category ==
+                                       FailureCategory::kInfrastructure;
+                const std::string_view element = error ? "error" : "failure";
+                WriteIndent(output, 3);
+                output << '<' << element;
+                WriteAttribute(output, "message", SummarizeFailure(*last));
+                WriteAttribute(output, "type", CategoryName(test.category));
+                output << '>';
+                std::string details = DescribeFailure(*last);
+                for (const auto &finding : test.analysis)
+                {
+                    details += "analysis: " + finding + "\n";
+                }
+                if (!test.replayCommand.empty())
+                {
+                    details += "replay: " + test.replayCommand + "\n";
+                }
+                WriteEscaped(details, output, false);
+                output << "</" << element << ">\n";
+            }
+            else if (test.outcome == Outcome::kSkipped ||
+                     test.outcome == Outcome::kBlocked ||
+                     test.outcome == Outcome::kNotRun ||
+                     test.outcome == Outcome::kUpToDate)
+            {
+                WriteIndent(output, 3);
+                output << "<skipped";
+                WriteAttribute(output, "message", SkipReason(test));
+                output << "/>\n";
+            }
+            // Every earlier failed attempt, so retries stay visible.
+            for (std::size_t index = 0; index + 1 < test.attempts.size();
+                 ++index)
+            {
+                const Attempt &attempt = test.attempts[index];
+                if (!IsFailure(attempt.outcome))
+                {
+                    continue;
+                }
+                WriteEarlierAttempt(output,
+                                    attempt,
+                                    failedRun ? "rerunFailure" : "flakyFailure");
+            }
+            if (last != nullptr && !last->standardOutput.empty())
+            {
+                WriteTextElement(output, 3, "system-out", Output(*last, false));
+            }
+            if (last != nullptr && !Output(*last, true).empty())
+            {
+                WriteTextElement(output, 3, "system-err", Output(*last, true));
+            }
+            WriteIndent(output, 2);
+            output << "</testcase>\n";
+        }
+    } // namespace
+
+    bool
+    JUnitXmlWriter::Write(const RunResult &run, std::ostream &output)
+    {
+        const RunSummary summary = Summarize(run);
+        const std::size_t errors = summary.crashed + summary.timedOut;
+        const std::size_t failures = summary.failed;
+        const std::size_t skipped =
+            summary.skipped + summary.blocked + summary.notRun +
+            summary.upToDate;
+        const std::string time = JUnitSeconds(run.wallMicroseconds);
+        output << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites";
+        WriteAttribute(output, "name", run.binary);
+        WriteAttribute(output, "tests", std::to_string(summary.tests));
+        WriteAttribute(output, "failures", std::to_string(failures));
+        WriteAttribute(output, "errors", std::to_string(errors));
+        WriteAttribute(output, "skipped", std::to_string(skipped));
+        WriteAttribute(output, "time", time);
+        output << ">\n";
+        WriteIndent(output, 1);
+        output << "<testsuite";
+        WriteAttribute(output, "name", run.binary);
+        WriteAttribute(output, "tests", std::to_string(summary.tests));
+        WriteAttribute(output, "failures", std::to_string(failures));
+        WriteAttribute(output, "errors", std::to_string(errors));
+        WriteAttribute(output, "skipped", std::to_string(skipped));
+        WriteAttribute(output, "time", time);
+        output << ">\n";
+        WriteIndent(output, 2);
+        output << "<properties>\n";
+        const auto property = [&](std::string_view name,
+                                  const std::string &value) {
+            WriteIndent(output, 3);
+            output << "<property";
+            WriteAttribute(output, "name", name);
+            WriteAttribute(output, "value", value);
+            output << "/>\n";
+        };
+        property("random-seed", std::to_string(run.seed));
+        property("workers", std::to_string(run.workers));
+        if (run.shardCount > 1)
+        {
+            property("shard",
+                     std::to_string(run.shardIndex) + "/" +
+                         std::to_string(run.shardCount));
+        }
+        property("flaky", std::to_string(summary.flaky));
+        property("quarantined", std::to_string(summary.quarantined));
+        WriteIndent(output, 2);
+        output << "</properties>\n";
+        for (const auto &test : run.tests)
+        {
+            WriteTestCase(output, test, run.binary);
+        }
+        WriteIndent(output, 1);
+        output << "</testsuite>\n</testsuites>\n";
+        return static_cast<bool>(output);
+    }
+
+    std::string
+    JUnitXmlWriter::ToString(const RunResult &run)
+    {
+        std::ostringstream output;
+        static_cast<void>(Write(run, output));
+        return output.str();
+    }
+} // namespace Progmasoft::Catch3
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 
 
-
-
+#include <algorithm>
+#include <cctype>
 #include <map>
 
-namespace Catch {
-
-    namespace {
-        std::string createMetadataString(IConfig const& config) {
-            ReusableStringStream sstr;
-            if ( config.testSpec().hasFilters() ) {
-                sstr << "filters='"
-                         << config.testSpec()
-                         << "' ";
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        /// Replaces what differs between two runs of the same failure:
+        /// numbers, hexadecimal addresses and the temporary directory.
+        std::string
+        Normalise(std::string_view text)
+        {
+            std::string result;
+            bool inNumber = false;
+            for (std::size_t index = 0; index < text.size(); ++index)
+            {
+                const char character = text[index];
+                const bool digit =
+                    std::isdigit(static_cast<unsigned char>(character)) != 0;
+                const bool hexLetter =
+                    inNumber &&
+                    std::isxdigit(static_cast<unsigned char>(character)) != 0;
+                if (digit || hexLetter ||
+                    (inNumber && (character == 'x' || character == '.')))
+                {
+                    if (!inNumber)
+                    {
+                        result.push_back('#');
+                    }
+                    inNumber = true;
+                    continue;
+                }
+                inNumber = false;
+                result.push_back(character);
             }
-            sstr << "rng-seed=" << config.rngSeed();
-            return sstr.str();
-        }
-    }
-
-    SonarQubeReporter::SonarQubeReporter( ReporterConfig&& config ):
-        CumulativeReporterBase( CATCH_MOVE( config ) ), xml( m_stream ) {
-        rejectSuperfluousConfigKeys( m_customOptions, {} );
-
-        m_preferences.shouldRedirectStdOut = true;
-        m_preferences.shouldReportAllAssertions = false;
-        m_preferences.shouldReportAllAssertionStarts = false;
-        m_shouldStoreSuccesfulAssertions = false;
-    }
-
-    void SonarQubeReporter::testRunStarting(TestRunInfo const& testRunInfo) {
-        CumulativeReporterBase::testRunStarting(testRunInfo);
-
-        xml.writeComment( createMetadataString( *m_config ) );
-        xml.startElement("testExecutions");
-        xml.writeAttribute("version"_sr, '1');
-    }
-
-    void SonarQubeReporter::writeRun( TestRunNode const& runNode ) {
-        std::map<StringRef, std::vector<TestCaseNode const*>> testsPerFile;
-
-        for ( auto const& child : runNode.children ) {
-            testsPerFile[child->value.testInfo->lineInfo.file].push_back(
-                child.get() );
+            return result;
         }
 
-        for ( auto const& kv : testsPerFile ) {
-            writeTestFile( kv.first, kv.second );
-        }
-    }
-
-    void SonarQubeReporter::writeTestFile(StringRef filename, std::vector<TestCaseNode const*> const& testCaseNodes) {
-        XmlWriter::ScopedElement e = xml.scopedElement("file");
-        xml.writeAttribute("path"_sr, filename);
-
-        for (auto const& child : testCaseNodes)
-            writeTestCase(*child);
-    }
-
-    void SonarQubeReporter::writeTestCase(TestCaseNode const& testCaseNode) {
-        // All test cases have exactly one section - which represents the
-        // test case itself. That section may have 0-n nested sections
-        assert(testCaseNode.children.size() == 1);
-        SectionNode const& rootSection = *testCaseNode.children.front();
-        writeSection("", rootSection, testCaseNode.value.testInfo->okToFail());
-    }
-
-    void SonarQubeReporter::writeSection(std::string const& rootName, SectionNode const& sectionNode, bool okToFail) {
-        std::string name = trim(sectionNode.stats.sectionInfo.name);
-        if (!rootName.empty())
-            name = rootName + '/' + name;
-
-        if ( sectionNode.stats.assertions.total() > 0
-            || !sectionNode.stdOut.empty()
-            || !sectionNode.stdErr.empty() ) {
-            XmlWriter::ScopedElement e = xml.scopedElement("testCase");
-            xml.writeAttribute("name"_sr, name);
-            xml.writeAttribute("duration"_sr, static_cast<long>(sectionNode.stats.durationInSeconds * 1000));
-
-            writeAssertions(sectionNode, okToFail);
-        }
-
-        for (auto const& childNode : sectionNode.childSections)
-            writeSection(name, *childNode, okToFail);
-    }
-
-    void SonarQubeReporter::writeAssertions(SectionNode const& sectionNode, bool okToFail) {
-        for (auto const& assertionOrBenchmark : sectionNode.assertionsAndBenchmarks) {
-            if (assertionOrBenchmark.isAssertion()) {
-                writeAssertion(assertionOrBenchmark.asAssertion(), okToFail);
-            }
-        }
-    }
-
-    void SonarQubeReporter::writeAssertion(AssertionStats const& stats, bool okToFail) {
-        AssertionResult const& result = stats.assertionResult;
-        if ( !result.isOk() ||
-             result.getResultType() == ResultWas::ExplicitSkip ) {
-            std::string elementName;
-            if (okToFail) {
-                elementName = "skipped";
-            } else {
-                switch (result.getResultType()) {
-                case ResultWas::ThrewException:
-                case ResultWas::FatalErrorCondition:
-                    elementName = "error";
-                    break;
-                case ResultWas::ExplicitFailure:
-                case ResultWas::ExpressionFailed:
-                case ResultWas::DidntThrowException:
-                    elementName = "failure";
-                    break;
-                case ResultWas::ExplicitSkip:
-                    elementName = "skipped";
-                    break;
-                    // We should never see these here:
-                case ResultWas::Info:
-                case ResultWas::Warning:
-                case ResultWas::Ok:
-                case ResultWas::Unknown:
-                case ResultWas::FailureBit:
-                case ResultWas::Exception:
-                    elementName = "internalError";
-                    break;
+        const Attempt *
+        FirstFailure(const TestResult &test)
+        {
+            for (const auto &attempt : test.attempts)
+            {
+                if (IsFailure(attempt.outcome))
+                {
+                    return &attempt;
                 }
             }
+            return nullptr;
+        }
 
-            XmlWriter::ScopedElement e = xml.scopedElement(elementName);
+        std::string
+        Seconds(std::int64_t microseconds)
+        {
+            const auto tenths = (microseconds + 50000) / 100000;
+            return std::to_string(tenths / 10) + "." +
+                   std::to_string(tenths % 10) + " s";
+        }
 
-            ReusableStringStream messageRss;
-            messageRss << result.getTestMacroName() << '(' << result.getExpression() << ')';
-            xml.writeAttribute("message"_sr, messageRss.str());
-
-            ReusableStringStream textRss;
-            if ( result.getResultType() == ResultWas::ExplicitSkip ) {
-                textRss << "SKIPPED\n";
-            } else {
-                textRss << "FAILED:\n";
-                if (result.hasExpression()) {
-                    textRss << '\t' << result.getExpressionInMacro() << '\n';
-                }
-                if (result.hasExpandedExpression()) {
-                    textRss << "with expansion:\n\t" << result.getExpandedExpression() << '\n';
+        std::string
+        OpenSections(const Attempt &attempt)
+        {
+            std::vector<std::string> open;
+            for (const auto &section : attempt.sections)
+            {
+                if (section.durationMicroseconds < 0)
+                {
+                    open.resize(section.depth);
+                    open.push_back(section.name);
                 }
             }
-
-            if (result.hasMessage())
-                textRss << result.getMessage() << '\n';
-
-            for (auto const& msg : stats.infoMessages)
-                if (msg.type == ResultWas::Info)
-                    textRss << msg.message << '\n';
-
-            textRss << "at " << result.getSourceInfo();
-            xml.writeText(textRss.str(), XmlFormatting::Newline);
+            std::string text;
+            for (const auto &name : open)
+            {
+                text += text.empty() ? "" : " / ";
+                text += name;
+            }
+            return text;
         }
+
+        std::string
+        QuoteArgument(const std::string &argument)
+        {
+            if (argument.find_first_of(" \t\"'\\$`&|;<>()[]*?~!#") ==
+                    std::string::npos &&
+                !argument.empty())
+            {
+                return argument;
+            }
+            std::string quoted = "\"";
+            for (const char character : argument)
+            {
+                if (character == '"' || character == '\\' || character == '$' ||
+                    character == '`')
+                {
+                    quoted.push_back('\\');
+                }
+                quoted.push_back(character);
+            }
+            quoted.push_back('"');
+            return quoted;
+        }
+    } // namespace
+
+    std::string
+    QuoteTestSpec(const std::string &name)
+    {
+        // Catch2's spec syntax gives these characters a meaning; a backslash
+        // makes them literal.
+        std::string spec;
+        for (const char character : name)
+        {
+            if (character == ',' || character == '[' || character == ']' ||
+                character == '*' || character == '\\' || character == '~' ||
+                character == '"')
+            {
+                spec.push_back('\\');
+            }
+            spec.push_back(character);
+        }
+        return spec;
     }
 
-} // end namespace Catch
-
-
-
-namespace Catch {
-
-    StreamingReporterBase::~StreamingReporterBase() = default;
+    std::string
+    FailureSignature(const Attempt &attempt)
+    {
+        std::string text = CategoryName(attempt.category);
+        text += '|';
+        bool described = false;
+        for (const auto &assertion : attempt.assertions)
+        {
+            if (assertion.passed || assertion.allowed)
+            {
+                continue;
+            }
+            text += assertion.file + ":" + std::to_string(assertion.line) +
+                    "|" + Normalise(assertion.message) + "|" +
+                    assertion.expression;
+            described = true;
+            break;
+        }
+        if (!described)
+        {
+            text += Normalise(attempt.fatalMessage) + "|" +
+                    attempt.lastLocation + "|" + OpenSections(attempt);
+        }
+        return "sig-" + ToHex(Fnv1a64(text)).substr(0, 12);
+    }
 
     void
-    StreamingReporterBase::testRunStarting( TestRunInfo const& _testRunInfo ) {
-        currentTestRunInfo = _testRunInfo;
+    Analyze(RunResult &run, const AnalysisInputs &inputs)
+    {
+        std::map<std::string, std::vector<std::size_t>> bySignature;
+        for (std::size_t index = 0; index < run.tests.size(); ++index)
+        {
+            TestResult &test = run.tests[index];
+            const Attempt *failure = FirstFailure(test);
+            if (failure == nullptr)
+            {
+                continue;
+            }
+            test.signature = FailureSignature(*failure);
+            bySignature[test.signature].push_back(index);
+        }
+
+        for (std::size_t index = 0; index < run.tests.size(); ++index)
+        {
+            TestResult &test = run.tests[index];
+            const Attempt *failure = FirstFailure(test);
+            if (failure == nullptr)
+            {
+                continue;
+            }
+            std::vector<std::string> findings;
+
+            // How it relates to earlier runs.
+            const TestHistory *past =
+                inputs.history == nullptr ? nullptr
+                                          : inputs.history->Find(test.id);
+            const TestRecord *last = past == nullptr ? nullptr : past->Last();
+            if (last == nullptr)
+            {
+                test.history = FailureHistory::kUnknown;
+            }
+            else if (test.flaky || past->FlakyEvents(20) > 0)
+            {
+                test.history = FailureHistory::kIntermittent;
+                const auto events = past->FlakyEvents(20) + (test.flaky ? 1 : 0);
+                findings.push_back("intermittent: " + std::to_string(events) +
+                                   " flaky result(s) in the last 20 runs");
+            }
+            else if (IsFailure(last->outcome))
+            {
+                test.history = FailureHistory::kPersistent;
+                std::size_t streak = 0;
+                for (auto record = past->records.rbegin();
+                     record != past->records.rend() &&
+                     IsFailure(record->outcome);
+                     ++record)
+                {
+                    ++streak;
+                }
+                std::string finding = "persistent: failed in the last " +
+                                      std::to_string(streak) + " run(s)";
+                if (!last->signature.empty() && last->signature != test.signature)
+                {
+                    finding += ", but differently last time";
+                }
+                findings.push_back(finding);
+            }
+            else
+            {
+                test.history = FailureHistory::kNew;
+                std::string finding = "new failure after " +
+                                      std::to_string(past->PassStreak()) +
+                                      " passing run(s)";
+                if (inputs.history != nullptr)
+                {
+                    for (const auto &runRecord : inputs.history->Runs())
+                    {
+                        if (runRecord.id == last->run && !runRecord.commit.empty())
+                        {
+                            finding += "; it last passed at commit " +
+                                       runRecord.commit.substr(0, 12);
+                        }
+                    }
+                }
+                findings.push_back(finding);
+            }
+
+            // Other tests that fail the same way.
+            const auto &group = bySignature[test.signature];
+            if (group.size() > 1)
+            {
+                std::string others;
+                std::size_t named = 0;
+                for (const std::size_t other : group)
+                {
+                    if (other == index)
+                    {
+                        continue;
+                    }
+                    if (named < 3)
+                    {
+                        others += (named > 0 ? ", '" : "'") +
+                                  run.tests[other].name + "'";
+                    }
+                    ++named;
+                }
+                if (named > 3)
+                {
+                    others += " and " + std::to_string(named - 3) + " more";
+                }
+                findings.push_back("fails the same way as " + others +
+                                   ": probably one cause");
+            }
+
+            // Where it stopped.
+            if (failure->outcome == Outcome::kCrashed)
+            {
+                std::string finding = "crashed";
+                if (!failure->exitDescription.empty())
+                {
+                    finding += " (" + failure->exitDescription + ")";
+                }
+                if (!failure->lastLocation.empty())
+                {
+                    finding += " after the assertion at " + failure->lastLocation;
+                }
+                const std::string sections = OpenSections(*failure);
+                if (!sections.empty())
+                {
+                    finding += ", in section " + sections;
+                }
+                findings.push_back(finding);
+            }
+            else if (failure->outcome == Outcome::kTimedOut)
+            {
+                std::string finding =
+                    "stopped after " + Seconds(failure->durationMicroseconds);
+                if (test.predictedDurationMicroseconds > 0 && last != nullptr)
+                {
+                    finding += "; it usually takes " +
+                               Seconds(test.predictedDurationMicroseconds);
+                }
+                const std::string sections = OpenSections(*failure);
+                if (!sections.empty())
+                {
+                    finding += "; it was in section " + sections;
+                }
+                if (!failure->lastLocation.empty())
+                {
+                    finding += "; last assertion started at " +
+                               failure->lastLocation;
+                }
+                findings.push_back(finding);
+            }
+
+            // The change it follows.
+            if (inputs.changes != nullptr)
+            {
+                std::vector<std::string> changedFiles;
+                const auto changed = [&](const std::string &file) {
+                    return std::any_of(inputs.changes->files.begin(),
+                                       inputs.changes->files.end(),
+                                       [&](const auto &path) {
+                                           return SameSourceFile(path, file);
+                                       });
+                };
+                if (changed(test.file))
+                {
+                    changedFiles.push_back(test.file);
+                }
+                for (const auto &assertion : failure->assertions)
+                {
+                    if (!assertion.passed && assertion.file != test.file &&
+                        changed(assertion.file) &&
+                        std::find(changedFiles.begin(),
+                                  changedFiles.end(),
+                                  assertion.file) == changedFiles.end())
+                    {
+                        changedFiles.push_back(assertion.file);
+                    }
+                }
+                for (const auto &file : changedFiles)
+                {
+                    findings.push_back(
+                        "changed since " +
+                        (inputs.changesSince.empty() ? std::string{"HEAD"}
+                                                     : inputs.changesSince) +
+                        ": " + file);
+                }
+            }
+
+            if (!failure->temporaryDirectory.empty())
+            {
+                findings.push_back("its temporary files are kept in " +
+                                   failure->temporaryDirectory);
+            }
+
+            // Findings of the scheduler (order dependence, flakiness,
+            // quarantine) come first.
+            test.analysis.insert(
+                test.analysis.end(), findings.begin(), findings.end());
+
+            std::string replay = QuoteArgument(inputs.program) + " " +
+                                 QuoteArgument(QuoteTestSpec(test.name)) +
+                                 " --seed=" + std::to_string(failure->seed);
+            if (!failure->precededBy.empty() && !test.flaky)
+            {
+                // The replay mode runs the same tests first, in the same
+                // process, as the failure did.
+                replay = QuoteArgument(inputs.program) + " --replay";
+            }
+            test.replayCommand = replay;
+        }
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+#include <algorithm>
+#include <cmath>
+#include <iterator>
+#include <map>
+
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        std::optional<double>
+        ParseSeconds(std::string_view text)
+        {
+            if (text.empty())
+            {
+                return std::nullopt;
+            }
+            double value = 0.0;
+            double scale = 0.0;
+            for (const char character : text)
+            {
+                if (character == '.' && scale <= 0.0)
+                {
+                    scale = 1.0;
+                    continue;
+                }
+                if (character < '0' || character > '9')
+                {
+                    return std::nullopt;
+                }
+                if (scale > 0.0)
+                {
+                    scale /= 10.0;
+                    value += (character - '0') * scale;
+                }
+                else
+                {
+                    value = value * 10.0 + (character - '0');
+                }
+            }
+            return value;
+        }
+
+        bool
+        HasPrefix(std::string_view text, std::string_view prefix)
+        {
+            return text.substr(0, prefix.size()) == prefix;
+        }
+
+        Status
+        ApplyRunnerTag(TestEntry &entry, const std::string &tag)
+        {
+            const auto where = [&] {
+                return "test '" + entry.name + "' at " + entry.file + ":"
+                       + std::to_string(entry.line);
+            };
+            if (tag == "!serial")
+            {
+                entry.serial = true;
+            }
+            else if (tag == "!isolated")
+            {
+                entry.isolated = true;
+            }
+            else if (tag == "!quarantine")
+            {
+                entry.quarantined = true;
+            }
+            else if (HasPrefix(tag, "!resource:"))
+            {
+                entry.resources.push_back(tag.substr(10));
+            }
+            else if (HasPrefix(tag, "!depends:"))
+            {
+                entry.dependsOn.push_back(tag.substr(9));
+            }
+            else if (HasPrefix(tag, "!timeout:"))
+            {
+                const auto seconds = ParseSeconds(tag.substr(9));
+                if (!seconds || *seconds > 1e7)
+                {
+                    return Error{ "[" + tag + "] of " + where()
+                                  + " needs a number of seconds, such as "
+                                    "[!timeout:30]" };
+                }
+                entry.timeout = std::chrono::milliseconds{
+                    static_cast<long long>(std::llround(*seconds * 1000.0))
+                };
+            }
+            else if (HasPrefix(tag, "!retries:"))
+            {
+                const auto count = ParseSeconds(tag.substr(9));
+                if (!count || *count > 100 || std::floor(*count) < *count)
+                {
+                    return Error{ "[" + tag + "] of " + where()
+                                  + " needs a whole number up to 100, such as "
+                                    "[!retries:3]" };
+                }
+                entry.retries = static_cast<unsigned>(*count);
+            }
+            return Status::Ok();
+        }
+    } // namespace
+
+    Expected<Catalog>
+    Catalog::Load()
+    {
+        Catalog catalog;
+        const auto &handles
+            = Catch::getRegistryHub().getTestCaseRegistry().getAllTests();
+        catalog.handles_ = handles;
+        // Two tests with the same class, name and tags cannot be told apart
+        // by any filter, history record or report, so they are refused.
+        std::vector<const Catch::TestCaseInfo *> sorted;
+        sorted.reserve(handles.size());
+        for (const auto &handle : handles)
+        {
+            sorted.push_back(&handle.getTestCaseInfo());
+        }
+        std::stable_sort(sorted.begin(),
+                         sorted.end(),
+                         [](const auto *lhs, const auto *rhs) {
+                             return *lhs < *rhs;
+                         });
+        const auto duplicate
+            = std::adjacent_find(sorted.begin(),
+                                 sorted.end(),
+                                 [](const auto *lhs, const auto *rhs) {
+                                     return *lhs == *rhs;
+                                 });
+        if (duplicate != sorted.end())
+        {
+            const auto *first = *duplicate;
+            const auto *again = *std::next(duplicate);
+            return Error{ "test case \"" + again->name + "\", with tags \""
+                          + again->tagsAsString() + "\" already defined.\n"
+                          + "\tFirst seen at "
+                          + std::string{ first->lineInfo.file } + ":"
+                          + std::to_string(first->lineInfo.line) + "\n"
+                          + "\tRedefined at "
+                          + std::string{ again->lineInfo.file } + ":"
+                          + std::to_string(again->lineInfo.line) };
+        }
+        std::map<std::string, std::size_t> nameCounts;
+        for (const auto &handle : handles)
+        {
+            const auto &info = handle.getTestCaseInfo();
+            const std::string className{ info.className.data(),
+                                         info.className.size() };
+            ++nameCounts[className.empty() ? info.name
+                                           : className + "::" + info.name];
+        }
+        Sha256 identity;
+        catalog.tests_.reserve(handles.size());
+        for (std::size_t index = 0; index < handles.size(); ++index)
+        {
+            const auto &info = handles[index].getTestCaseInfo();
+            TestEntry entry;
+            entry.index = index;
+            entry.name = info.name;
+            entry.className
+                = std::string{ info.className.data(), info.className.size() };
+            entry.file = std::string{ info.lineInfo.file };
+            entry.line = info.lineInfo.line;
+            entry.hidden = info.isHidden();
+            entry.mayFail = info.okToFail() && !info.expectedToFail();
+            entry.shouldFail = info.expectedToFail();
+            for (const auto &tag : info.tags)
+            {
+                entry.tags.emplace_back(tag.original.data(),
+                                        tag.original.size());
+            }
+            entry.benchmark
+                = std::find(entry.tags.begin(), entry.tags.end(), "!benchmark")
+                  != entry.tags.end();
+            for (const auto &tag : entry.tags)
+            {
+                if (!tag.empty() && tag.front() == '!')
+                {
+                    if (auto status = ApplyRunnerTag(entry, tag); !status)
+                    {
+                        return status.GetError();
+                    }
+                }
+            }
+            const std::string base = entry.className.empty()
+                                         ? entry.name
+                                         : entry.className + "::" + entry.name;
+            entry.key = base;
+            if (nameCounts[base] > 1)
+            {
+                entry.key += " " + info.tagsAsString();
+            }
+            identity.Update(entry.key);
+            identity.Update("\n");
+            catalog.tests_.push_back(std::move(entry));
+        }
+        catalog.identity_ = identity.HexDigest();
+        return catalog;
     }
 
-    void StreamingReporterBase::testRunEnded( TestRunStats const& ) {
-        currentTestCaseInfo = nullptr;
+    const TestEntry *
+    Catalog::Find(const std::string &keyOrName) const
+    {
+        for (const auto &entry : tests_)
+        {
+            if (entry.key == keyOrName)
+            {
+                return &entry;
+            }
+        }
+        for (const auto &entry : tests_)
+        {
+            if (entry.name == keyOrName)
+            {
+                return &entry;
+            }
+        }
+        return nullptr;
     }
 
-} // end namespace Catch
+    std::vector<std::size_t>
+    Catalog::Match(const Catch::IConfig &config,
+                   std::vector<std::string> &unmatched) const
+    {
+        std::vector<std::size_t> selected;
+        const auto &spec = config.testSpec();
+        if (!spec.hasFilters())
+        {
+            for (const auto &entry : tests_)
+            {
+                if (!entry.hidden
+                    && Catch::isThrowSafe(handles_[entry.index], config))
+                {
+                    selected.push_back(entry.index);
+                }
+            }
+            return selected;
+        }
+        std::vector<bool> chosen(tests_.size(), false);
+        for (const auto &match : spec.matchesByFilter(handles_, config))
+        {
+            if (match.tests.empty())
+            {
+                unmatched.push_back(match.name);
+            }
+            for (const auto *handle : match.tests)
+            {
+                chosen[static_cast<std::size_t>(handle - handles_.data())]
+                    = true;
+            }
+        }
+        for (std::size_t index = 0; index < chosen.size(); ++index)
+        {
+            if (chosen[index])
+            {
+                selected.push_back(index);
+            }
+        }
+        return selected;
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+#include <algorithm>
+#include <cstdio>
+#include <set>
+
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        constexpr const char *kRed = "\x1b[31m";
+        constexpr const char *kGreen = "\x1b[32m";
+        constexpr const char *kYellow = "\x1b[33m";
+        constexpr const char *kCyan = "\x1b[36m";
+        constexpr const char *kGrey = "\x1b[90m";
+        constexpr const char *kBold = "\x1b[1m";
+
+        std::string
+        Duration(std::int64_t microseconds)
+        {
+            if (microseconds < 1000)
+            {
+                return std::to_string(microseconds) + " us";
+            }
+            if (microseconds < 1000000)
+            {
+                return std::to_string(microseconds / 1000) + " ms";
+            }
+            const auto tenths = (microseconds + 50000) / 100000;
+            return std::to_string(tenths / 10) + "."
+                   + std::to_string(tenths % 10) + " s";
+        }
+
+        const char *
+        Label(const TestResult &test)
+        {
+            if (test.flaky)
+            {
+                return "FLAKY";
+            }
+            switch (test.outcome)
+            {
+                case Outcome::kPassed:
+                    return "PASS";
+                case Outcome::kFailed:
+                    return "FAIL";
+                case Outcome::kFailedAsExpected:
+                    return "XFAIL";
+                case Outcome::kSkipped:
+                    return "SKIP";
+                case Outcome::kCrashed:
+                    return "CRASH";
+                case Outcome::kTimedOut:
+                    return "TIMEOUT";
+                case Outcome::kBlocked:
+                    return "BLOCKED";
+                case Outcome::kNotRun:
+                    return "NOT RUN";
+                case Outcome::kUpToDate:
+                    return "UP TO DATE";
+            }
+            return "?";
+        }
+
+        void
+        Write(std::FILE *output, const std::string &text)
+        {
+            std::fwrite(text.data(), 1, text.size(), output);
+        }
+
+        std::string
+        Indent(const std::string &text, const std::string &prefix)
+        {
+            std::string result;
+            std::size_t start = 0;
+            while (start < text.size())
+            {
+                auto end = text.find('\n', start);
+                if (end == std::string::npos)
+                {
+                    end = text.size();
+                }
+                result += prefix + text.substr(start, end - start) + "\n";
+                start = end + 1;
+            }
+            return result;
+        }
+
+        /// One assertion on one line, then its messages: what --success
+        /// shows for every assertion of a test.
+        std::string
+        DescribeAssertion(const AssertionRecord &assertion)
+        {
+            std::string text = assertion.file + ":"
+                               + std::to_string(assertion.line) + ": "
+                               + (assertion.passed ? "passed" : "FAILED") + ":";
+            if (!assertion.expression.empty())
+            {
+                text += " "
+                        + (assertion.macro.empty()
+                               ? assertion.expression
+                               : assertion.macro + "( " + assertion.expression
+                                     + " )");
+                if (!assertion.expansion.empty()
+                    && assertion.expansion != assertion.expression)
+                {
+                    text += " for: " + assertion.expansion;
+                }
+            }
+            text += "\n";
+            if (!assertion.message.empty())
+            {
+                text += "  with message: " + assertion.message + "\n";
+            }
+            for (const auto &context : assertion.context)
+            {
+                text += "  with context: " + context + "\n";
+            }
+            return text;
+        }
+
+        /// The last lines of a long output.
+        std::string
+        Tail(const std::string &text, std::size_t lines)
+        {
+            std::size_t position = text.size();
+            std::size_t count = 0;
+            while (position > 0 && count <= lines)
+            {
+                position = text.rfind('\n', position - 1);
+                if (position == std::string::npos)
+                {
+                    return text;
+                }
+                ++count;
+            }
+            return count > lines ? text.substr(position + 1) : text;
+        }
+    } // namespace
+
+    ConsoleReport::ConsoleReport(const Options &options, std::FILE *output)
+        : options_{ options }
+        , output_{ output }
+    {
+        terminal_ = output == stdout && IsStandardOutputTerminal();
+        colour_ = options.color == ColorMode::kAlways
+                  || (options.color == ColorMode::kAuto && terminal_
+                      && EnableTerminalColours());
+    }
+
+    std::string
+    ConsoleReport::Paint(std::string_view text, const char *colour) const
+    {
+        if (!colour_)
+        {
+            return std::string{ text };
+        }
+        return std::string{ colour } + std::string{ text } + "\x1b[0m";
+    }
+
+    void
+    ConsoleReport::ClearProgress()
+    {
+        if (progressShown_)
+        {
+            Write(output_, "\r\x1b[2K");
+            progressShown_ = false;
+        }
+    }
+
+    void
+    ConsoleReport::RunStarting(std::size_t tests,
+                               std::size_t workers,
+                               std::uint32_t seed,
+                               const std::vector<std::string> &notes)
+    {
+        total_ = tests;
+        if (options_.verbosity == Verbosity::kQuiet)
+        {
+            return;
+        }
+        std::string text = Paint("Catch3", kBold) + ": " + std::to_string(tests)
+                           + " test(s)";
+        if (options_.inProcess)
+        {
+            text += " in this process";
+        }
+        else
+        {
+            text += ", up to " + std::to_string(workers) + " worker(s)";
+        }
+        text += ", seed " + std::to_string(seed) + "\n";
+        for (const auto &note : notes)
+        {
+            text += Paint("note: ", kCyan) + note + "\n";
+        }
+        Write(output_, text);
+        std::fflush(output_);
+    }
+
+    void
+    ConsoleReport::Retrying(const TestResult &test, const Attempt &attempt)
+    {
+        if (options_.verbosity != Verbosity::kVerbose)
+        {
+            return;
+        }
+        ClearProgress();
+        Write(output_,
+              Paint("RETRY ", kYellow) + test.name + " after "
+                  + OutcomeName(attempt.outcome) + "\n");
+    }
+
+    void
+    ConsoleReport::TestFinished(const TestResult &test)
+    {
+        ++finished_;
+        const bool failed = test.FailsRun();
+        failed_ += failed ? 1 : 0;
+        const bool show = options_.verbosity == Verbosity::kVerbose
+                          || options_.includeSuccessful || failed || test.flaky
+                          || (test.quarantined && IsFailure(test.outcome));
+        if (show)
+        {
+            ClearProgress();
+            const char *colour = failed       ? kRed
+                                 : test.flaky ? kYellow
+                                 : test.outcome == Outcome::kSkipped
+                                         || test.outcome == Outcome::kBlocked
+                                     ? kGrey
+                                     : kGreen;
+            std::string line
+                = Paint(Label(test), colour) + " " + test.name + " "
+                  + Paint("(" + Duration(test.DurationMicroseconds()) + ")",
+                          kGrey);
+            if (test.quarantined && IsFailure(test.outcome))
+            {
+                line += Paint(" [quarantined]", kYellow);
+            }
+            Write(output_, line + "\n");
+            if (options_.includeSuccessful && !test.attempts.empty())
+            {
+                for (const auto &assertion : test.attempts.back().assertions)
+                {
+                    Write(output_,
+                          Indent(DescribeAssertion(assertion), "    "));
+                }
+            }
+            if (options_.verbosity == Verbosity::kVerbose && !failed
+                && !test.attempts.empty())
+            {
+                // What a passing test printed; a failure shows it later.
+                const Attempt &attempt = test.attempts.back();
+                const std::string output = attempt.standardOutput
+                                           + attempt.standardError
+                                           + attempt.processOutput;
+                if (!output.empty())
+                {
+                    Write(output_, Indent(output, "    "));
+                }
+            }
+        }
+        if (terminal_ && options_.verbosity != Verbosity::kQuiet
+            && finished_ < total_)
+        {
+            ClearProgress();
+            std::string progress = "[" + std::to_string(finished_) + "/"
+                                   + std::to_string(total_) + "]";
+            if (failed_ > 0)
+            {
+                progress
+                    += " " + Paint(std::to_string(failed_) + " failed", kRed);
+            }
+            Write(output_, progress);
+            progressShown_ = true;
+        }
+        std::fflush(output_);
+    }
+
+    void
+    ConsoleReport::PrintFailure(const TestResult &test)
+    {
+        std::string text
+            = "\n" + Paint(std::string{ Label(test) } + ": " + test.name, kBold)
+              + "\n" + Paint(test.file + ":" + std::to_string(test.line), kGrey)
+              + "\n";
+        const Attempt *failure = nullptr;
+        for (const auto &attempt : test.attempts)
+        {
+            if (IsFailure(attempt.outcome))
+            {
+                failure = &attempt;
+                break;
+            }
+        }
+        if (failure != nullptr)
+        {
+            text += Indent(DescribeFailure(*failure), "  ");
+            if (!failure->standardOutput.empty())
+            {
+                text += "  standard output:\n"
+                        + Indent(Tail(failure->standardOutput, 20), "    ");
+            }
+            const std::string errors
+                = failure->standardError + failure->processOutput;
+            if (!errors.empty())
+            {
+                text
+                    += "  standard error:\n" + Indent(Tail(errors, 20), "    ");
+            }
+        }
+        if (test.outcome == Outcome::kBlocked && !test.analysis.empty())
+        {
+            text += "  " + test.analysis.front() + "\n";
+        }
+        else
+        {
+            for (const auto &finding : test.analysis)
+            {
+                text += Paint("  analysis: ", kCyan) + finding + "\n";
+            }
+        }
+        if (!test.replayCommand.empty())
+        {
+            text += Paint("  replay: ", kCyan) + test.replayCommand + "\n";
+        }
+        Write(output_, text);
+    }
+
+    void
+    ConsoleReport::RunEnded(const RunResult &run)
+    {
+        ClearProgress();
+        for (const auto &test : run.tests)
+        {
+            if (test.FailsRun() || test.flaky
+                || (test.quarantined && IsFailure(test.outcome)))
+            {
+                PrintFailure(test);
+            }
+        }
+        for (const auto &spec : run.unmatchedSpecs)
+        {
+            Write(output_,
+                  Paint("warning: ", kYellow) + "no test matches '" + spec
+                      + "'\n");
+        }
+        for (const auto &note : run.notes)
+        {
+            Write(output_, Paint("note: ", kCyan) + note + "\n");
+        }
+        if (options_.slowest > 0)
+        {
+            std::vector<const TestResult *> ordered;
+            for (const auto &test : run.tests)
+            {
+                if (!test.attempts.empty())
+                {
+                    ordered.push_back(&test);
+                }
+            }
+            std::sort(ordered.begin(),
+                      ordered.end(),
+                      [](const TestResult *left, const TestResult *right) {
+                          return left->DurationMicroseconds()
+                                 > right->DurationMicroseconds();
+                      });
+            ordered.resize(
+                std::min<std::size_t>(ordered.size(), options_.slowest));
+            Write(output_, "\nslowest tests:\n");
+            for (const auto *test : ordered)
+            {
+                std::string duration = Duration(test->DurationMicroseconds());
+                duration.insert(0,
+                                duration.size() < 9 ? 9 - duration.size() : 0,
+                                ' ');
+                Write(output_, "  " + duration + "  " + test->name + "\n");
+            }
+        }
+
+        const RunSummary summary = Summarize(run);
+        std::string line = "\n" + std::to_string(summary.tests) + " test(s): ";
+        std::vector<std::string> parts;
+        const auto add
+            = [&](std::size_t count, const char *what, const char *colour) {
+                  if (count > 0)
+                  {
+                      parts.push_back(
+                          Paint(std::to_string(count) + " " + what, colour));
+                  }
+              };
+        add(summary.passed, "passed", kGreen);
+        add(summary.failed, "failed", kRed);
+        add(summary.crashed, "crashed", kRed);
+        add(summary.timedOut, "timed out", kRed);
+        add(summary.failedAsExpected, "failed as expected", kGreen);
+        add(summary.skipped, "skipped", kGrey);
+        add(summary.blocked, "blocked", kRed);
+        add(summary.notRun, "not run", kGrey);
+        add(summary.upToDate, "up to date", kGrey);
+        add(summary.flaky, "flaky", kYellow);
+        add(summary.quarantined, "in quarantine", kYellow);
+        if (parts.empty())
+        {
+            parts.emplace_back("none ran");
+        }
+        for (std::size_t index = 0; index < parts.size(); ++index)
+        {
+            line += (index > 0 ? ", " : "") + parts[index];
+        }
+        line += "\n"
+                + std::to_string(summary.assertionsPassed
+                                 + summary.assertionsFailed)
+                + " assertion(s), " + std::to_string(summary.attempts)
+                + " attempt(s); " + Duration(summary.wallMicroseconds);
+        if (summary.wallMicroseconds > 0 && summary.testMicroseconds > 0
+            && !options_.inProcess)
+        {
+            const auto speedup
+                = static_cast<double>(summary.testMicroseconds)
+                  / static_cast<double>(summary.wallMicroseconds);
+            line += " (" + Duration(summary.testMicroseconds) + " of tests";
+            // Below this, worker start-up outweighs the tests and the ratio
+            // says nothing about parallelism.
+            if (speedup >= 1.05)
+            {
+                char buffer[32];
+                std::snprintf(buffer, sizeof(buffer), "%.1f", speedup);
+                line += std::string{ ", " } + buffer + "x in parallel";
+            }
+            line += ")";
+        }
+        Write(output_, line + "\n");
+        std::fflush(output_);
+    }
+
+    std::string
+    TraceJson(const RunResult &run)
+    {
+        JsonValue events = JsonValue::Array();
+        std::set<std::size_t> workers;
+        for (const auto &test : run.tests)
+        {
+            for (const auto &attempt : test.attempts)
+            {
+                workers.insert(attempt.worker);
+                JsonValue slice = JsonValue::Object();
+                slice.Set("name", test.name);
+                slice.Set("cat", OutcomeName(attempt.outcome));
+                slice.Set("ph", "X");
+                slice.Set("ts", attempt.startMicroseconds);
+                slice.Set(
+                    "dur",
+                    std::max<std::int64_t>(1, attempt.durationMicroseconds));
+                slice.Set("pid", 1);
+                slice.Set("tid", attempt.worker);
+                JsonValue arguments = JsonValue::Object();
+                arguments.Set("attempt", attempt.number);
+                arguments.Set("outcome", OutcomeName(attempt.outcome));
+                arguments.Set("file",
+                              test.file + ":" + std::to_string(test.line));
+                if (!attempt.precededBy.empty())
+                {
+                    arguments.Set("precededBy", attempt.precededBy.size());
+                }
+                slice.Set("args", std::move(arguments));
+                events.Append(std::move(slice));
+                for (const auto &section : attempt.sections)
+                {
+                    JsonValue inner = JsonValue::Object();
+                    inner.Set("name", section.name);
+                    inner.Set("cat", "section");
+                    inner.Set("ph", "X");
+                    inner.Set("ts",
+                              attempt.startMicroseconds
+                                  + section.startMicroseconds);
+                    inner.Set("dur",
+                              section.durationMicroseconds < 0
+                                  ? std::max<std::int64_t>(
+                                        1,
+                                        attempt.durationMicroseconds
+                                            - section.startMicroseconds)
+                                  : std::max<std::int64_t>(
+                                        1,
+                                        section.durationMicroseconds));
+                    inner.Set("pid", 1);
+                    inner.Set("tid", attempt.worker);
+                    events.Append(std::move(inner));
+                }
+            }
+        }
+        for (const std::size_t worker : workers)
+        {
+            JsonValue name = JsonValue::Object();
+            name.Set("name", "thread_name");
+            name.Set("ph", "M");
+            name.Set("pid", 1);
+            name.Set("tid", worker);
+            JsonValue arguments = JsonValue::Object();
+            arguments.Set("name",
+                          worker == 0 ? std::string{ "in process" }
+                                      : "worker " + std::to_string(worker));
+            name.Set("args", std::move(arguments));
+            events.Append(std::move(name));
+        }
+        JsonValue trace = JsonValue::Object();
+        trace.Set("traceEvents", std::move(events));
+        trace.Set("displayTimeUnit", "ms");
+        JsonValue metadata = JsonValue::Object();
+        metadata.Set("binary", run.binary);
+        metadata.Set("seed", run.seed);
+        trace.Set("otherData", std::move(metadata));
+        return trace.ToString();
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+#include <atomic>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <mutex>
+#include <optional>
+
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        using Clock = std::chrono::steady_clock;
+
+        std::int64_t
+        MicrosecondsBetween(Clock::time_point start, Clock::time_point end)
+        {
+            return std::chrono::duration_cast<std::chrono::microseconds>(
+                       end - start)
+                .count();
+        }
+
+        FailureCategory
+        CategoryOf(Catch::ResultWas::OfType type)
+        {
+            switch (type)
+            {
+                case Catch::ResultWas::ExpressionFailed:
+                    return FailureCategory::kAssertion;
+                case Catch::ResultWas::ExplicitFailure:
+                    return FailureCategory::kExplicitFailure;
+                case Catch::ResultWas::ThrewException:
+                case Catch::ResultWas::Exception:
+                    return FailureCategory::kUnexpectedException;
+                case Catch::ResultWas::DidntThrowException:
+                    return FailureCategory::kMissingException;
+                case Catch::ResultWas::FatalErrorCondition:
+                    return FailureCategory::kCrash;
+                default:
+                    return FailureCategory::kNone;
+            }
+        }
+
+        std::string
+        Location(const Catch::SourceLineInfo &info)
+        {
+            return std::string{ info.file } + ":" + std::to_string(info.line);
+        }
+
+        /// Turns the events of Catch2's engine into protocol messages.
+        class ProtocolListener final: public Catch::IEventListener
+        {
+        public:
+            ProtocolListener(const Catch::IConfig *config,
+                             EventSink sink,
+                             bool includeSuccessful)
+                : IEventListener{ config }
+                , sink_{ std::move(sink) }
+                , includeSuccessful_{ includeSuccessful }
+            {
+                // Captured output belongs to the test that printed it.
+                m_preferences.shouldRedirectStdOut = true;
+                m_preferences.shouldReportAllAssertions = includeSuccessful;
+                // The start of every assertion, for the location of a crash
+                // or a hang.
+                m_preferences.shouldReportAllAssertionStarts = true;
+            }
+
+            void
+            Begin(std::size_t index, std::size_t attempt)
+            {
+                index_ = index;
+                attempt_ = attempt;
+                depth_ = 0;
+                sections_.clear();
+                sectionStarts_.clear();
+                firstCategory_ = FailureCategory::kNone;
+                lastLocation_.clear();
+                lastSentLocation_ = Clock::time_point{};
+            }
+
+            void
+            noMatchingTestCases(Catch::StringRef) override
+            {}
+
+            void
+            reportInvalidTestSpec(Catch::StringRef) override
+            {}
+
+            void
+            testRunStarting(const Catch::TestRunInfo &) override
+            {}
+
+            void
+            testCaseStarting(const Catch::TestCaseInfo &) override
+            {
+                start_ = Clock::now();
+                JsonValue message = Message("start");
+                message.Set("index", index_);
+                message.Set("attempt", attempt_);
+                sink_(message);
+            }
+
+            void
+            testCasePartialStarting(const Catch::TestCaseInfo &,
+                                    std::uint64_t) override
+            {
+                // Every run through the test case enters the sections
+                // again; depth starts over.
+                depth_ = 0;
+                sections_.clear();
+                sectionStarts_.clear();
+            }
+
+            void
+            sectionStarting(const Catch::SectionInfo &info) override
+            {
+                // Catch2 reports the test case itself as the outermost
+                // section; the runner counts real sections only.
+                if (depth_++ == 0)
+                {
+                    return;
+                }
+                sections_.push_back(info.name);
+                sectionStarts_.push_back(Clock::now());
+                JsonValue message = Message("section");
+                message.Set("begin", true);
+                message.Set("name", info.name);
+                message.Set("file", std::string{ info.lineInfo.file });
+                message.Set("line", info.lineInfo.line);
+                message.Set("depth", sections_.size() - 1);
+                message.Set("at", MicrosecondsBetween(start_, Clock::now()));
+                sink_(message);
+            }
+
+            void
+            sectionEnded(const Catch::SectionStats &stats) override
+            {
+                if (stats.missingAssertions)
+                {
+                    // --warn=no-assertions: say why the test failed.
+                    AssertionRecord record;
+                    record.file
+                        = std::string{ stats.sectionInfo.lineInfo.file };
+                    record.line = stats.sectionInfo.lineInfo.line;
+                    record.message = "no assertion ran in "
+                                     + stats.sectionInfo.name
+                                     + " (--warn=no-assertions)";
+                    record.sections = sections_;
+                    record.category = FailureCategory::kAssertion;
+                    if (firstCategory_ == FailureCategory::kNone)
+                    {
+                        firstCategory_ = record.category;
+                    }
+                    JsonValue message = ToJson(record);
+                    message.Set("t", "assertion");
+                    sink_(message);
+                }
+                if (depth_ == 0)
+                {
+                    return;
+                }
+                if (--depth_ == 0 || sections_.empty())
+                {
+                    return;
+                }
+                const auto now = Clock::now();
+                JsonValue message = Message("section");
+                message.Set("begin", false);
+                message.Set("depth", sections_.size() - 1);
+                message.Set("at", MicrosecondsBetween(start_, now));
+                message.Set("duration",
+                            MicrosecondsBetween(sectionStarts_.back(), now));
+                sink_(message);
+                sections_.pop_back();
+                sectionStarts_.pop_back();
+            }
+
+            void
+            assertionStarting(const Catch::AssertionInfo &info) override
+            {
+                lastLocation_ = Location(info.lineInfo);
+                // A hang is only noticed from outside, so the location goes
+                // out now and then rather than with every assertion.
+                const auto now = Clock::now();
+                if (now - lastSentLocation_ > std::chrono::milliseconds(200))
+                {
+                    lastSentLocation_ = now;
+                    JsonValue message = Message("at");
+                    message.Set("location", lastLocation_);
+                    sink_(message);
+                }
+            }
+
+            void
+            assertionEnded(const Catch::AssertionStats &stats) override
+            {
+                const auto &result = stats.assertionResult;
+                const bool skipped
+                    = result.getResultType() == Catch::ResultWas::ExplicitSkip;
+                const bool passed = result.succeeded() || skipped;
+                if (passed && !includeSuccessful_ && !skipped)
+                {
+                    return;
+                }
+                AssertionRecord record;
+                record.file = std::string{ result.getSourceInfo().file };
+                record.line = result.getSourceInfo().line;
+                record.macro = std::string{ result.getTestMacroName() };
+                if (result.hasExpression())
+                {
+                    record.expression = result.getExpression();
+                    record.expansion = result.getExpandedExpression();
+                }
+                record.message = std::string{ result.getMessage() };
+                for (const auto &info : stats.infoMessages)
+                {
+                    if (info.type == Catch::ResultWas::Info
+                        || info.type == Catch::ResultWas::Warning)
+                    {
+                        record.context.push_back(info.message);
+                    }
+                }
+                record.sections = sections_;
+                record.passed = passed;
+                record.category = skipped ? FailureCategory::kNone
+                                          : CategoryOf(result.getResultType());
+                record.allowed = !passed && result.isOk();
+                if (!passed && !record.allowed
+                    && firstCategory_ == FailureCategory::kNone)
+                {
+                    firstCategory_ = record.category;
+                }
+                JsonValue message = ToJson(record);
+                message.Set("t", "assertion");
+                sink_(message);
+            }
+
+            void
+            benchmarkPreparing(Catch::StringRef) override
+            {}
+
+            void
+            benchmarkStarting(const Catch::BenchmarkInfo &) override
+            {}
+
+            void
+            benchmarkEnded(const Catch::BenchmarkStats<> &stats) override
+            {
+                BenchmarkRecord record;
+                record.name = stats.info.name;
+                record.samples = stats.samples.size();
+                record.iterations
+                    = static_cast<std::size_t>(stats.info.iterations);
+                record.meanNanoseconds = stats.mean.point.count();
+                record.lowMeanNanoseconds = stats.mean.lower_bound.count();
+                record.highMeanNanoseconds = stats.mean.upper_bound.count();
+                record.standardDeviationNanoseconds
+                    = stats.standardDeviation.point.count();
+                record.outlierVariance = stats.outlierVariance;
+                JsonValue message = ToJson(record);
+                message.Set("t", "benchmark");
+                sink_(message);
+            }
+
+            void
+            benchmarkFailed(Catch::StringRef) override
+            {}
+
+            void
+            testCasePartialEnded(const Catch::TestCaseStats &,
+                                 std::uint64_t) override
+            {}
+
+            void
+            testCaseEnded(const Catch::TestCaseStats &stats) override
+            {
+                const auto &counts = stats.totals.testCases;
+                Outcome outcome = Outcome::kPassed;
+                if (counts.failed > 0)
+                {
+                    outcome = Outcome::kFailed;
+                }
+                else if (counts.failedButOk > 0)
+                {
+                    outcome = Outcome::kFailedAsExpected;
+                }
+                else if (counts.skipped > 0)
+                {
+                    outcome = Outcome::kSkipped;
+                }
+                FailureCategory category = firstCategory_;
+                if (outcome == Outcome::kFailed
+                    && category == FailureCategory::kNone)
+                {
+                    // A [!shouldfail] test that passed, or a test without
+                    // assertions under --warn=no-assertions.
+                    category = FailureCategory::kAssertion;
+                }
+                JsonValue message = Message("end");
+                message.Set("index", index_);
+                message.Set("attempt", attempt_);
+                message.Set("outcome", OutcomeName(outcome));
+                if (outcome == Outcome::kFailed)
+                {
+                    message.Set("category", CategoryName(category));
+                }
+                message.Set("passed", stats.totals.assertions.passed);
+                // Failures [!mayfail] and [!shouldfail] allow are failures
+                // too; the verdict says whether they count.
+                message.Set("failed",
+                            stats.totals.assertions.failed
+                                + stats.totals.assertions.failedButOk);
+                message.Set("duration",
+                            MicrosecondsBetween(start_, Clock::now()));
+                if (!stats.stdOut.empty())
+                {
+                    message.Set("stdout", stats.stdOut);
+                }
+                if (!stats.stdErr.empty())
+                {
+                    message.Set("stderr", stats.stdErr);
+                }
+                sink_(message);
+            }
+
+            void
+            testRunEnded(const Catch::TestRunStats &) override
+            {}
+
+            void
+            fatalErrorEncountered(Catch::StringRef error) override
+            {
+                JsonValue message = Message("fatal");
+                message.Set("message", std::string{ error });
+                message.Set("location", lastLocation_);
+                sink_(message);
+            }
+
+        private:
+            EventSink sink_;
+            bool includeSuccessful_;
+            std::size_t index_ = 0;
+            std::size_t attempt_ = 0;
+            std::size_t depth_ = 0;
+            std::vector<std::string> sections_;
+            std::vector<Clock::time_point> sectionStarts_;
+            Clock::time_point start_{};
+            FailureCategory firstCategory_ = FailureCategory::kNone;
+            std::string lastLocation_;
+            Clock::time_point lastSentLocation_{};
+        };
+    } // namespace
+
+    Catch::ConfigData
+    ToConfigData(const Options &options, const std::string &programName)
+    {
+        Catch::ConfigData data;
+        data.showSuccessfulTests = options.includeSuccessful;
+        data.shouldDebugBreak = options.breakIntoDebugger;
+        data.noThrow = options.noThrow;
+        data.filenamesAsTags = options.filenamesAsTags;
+        data.allowZeroTests = options.allowNoTests;
+        data.rngSeed = options.seed;
+        data.rngSeedWasFixed = true;
+        data.skipBenchmarks = options.skipBenchmarks;
+        data.benchmarkNoAnalysis = options.benchmarkNoAnalysis;
+        data.benchmarkSamples = options.benchmarkSamples;
+        data.benchmarkResamples = options.benchmarkResamples;
+        data.benchmarkConfidenceInterval = options.benchmarkConfidenceInterval;
+        data.benchmarkWarmupTime = options.benchmarkWarmupTime.count();
+        int warnings = Catch::WarnAbout::Nothing;
+        if (options.warnNoAssertions)
+        {
+            warnings |= Catch::WarnAbout::NoAssertions;
+        }
+        if (options.warnUnmatchedSpecs)
+        {
+            warnings |= Catch::WarnAbout::UnmatchedTestSpec;
+        }
+        if (options.warnInfiniteGenerators)
+        {
+            warnings |= Catch::WarnAbout::InfiniteGenerator;
+        }
+        data.warnings = static_cast<Catch::WarnAbout::What>(warnings);
+        data.runOrder = Catch::TestRunOrder::Declared;
+        data.processName = programName;
+        data.testsOrTags = options.testSpecs;
+        for (const auto &section : options.sections)
+        {
+            data.pathFilters.emplace_back(Catch::PathFilter::For::Section,
+                                          Catch::trim(section));
+        }
+        for (const auto &path : options.paths)
+        {
+            data.useNewPathFilteringBehaviour = true;
+            data.pathFilters.emplace_back(
+                path[0] == 'c' ? Catch::PathFilter::For::Section
+                               : Catch::PathFilter::For::Generator,
+                Catch::trim(path.substr(2)));
+        }
+        return data;
+    }
+
+    namespace
+    {
+        /// The executor whose test is running, for the exit handler.
+        std::atomic<TestExecutor::State *> runningState{ nullptr };
+
+        /// A test that calls `exit` never ends, and what Catch captured of
+        /// its output would be lost with the process: it is written where
+        /// the runner reads the process's own output.
+        void
+        WriteCapturedOutputAtExit();
+    } // namespace
+
+    struct TestExecutor::State final
+    {
+        Catch::Config config;
+        const Catalog &catalog;
+        ProtocolListener *listener = nullptr;
+        std::optional<Catch::RunContext> context;
+
+        State(const Catch::ConfigData &data, const Catalog &knownTests)
+            : config{ data }
+            , catalog{ knownTests }
+        {}
+    };
+
+    TestExecutor::TestExecutor(const Options &options,
+                               const Catalog &catalog,
+                               const std::string &programName,
+                               EventSink sink)
+        : state_{ std::make_unique<State>(ToConfigData(options, programName),
+                                          catalog) }
+    {
+        Catch::getCurrentMutableContext().setConfig(&state_->config);
+        auto multi
+            = Catch::Detail::make_unique<Catch::MultiReporter>(&state_->config);
+        for (const auto &factory :
+             Catch::getRegistryHub().getReporterRegistry().getListeners())
+        {
+            multi->addListener(factory->create(&state_->config));
+        }
+        auto listener = Catch::Detail::make_unique<ProtocolListener>(
+            &state_->config,
+            std::move(sink),
+            options.includeSuccessful);
+        state_->listener = listener.get();
+        multi->addReporter(CATCH_MOVE(listener));
+        Catch::seedRng(state_->config);
+        state_->context.emplace(&state_->config, CATCH_MOVE(multi));
+        static const bool registered
+            = std::atexit(&WriteCapturedOutputAtExit) == 0;
+        static_cast<void>(registered);
+    }
+
+    TestExecutor::~TestExecutor()
+    {
+        // The run context reports the end of the run to the listeners.
+        state_->context.reset();
+        Catch::getCurrentMutableContext().setConfig(nullptr);
+    }
+
+    void
+    TestExecutor::Run(std::size_t index,
+                      std::size_t attempt,
+                      const std::string &temporaryDirectory)
+    {
+        if (index >= state_->catalog.Handles().size())
+        {
+            return;
+        }
+        const TemporaryDirectoryScope scope{ temporaryDirectory };
+        state_->listener->Begin(index, attempt);
+        runningState.store(state_.get());
+        static_cast<void>(
+            state_->context->runTest(state_->catalog.Handles()[index]));
+        runningState.store(nullptr);
+    }
+
+    namespace
+    {
+        void
+        WriteCapturedOutputAtExit()
+        {
+            TestExecutor::State *state = runningState.exchange(nullptr);
+            if (state == nullptr || !state->context)
+            {
+                return;
+            }
+            const std::string output = state->context->capturedOutput();
+            std::fflush(stdout);
+            std::fflush(stderr);
+            WriteStandardError(output);
+        }
+    } // namespace
+
+    int
+    RunWorker(const Options &options, const std::string &programName)
+    {
+        QuietCrashReporting();
+        auto streams = TakeStandardStreams();
+        if (!streams)
+        {
+            std::fprintf(stderr,
+                         "catch3 worker: %s\n",
+                         streams.GetError().Message().c_str());
+            return 1;
+        }
+        auto catalog = Catalog::Load();
+        if (!catalog)
+        {
+            std::fprintf(stderr,
+                         "catch3 worker: %s\n",
+                         catalog.GetError().Message().c_str());
+            return 1;
+        }
+        MessageWriter writer{ streams->events };
+        bool connected = true;
+        const auto send = [&](const JsonValue &message) {
+            if (connected && !writer.Send(message))
+            {
+                // The runner is gone; there is no one to report to.
+                connected = false;
+            }
+        };
+        // Listeners are created and told of the run before the greeting, so
+        // what they print then is written before the runner assigns a test
+        // and is not mistaken for that test's output.
+        TestExecutor executor{ options, *catalog, programName, send };
+        std::fflush(stdout);
+        std::fflush(stderr);
+
+        JsonValue hello = Message("hello");
+        hello.Set("pid", CurrentProcessId());
+        hello.Set("identity", catalog->Identity());
+        hello.Set("tests", catalog->Tests().size());
+        hello.Set("protocol", kWorkerProtocolVersion);
+        send(hello);
+        LineReader commands{ streams->commands };
+        while (connected)
+        {
+            const auto line = commands.Next();
+            if (!line)
+            {
+                break;
+            }
+            const auto command = ParseJson(*line);
+            if (!command)
+            {
+                continue;
+            }
+            const std::string &kind = (*command)["t"].AsString();
+            if (kind == "quit")
+            {
+                break;
+            }
+            if (kind == "run")
+            {
+                executor.Run(
+                    static_cast<std::size_t>((*command)["index"].AsUnsigned()),
+                    static_cast<std::size_t>(
+                        (*command)["attempt"].AsUnsigned()),
+                    (*command)["temp"].AsString());
+            }
+        }
+        return 0;
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+#if defined(_WIN32)
+#    include <fcntl.h>
+#    include <io.h>
+#    include <share.h>
+#    include <sys/stat.h>
+#else
+#    include <fcntl.h>
+#    include <sys/stat.h>
+#    include <unistd.h>
+#endif
+
+#include <atomic>
+#include <cstdio>
+#include <fstream>
+#include <sstream>
+#include <system_error>
+#include <thread>
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        /// Creates `path` only if it does not exist, in one atomic step.
+        bool
+        CreateExclusively(const std::filesystem::path &path)
+        {
+#if defined(_WIN32)
+            int descriptor = -1;
+            if (_wsopen_s(&descriptor,
+                          path.wstring().c_str(),
+                          _O_CREAT | _O_EXCL | _O_WRONLY,
+                          _SH_DENYNO,
+                          _S_IREAD | _S_IWRITE) != 0)
+            {
+                return false;
+            }
+            _close(descriptor);
+            return true;
+#else
+            const int descriptor = open(path.c_str(),
+                                        O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC,
+                                        S_IRUSR | S_IWUSR);
+            if (descriptor < 0)
+            {
+                return false;
+            }
+            close(descriptor);
+            return true;
+#endif
+        }
+    } // namespace
+
+    FileLock::FileLock(const std::filesystem::path &file,
+                       std::chrono::milliseconds wait,
+                       std::chrono::milliseconds stale)
+        : path_{file.string() + ".lock"}
+    {
+        std::error_code error;
+        std::filesystem::create_directories(path_.parent_path(), error);
+        const auto deadline = std::chrono::steady_clock::now() + wait;
+        while (true)
+        {
+            if (CreateExclusively(path_))
+            {
+                held_ = true;
+                return;
+            }
+            const auto written = std::filesystem::last_write_time(path_, error);
+            if (!error &&
+                std::filesystem::file_time_type::clock::now() - written > stale)
+            {
+                std::filesystem::remove(path_, error);
+                continue;
+            }
+            if (std::chrono::steady_clock::now() >= deadline)
+            {
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+
+    FileLock::~FileLock()
+    {
+        if (held_)
+        {
+            std::error_code error;
+            std::filesystem::remove(path_, error);
+        }
+    }
+
+    Expected<std::string>
+    ReadFile(const std::filesystem::path &file)
+    {
+        std::ifstream input(file, std::ios::binary);
+        if (!input)
+        {
+            return Error{"cannot read '" + file.string() + "'"};
+        }
+        std::ostringstream contents;
+        contents << input.rdbuf();
+        if (input.bad())
+        {
+            return Error{"cannot read '" + file.string() + "'"};
+        }
+        return contents.str();
+    }
+
+    Status
+    WriteFileAtomically(const std::filesystem::path &file,
+                        std::string_view contents)
+    {
+        std::error_code error;
+        if (file.has_parent_path())
+        {
+            std::filesystem::create_directories(file.parent_path(), error);
+        }
+        const auto temporary =
+            std::filesystem::path{file.string() + "." + UniqueName() + ".tmp"};
+        {
+            std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+            output.write(contents.data(),
+                         static_cast<std::streamsize>(contents.size()));
+            if (!output)
+            {
+                output.close();
+                std::filesystem::remove(temporary, error);
+                return Error{"cannot write '" + file.string() + "'"};
+            }
+        }
+        std::filesystem::rename(temporary, file, error);
+        if (error)
+        {
+            std::error_code ignored;
+            std::filesystem::remove(temporary, ignored);
+            return Error{"cannot replace '" + file.string() +
+                         "': " + error.message()};
+        }
+        return Status::Ok();
+    }
+
+    Status
+    CreatePrivateFile(const std::filesystem::path &file)
+    {
+#if defined(_WIN32)
+        std::error_code error;
+        const auto status = std::filesystem::symlink_status(file, error);
+        if (!error && std::filesystem::exists(status) &&
+            !std::filesystem::is_regular_file(status))
+        {
+            return Error{"'" + file.string() + "' is not a regular file"};
+        }
+        int descriptor = -1;
+        if (_wsopen_s(&descriptor,
+                      file.wstring().c_str(),
+                      _O_CREAT | _O_TRUNC | _O_WRONLY | _O_NOINHERIT,
+                      _SH_DENYNO,
+                      _S_IREAD | _S_IWRITE) != 0)
+        {
+            return Error{"cannot create '" + file.string() + "'"};
+        }
+        _close(descriptor);
+        return Status::Ok();
+#else
+        int flags = O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | O_NONBLOCK;
+#    if defined(O_NOFOLLOW)
+        flags |= O_NOFOLLOW;
+#    endif
+        const int descriptor = open(file.c_str(), flags, S_IRUSR | S_IWUSR);
+        if (descriptor < 0)
+        {
+            return Error{"cannot create '" + file.string() + "'"};
+        }
+        struct stat information = {};
+        if (fstat(descriptor, &information) != 0 ||
+            !S_ISREG(information.st_mode))
+        {
+            close(descriptor);
+            return Error{"'" + file.string() + "' is not a regular file"};
+        }
+        // A file that existed keeps its mode; make it private too.
+        fchmod(descriptor, S_IRUSR | S_IWUSR);
+        close(descriptor);
+        return Status::Ok();
+#endif
+    }
+
+    std::string
+    UniqueName()
+    {
+        static std::atomic<unsigned> counter{0};
+        std::ostringstream text;
+        text << CurrentProcessId() << '-'
+             << std::chrono::steady_clock::now().time_since_epoch().count()
+             << '-' << std::this_thread::get_id() << '-' << ++counter;
+        return ToHex(Fnv1a64(text.str()));
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+#include <algorithm>
+#include <cctype>
+#include <system_error>
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        Expected<std::string>
+        Git(const std::filesystem::path &directory,
+            std::vector<std::string> arguments)
+        {
+            ChildOptions options;
+            options.arguments.emplace_back("git");
+            options.arguments.insert(
+                options.arguments.end(), arguments.begin(), arguments.end());
+            options.workingDirectory = directory;
+            options.searchPath = true;
+            auto run = RunAndCapture(options);
+            if (!run)
+            {
+                return run.GetError();
+            }
+            if (!run->status.Succeeded())
+            {
+                std::string message = run->errors;
+                while (!message.empty() &&
+                       (message.back() == '\n' || message.back() == '\r'))
+                {
+                    message.pop_back();
+                }
+                return Error{"git " + arguments.front() + " failed: " +
+                             message};
+            }
+            return run->output;
+        }
+
+        std::vector<std::string>
+        Lines(const std::string &text)
+        {
+            std::vector<std::string> lines;
+            std::size_t start = 0;
+            while (start < text.size())
+            {
+                auto end = text.find('\n', start);
+                if (end == std::string::npos)
+                {
+                    end = text.size();
+                }
+                std::string line = text.substr(start, end - start);
+                if (!line.empty() && line.back() == '\r')
+                {
+                    line.pop_back();
+                }
+                if (!line.empty())
+                {
+                    lines.push_back(std::move(line));
+                }
+                start = end + 1;
+            }
+            return lines;
+        }
+
+        std::string
+        Normalised(const std::filesystem::path &path)
+        {
+            std::string text = path.lexically_normal().generic_string();
+#if defined(_WIN32)
+            // Windows paths compare without case.
+            std::transform(text.begin(), text.end(), text.begin(), [](char c) {
+                return static_cast<char>(
+                    std::tolower(static_cast<unsigned char>(c)));
+            });
+#endif
+            return text;
+        }
+    } // namespace
+
+    Expected<Changes>
+    ReadChanges(const std::filesystem::path &directory,
+                const std::string &revision)
+    {
+        auto root = Git(directory, {"rev-parse", "--show-toplevel"});
+        if (!root)
+        {
+            return root.GetError();
+        }
+        Changes changes;
+        const auto rootLines = Lines(*root);
+        if (rootLines.empty())
+        {
+            return Error{"git did not name the top of the checkout"};
+        }
+        changes.root = std::filesystem::path{rootLines.front()};
+        changes.commit = CurrentCommit(directory);
+        const std::string base = revision.empty() ? "HEAD" : revision;
+        auto changed =
+            Git(changes.root, {"diff", "--name-only", "--no-renames", base});
+        if (!changed)
+        {
+            return changed.GetError();
+        }
+        auto untracked = Git(changes.root,
+                             {"ls-files", "--others", "--exclude-standard"});
+        for (const auto &line : Lines(*changed))
+        {
+            changes.files.push_back(changes.root / line);
+        }
+        if (untracked)
+        {
+            for (const auto &line : Lines(*untracked))
+            {
+                changes.files.push_back(changes.root / line);
+            }
+        }
+        return changes;
+    }
+
+    std::string
+    CurrentCommit(const std::filesystem::path &directory)
+    {
+        auto commit = Git(directory, {"rev-parse", "HEAD"});
+        if (!commit)
+        {
+            return {};
+        }
+        const auto lines = Lines(*commit);
+        return lines.empty() ? std::string{} : lines.front();
+    }
+
+    bool
+    SameSourceFile(const std::filesystem::path &left,
+                   const std::filesystem::path &right)
+    {
+        const std::string first = Normalised(left);
+        const std::string second = Normalised(right);
+        if (first == second)
+        {
+            return true;
+        }
+        const auto endsWith = [](const std::string &text,
+                                 const std::string &suffix) {
+            if (suffix.empty() || suffix.size() >= text.size())
+            {
+                return false;
+            }
+            return text.compare(text.size() - suffix.size(),
+                                suffix.size(),
+                                suffix) == 0 &&
+                   text[text.size() - suffix.size() - 1] == '/';
+        };
+        // __FILE__ is often relative to the build directory.
+        std::string relativeFirst = first;
+        std::string relativeSecond = second;
+        while (relativeFirst.rfind("../", 0) == 0)
+        {
+            relativeFirst.erase(0, 3);
+        }
+        while (relativeSecond.rfind("../", 0) == 0)
+        {
+            relativeSecond.erase(0, 3);
+        }
+        return (!left.is_absolute() && endsWith(second, relativeFirst)) ||
+               (!right.is_absolute() && endsWith(first, relativeSecond));
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <cstring>
+#include <fstream>
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        constexpr std::array<std::uint32_t, 64> kRoundConstants = {
+            0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b,
+            0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01,
+            0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7,
+            0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+            0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152,
+            0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+            0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+            0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+            0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819,
+            0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08,
+            0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f,
+            0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+            0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+        };
+
+        constexpr std::uint32_t
+        RotateRight(std::uint32_t value, int count) noexcept
+        {
+            return (value >> count) | (value << (32 - count));
+        }
+    } // namespace
+
+    Sha256::Sha256()
+        : state_{0x6a09e667,
+                 0xbb67ae85,
+                 0x3c6ef372,
+                 0xa54ff53a,
+                 0x510e527f,
+                 0x9b05688c,
+                 0x1f83d9ab,
+                 0x5be0cd19}
+    {
+    }
+
+    void
+    Sha256::Update(const void *data, std::size_t size)
+    {
+        const auto *bytes = static_cast<const std::uint8_t *>(data);
+        totalSize_ += size;
+        while (size > 0)
+        {
+            const std::size_t room = buffer_.size() - bufferSize_;
+            const std::size_t take = size < room ? size : room;
+            std::memcpy(buffer_.data() + bufferSize_, bytes, take);
+            bufferSize_ += take;
+            bytes += take;
+            size -= take;
+            if (bufferSize_ == buffer_.size())
+            {
+                Compress(buffer_.data());
+                bufferSize_ = 0;
+            }
+        }
+    }
+
+    void
+    Sha256::Compress(const std::uint8_t *block)
+    {
+        std::array<std::uint32_t, 64> schedule{};
+        for (int index = 0; index < 16; ++index)
+        {
+            schedule[index] =
+                (static_cast<std::uint32_t>(block[index * 4]) << 24) |
+                (static_cast<std::uint32_t>(block[index * 4 + 1]) << 16) |
+                (static_cast<std::uint32_t>(block[index * 4 + 2]) << 8) |
+                static_cast<std::uint32_t>(block[index * 4 + 3]);
+        }
+        for (int index = 16; index < 64; ++index)
+        {
+            const std::uint32_t s0 = RotateRight(schedule[index - 15], 7) ^
+                                     RotateRight(schedule[index - 15], 18) ^
+                                     (schedule[index - 15] >> 3);
+            const std::uint32_t s1 = RotateRight(schedule[index - 2], 17) ^
+                                     RotateRight(schedule[index - 2], 19) ^
+                                     (schedule[index - 2] >> 10);
+            schedule[index] =
+                schedule[index - 16] + s0 + schedule[index - 7] + s1;
+        }
+        std::uint32_t a = state_[0];
+        std::uint32_t b = state_[1];
+        std::uint32_t c = state_[2];
+        std::uint32_t d = state_[3];
+        std::uint32_t e = state_[4];
+        std::uint32_t f = state_[5];
+        std::uint32_t g = state_[6];
+        std::uint32_t h = state_[7];
+        for (int index = 0; index < 64; ++index)
+        {
+            const std::uint32_t s1 =
+                RotateRight(e, 6) ^ RotateRight(e, 11) ^ RotateRight(e, 25);
+            const std::uint32_t choice = (e & f) ^ (~e & g);
+            const std::uint32_t first =
+                h + s1 + choice + kRoundConstants[index] + schedule[index];
+            const std::uint32_t s0 =
+                RotateRight(a, 2) ^ RotateRight(a, 13) ^ RotateRight(a, 22);
+            const std::uint32_t majority = (a & b) ^ (a & c) ^ (b & c);
+            const std::uint32_t second = s0 + majority;
+            h = g;
+            g = f;
+            f = e;
+            e = d + first;
+            d = c;
+            c = b;
+            b = a;
+            a = first + second;
+        }
+        state_[0] += a;
+        state_[1] += b;
+        state_[2] += c;
+        state_[3] += d;
+        state_[4] += e;
+        state_[5] += f;
+        state_[6] += g;
+        state_[7] += h;
+    }
+
+    std::string
+    Sha256::HexDigest()
+    {
+        const std::uint64_t bitCount = totalSize_ * 8;
+        const std::uint8_t marker = 0x80;
+        Update(&marker, 1);
+        const std::uint8_t zero = 0;
+        while (bufferSize_ != 56)
+        {
+            Update(&zero, 1);
+        }
+        std::uint8_t length[8];
+        for (int index = 0; index < 8; ++index)
+        {
+            length[index] =
+                static_cast<std::uint8_t>(bitCount >> (56 - index * 8));
+        }
+        Update(length, sizeof(length));
+        static constexpr char kDigits[] = "0123456789abcdef";
+        std::string text;
+        text.reserve(64);
+        for (const std::uint32_t word : state_)
+        {
+            for (int shift = 28; shift >= 0; shift -= 4)
+            {
+                text.push_back(kDigits[(word >> shift) & 0xF]);
+            }
+        }
+        return text;
+    }
+
+    std::string
+    Sha256Hex(std::string_view text)
+    {
+        Sha256 hash;
+        hash.Update(text);
+        return hash.HexDigest();
+    }
+
+    Expected<std::string>
+    Sha256File(const std::filesystem::path &path)
+    {
+        std::ifstream file(path, std::ios::binary);
+        if (!file)
+        {
+            return Error{"cannot read '" + path.string() + "'"};
+        }
+        Sha256 hash;
+        char buffer[1 << 16];
+        while (file)
+        {
+            file.read(buffer, sizeof(buffer));
+            const auto count = file.gcount();
+            if (count > 0)
+            {
+                hash.Update(buffer, static_cast<std::size_t>(count));
+            }
+        }
+        if (file.bad())
+        {
+            return Error{"cannot read '" + path.string() + "'"};
+        }
+        return hash.HexDigest();
+    }
+
+    std::uint64_t
+    Fnv1a64(std::string_view text) noexcept
+    {
+        std::uint64_t hash = 0xcbf29ce484222325ULL;
+        for (const char character : text)
+        {
+            hash ^= static_cast<unsigned char>(character);
+            hash *= 0x100000001b3ULL;
+        }
+        return hash;
+    }
+
+    std::string
+    ToHex(std::uint64_t value)
+    {
+        static constexpr char kDigits[] = "0123456789abcdef";
+        std::string text(16, '0');
+        for (int index = 15; index >= 0; --index)
+        {
+            text[static_cast<std::size_t>(index)] = kDigits[value & 0xF];
+            value >>= 4;
+        }
+        return text;
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+#include <algorithm>
+#include <cmath>
+#include <system_error>
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        constexpr int kHistoryVersion = 1;
+        constexpr std::size_t kRecordsPerTest = 50;
+        constexpr std::size_t kRunsKept = 100;
+
+        /// Runs that did not finish on their own say nothing about how long
+        /// the test takes.
+        bool
+        HasDuration(Outcome outcome)
+        {
+            return outcome == Outcome::kPassed || outcome == Outcome::kFailed ||
+                   outcome == Outcome::kFailedAsExpected ||
+                   outcome == Outcome::kSkipped;
+        }
+
+        bool
+        Counts(Outcome outcome)
+        {
+            return outcome != Outcome::kNotRun && outcome != Outcome::kBlocked &&
+                   outcome != Outcome::kUpToDate;
+        }
+
+        JsonValue
+        RecordToJson(const TestRecord &record)
+        {
+            JsonValue value = JsonValue::Object();
+            value.Set("run", record.run);
+            value.Set("outcome", OutcomeName(record.outcome));
+            if (record.category != FailureCategory::kNone)
+            {
+                value.Set("category", CategoryName(record.category));
+            }
+            value.Set("duration", record.durationMicroseconds);
+            value.Set("attempts", record.attempts);
+            if (record.flaky)
+            {
+                value.Set("flaky", true);
+            }
+            if (!record.signature.empty())
+            {
+                value.Set("signature", record.signature);
+            }
+            if (!record.fingerprint.empty())
+            {
+                value.Set("fingerprint", record.fingerprint);
+            }
+            return value;
+        }
+
+        TestRecord
+        RecordFromJson(const JsonValue &value)
+        {
+            TestRecord record;
+            record.run = value["run"].AsInteger();
+            record.outcome = OutcomeFromName(value["outcome"].AsString())
+                                 .value_or(Outcome::kNotRun);
+            record.category = CategoryFromName(value["category"].AsString())
+                                  .value_or(FailureCategory::kNone);
+            record.durationMicroseconds = value["duration"].AsInteger();
+            record.attempts =
+                static_cast<std::size_t>(value["attempts"].AsUnsigned());
+            record.flaky = value["flaky"].AsBoolean();
+            record.signature = value["signature"].AsString();
+            record.fingerprint = value["fingerprint"].AsString();
+            return record;
+        }
+    } // namespace
+
+    const TestRecord *
+    TestHistory::Last() const noexcept
+    {
+        for (auto record = records.rbegin(); record != records.rend();
+             ++record)
+        {
+            if (Counts(record->outcome))
+            {
+                return &*record;
+            }
+        }
+        return nullptr;
+    }
+
+    std::optional<std::int64_t>
+    TestHistory::DurationPercentile(double fraction) const
+    {
+        std::vector<std::int64_t> durations;
+        for (auto record = records.rbegin();
+             record != records.rend() && durations.size() < 20;
+             ++record)
+        {
+            if (HasDuration(record->outcome))
+            {
+                durations.push_back(record->durationMicroseconds);
+            }
+        }
+        if (durations.empty())
+        {
+            return std::nullopt;
+        }
+        std::sort(durations.begin(), durations.end());
+        const auto position = static_cast<std::size_t>(
+            std::ceil(fraction * static_cast<double>(durations.size())));
+        return durations[std::min(durations.size() - 1,
+                                  position == 0 ? 0 : position - 1)];
+    }
+
+    double
+    TestHistory::FailureProbability() const
+    {
+        // A beta prior worth one run: a test without history fails with
+        // probability 0.3, a common share for new code.
+        double failures = 0.3;
+        double total = 1.0;
+        double weight = 1.0;
+        std::size_t seen = 0;
+        for (auto record = records.rbegin();
+             record != records.rend() && seen < 30;
+             ++record)
+        {
+            if (!Counts(record->outcome))
+            {
+                continue;
+            }
+            ++seen;
+            const bool failed = IsFailure(record->outcome) || record->flaky;
+            failures += failed ? weight : 0.0;
+            total += weight;
+            weight *= 0.8;
+        }
+        double probability = failures / total;
+        if (const TestRecord *last = Last();
+            last != nullptr && IsFailure(last->outcome))
+        {
+            // What failed last time most often fails again.
+            probability = std::max(probability, 0.7);
+        }
+        return probability;
+    }
+
+    std::size_t
+    TestHistory::FlakyEvents(std::size_t window) const
+    {
+        std::size_t events = 0;
+        std::size_t seen = 0;
+        const TestRecord *newer = nullptr;
+        for (auto record = records.rbegin();
+             record != records.rend() && seen < window;
+             ++record)
+        {
+            if (!Counts(record->outcome))
+            {
+                continue;
+            }
+            ++seen;
+            if (record->flaky)
+            {
+                ++events;
+            }
+            else if (newer != nullptr && !newer->flaky &&
+                     !record->fingerprint.empty() &&
+                     record->fingerprint == newer->fingerprint &&
+                     IsFailure(record->outcome) != IsFailure(newer->outcome))
+            {
+                // The verdict changed while nothing the test depends on did.
+                ++events;
+            }
+            newer = &*record;
+        }
+        return events;
+    }
+
+    std::size_t
+    TestHistory::PassStreak() const
+    {
+        std::size_t streak = 0;
+        for (auto record = records.rbegin(); record != records.rend();
+             ++record)
+        {
+            if (!Counts(record->outcome))
+            {
+                continue;
+            }
+            if (record->outcome != Outcome::kPassed || record->flaky)
+            {
+                break;
+            }
+            ++streak;
+        }
+        return streak;
+    }
+
+    std::filesystem::path
+    HistoryFile(const std::filesystem::path &directory,
+                const std::string &binaryName)
+    {
+        std::string name;
+        for (const char character : binaryName)
+        {
+            const bool safe = (character >= 'a' && character <= 'z') ||
+                              (character >= 'A' && character <= 'Z') ||
+                              (character >= '0' && character <= '9') ||
+                              character == '-' || character == '_' ||
+                              character == '.';
+            name.push_back(safe ? character : '_');
+        }
+        return directory / (name + ".history.json");
+    }
+
+    std::string
+    History::KeyOf(const TestResult &test)
+    {
+        if (!test.id.empty())
+        {
+            return test.id;
+        }
+        return test.className.empty() ? test.name
+                                      : test.className + "::" + test.name;
+    }
+
+    const TestHistory *
+    History::Find(const std::string &key) const
+    {
+        const auto found = tests_.find(key);
+        return found == tests_.end() ? nullptr : &found->second;
+    }
+
+    Expected<History>
+    History::Load(const std::filesystem::path &file)
+    {
+        std::error_code error;
+        if (!std::filesystem::exists(file, error))
+        {
+            return History{};
+        }
+        auto text = ReadFile(file);
+        if (!text)
+        {
+            return text.GetError();
+        }
+        auto json = ParseJson(*text);
+        if (!json)
+        {
+            return json.GetError().Context(file.string());
+        }
+        return FromJson(*json);
+    }
+
+    Expected<History>
+    History::Commit(const std::filesystem::path &file,
+                    const RunResult &run,
+                    const RunRecord &record,
+                    const std::map<std::string, std::string> &fingerprints,
+                    const QuarantinePolicy &policy)
+    {
+        const FileLock lock{file, std::chrono::seconds(10)};
+        auto history = Load(file);
+        if (!history)
+        {
+            // A damaged file is set aside rather than lost.
+            std::error_code error;
+            std::filesystem::rename(
+                file, file.string() + ".damaged-" + UniqueName(), error);
+            history = History{};
+        }
+        history->Apply(run, record, fingerprints, policy);
+        if (auto status = WriteFileAtomically(
+                file, history->ToJson().ToPrettyString());
+            !status)
+        {
+            return status.GetError();
+        }
+        return history;
+    }
+
+    void
+    History::Apply(const RunResult &run,
+                   RunRecord record,
+                   const std::map<std::string, std::string> &fingerprints,
+                   const QuarantinePolicy &policy)
+    {
+        record.id = nextRun_++;
+        runs_.push_back(record);
+        if (runs_.size() > kRunsKept)
+        {
+            runs_.erase(runs_.begin(),
+                        runs_.begin() +
+                            static_cast<std::ptrdiff_t>(runs_.size() -
+                                                        kRunsKept));
+        }
+        for (const auto &test : run.tests)
+        {
+            if (test.outcome == Outcome::kNotRun)
+            {
+                continue;
+            }
+            const std::string key = KeyOf(test);
+            TestHistory &history = tests_[key];
+            TestRecord result;
+            result.run = record.id;
+            result.outcome = test.outcome;
+            result.category = test.category;
+            result.durationMicroseconds =
+                test.attempts.empty() ? 0
+                                      : test.attempts.back().durationMicroseconds;
+            result.attempts = test.attempts.size();
+            result.flaky = test.flaky;
+            result.signature = test.signature;
+            if (const auto found = fingerprints.find(key);
+                found != fingerprints.end())
+            {
+                result.fingerprint = found->second;
+            }
+            history.records.push_back(result);
+            if (history.records.size() > kRecordsPerTest)
+            {
+                history.records.erase(history.records.begin());
+            }
+            const auto failed = std::find_if(
+                test.attempts.begin(), test.attempts.end(), [](const Attempt &attempt) {
+                    return IsFailure(attempt.outcome);
+                });
+            if ((IsFailure(test.outcome) || test.flaky) &&
+                failed != test.attempts.end())
+            {
+                // The first failure, as it happened: a flaky failure is
+                // worth replaying too.
+                ReplayRecord replay;
+                replay.run = record.id;
+                replay.seed = failed->seed;
+                replay.precededBy = failed->precededBy;
+                replay.freshProcess = failed->freshProcess;
+                history.lastFailure = replay;
+            }
+            else if (test.outcome == Outcome::kPassed)
+            {
+                history.lastFailure.reset();
+            }
+            // Quarantine: in after repeated flakiness, out after a streak of
+            // clean passes.
+            if (!history.quarantine &&
+                history.FlakyEvents(policy.window) >= policy.flakyEventsToEnter)
+            {
+                history.quarantine = QuarantineRecord{
+                    record.id,
+                    std::to_string(history.FlakyEvents(policy.window)) +
+                        " flaky results in the last " +
+                        std::to_string(policy.window) + " runs"};
+            }
+            else if (history.quarantine &&
+                     history.PassStreak() >= policy.passesToLeave)
+            {
+                history.quarantine.reset();
+            }
+        }
+    }
+
+    JsonValue
+    History::ToJson() const
+    {
+        JsonValue value = JsonValue::Object();
+        value.Set("format", "catch3-history");
+        value.Set("version", kHistoryVersion);
+        value.Set("nextRun", nextRun_);
+        JsonValue runs = JsonValue::Array();
+        for (const auto &run : runs_)
+        {
+            JsonValue item = JsonValue::Object();
+            item.Set("id", run.id);
+            item.Set("time", run.unixMilliseconds);
+            item.Set("commit", run.commit);
+            item.Set("binary", run.binaryFingerprint);
+            item.Set("seed", run.seed);
+            item.Set("tests", run.tests);
+            item.Set("failed", run.failed);
+            item.Set("wall", run.wallMicroseconds);
+            runs.Append(std::move(item));
+        }
+        value.Set("runs", std::move(runs));
+        JsonValue tests = JsonValue::Object();
+        for (const auto &[key, history] : tests_)
+        {
+            JsonValue item = JsonValue::Object();
+            JsonValue records = JsonValue::Array();
+            for (const auto &record : history.records)
+            {
+                records.Append(RecordToJson(record));
+            }
+            item.Set("results", std::move(records));
+            if (history.quarantine)
+            {
+                JsonValue quarantine = JsonValue::Object();
+                quarantine.Set("since", history.quarantine->since);
+                quarantine.Set("reason", history.quarantine->reason);
+                item.Set("quarantine", std::move(quarantine));
+            }
+            if (history.lastFailure)
+            {
+                JsonValue replay = JsonValue::Object();
+                replay.Set("run", history.lastFailure->run);
+                replay.Set("seed", history.lastFailure->seed);
+                JsonValue preceding = JsonValue::Array();
+                for (const auto &name : history.lastFailure->precededBy)
+                {
+                    preceding.Append(name);
+                }
+                replay.Set("precededBy", std::move(preceding));
+                replay.Set("freshProcess", history.lastFailure->freshProcess);
+                item.Set("lastFailure", std::move(replay));
+            }
+            tests.Set(key, std::move(item));
+        }
+        value.Set("tests", std::move(tests));
+        return value;
+    }
+
+    Expected<History>
+    History::FromJson(const JsonValue &value)
+    {
+        if (value["format"].AsString() != "catch3-history")
+        {
+            return Error{"not a Catch3 history"};
+        }
+        if (value["version"].AsInteger() > kHistoryVersion)
+        {
+            return Error{"the history was written by a newer Catch3"};
+        }
+        History history;
+        history.nextRun_ = std::max<std::int64_t>(1, value["nextRun"].AsInteger());
+        for (const auto &item : value["runs"].Items())
+        {
+            RunRecord run;
+            run.id = item["id"].AsInteger();
+            run.unixMilliseconds = item["time"].AsInteger();
+            run.commit = item["commit"].AsString();
+            run.binaryFingerprint = item["binary"].AsString();
+            run.seed = static_cast<std::uint32_t>(item["seed"].AsUnsigned());
+            run.tests = static_cast<std::size_t>(item["tests"].AsUnsigned());
+            run.failed = static_cast<std::size_t>(item["failed"].AsUnsigned());
+            run.wallMicroseconds = item["wall"].AsInteger();
+            history.runs_.push_back(run);
+        }
+        for (const auto &[key, item] : value["tests"].Members())
+        {
+            TestHistory test;
+            for (const auto &record : item["results"].Items())
+            {
+                test.records.push_back(RecordFromJson(record));
+            }
+            if (item["quarantine"].IsObject())
+            {
+                test.quarantine = QuarantineRecord{
+                    item["quarantine"]["since"].AsInteger(),
+                    item["quarantine"]["reason"].AsString()};
+            }
+            if (item["lastFailure"].IsObject())
+            {
+                const JsonValue &failure = item["lastFailure"];
+                ReplayRecord replay;
+                replay.run = failure["run"].AsInteger();
+                replay.seed =
+                    static_cast<std::uint32_t>(failure["seed"].AsUnsigned());
+                for (const auto &name : failure["precededBy"].Items())
+                {
+                    replay.precededBy.push_back(name.AsString());
+                }
+                replay.freshProcess = failure["freshProcess"].AsBoolean();
+                test.lastFailure = replay;
+            }
+            history.tests_.emplace(key, std::move(test));
+        }
+        return history;
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <clocale>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <limits>
+#include <optional>
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        // The empty values that accessors return for a value of another
+        // kind. They are never destroyed, so that no destructor runs at exit
+        // while a worker may still be reading a message.
+        const std::string &
+        EmptyString()
+        {
+            static const auto *value = new std::string();
+            return *value;
+        }
+
+        const std::vector<JsonValue> &
+        EmptyItems()
+        {
+            static const auto *value = new std::vector<JsonValue>();
+            return *value;
+        }
+
+        const JsonMembers &
+        EmptyMembers()
+        {
+            static const auto *value = new JsonMembers();
+            return *value;
+        }
+
+        const JsonValue &
+        NullValue()
+        {
+            static const auto *value = new JsonValue();
+            return *value;
+        }
+
+        /// Documents nested deeper than this are refused, so a hostile or
+        /// broken file cannot exhaust the stack of the parser.
+        constexpr int kMaximumDepth = 256;
+
+        void
+        AppendUtf8(std::string &output, std::uint32_t codePoint)
+        {
+            if (codePoint < 0x80)
+            {
+                output.push_back(static_cast<char>(codePoint));
+            }
+            else if (codePoint < 0x800)
+            {
+                output.push_back(static_cast<char>(0xC0 | (codePoint >> 6)));
+                output.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
+            }
+            else if (codePoint < 0x10000)
+            {
+                output.push_back(static_cast<char>(0xE0 | (codePoint >> 12)));
+                output.push_back(
+                    static_cast<char>(0x80 | ((codePoint >> 6) & 0x3F)));
+                output.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
+            }
+            else
+            {
+                output.push_back(static_cast<char>(0xF0 | (codePoint >> 18)));
+                output.push_back(
+                    static_cast<char>(0x80 | ((codePoint >> 12) & 0x3F)));
+                output.push_back(
+                    static_cast<char>(0x80 | ((codePoint >> 6) & 0x3F)));
+                output.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
+            }
+        }
+
+        /// Reads a JSON number exactly. The grammar is checked here; strtod
+        /// does the rounding, with the point replaced by the decimal
+        /// separator of the current locale, which a test may have changed.
+        std::optional<double>
+        ToDouble(std::string_view digits)
+        {
+            std::size_t index = 0;
+            const auto skipDigits = [&] {
+                const std::size_t start = index;
+                while (index < digits.size() && digits[index] >= '0' &&
+                       digits[index] <= '9')
+                {
+                    ++index;
+                }
+                return index > start;
+            };
+            if (index < digits.size() && digits[index] == '-')
+            {
+                ++index;
+            }
+            if (!skipDigits())
+            {
+                return std::nullopt;
+            }
+            std::size_t point = std::string_view::npos;
+            if (index < digits.size() && digits[index] == '.')
+            {
+                point = index++;
+                if (!skipDigits())
+                {
+                    return std::nullopt;
+                }
+            }
+            if (index < digits.size() &&
+                (digits[index] == 'e' || digits[index] == 'E'))
+            {
+                ++index;
+                if (index < digits.size() &&
+                    (digits[index] == '+' || digits[index] == '-'))
+                {
+                    ++index;
+                }
+                if (!skipDigits())
+                {
+                    return std::nullopt;
+                }
+            }
+            if (index != digits.size())
+            {
+                return std::nullopt;
+            }
+            std::string copy{digits};
+            if (point != std::string_view::npos)
+            {
+                const char *separator = std::localeconv()->decimal_point;
+                copy.replace(point,
+                             1,
+                             separator == nullptr || *separator == '\0'
+                                 ? "."
+                                 : separator);
+            }
+            return std::strtod(copy.c_str(), nullptr);
+        }
+
+        class Parser final
+        {
+        public:
+            explicit Parser(std::string_view text)
+                : text_{text}
+            {
+            }
+
+            Expected<JsonValue>
+            ParseDocument()
+            {
+                SkipWhitespace();
+                auto value = ParseValue(0);
+                if (!value)
+                {
+                    return value;
+                }
+                SkipWhitespace();
+                if (position_ != text_.size())
+                {
+                    return Fail("unexpected text after the value");
+                }
+                return value;
+            }
+
+        private:
+            Error
+            Fail(const std::string &message) const
+            {
+                return Error{"invalid JSON at offset " +
+                             std::to_string(position_) + ": " + message};
+            }
+
+            void
+            SkipWhitespace()
+            {
+                while (position_ < text_.size())
+                {
+                    const char character = text_[position_];
+                    if (character != ' ' && character != '\t' &&
+                        character != '\n' && character != '\r')
+                    {
+                        return;
+                    }
+                    ++position_;
+                }
+            }
+
+            bool
+            Consume(std::string_view word)
+            {
+                if (text_.substr(position_, word.size()) == word)
+                {
+                    position_ += word.size();
+                    return true;
+                }
+                return false;
+            }
+
+            Expected<JsonValue>
+            ParseValue(int depth)
+            {
+                if (depth > kMaximumDepth)
+                {
+                    return Fail("nested too deeply");
+                }
+                if (position_ >= text_.size())
+                {
+                    return Fail("a value was expected");
+                }
+                const char character = text_[position_];
+                if (character == '{')
+                {
+                    return ParseObject(depth);
+                }
+                if (character == '[')
+                {
+                    return ParseArray(depth);
+                }
+                if (character == '"')
+                {
+                    auto text = ParseString();
+                    if (!text)
+                    {
+                        return text.GetError();
+                    }
+                    return JsonValue{std::move(*text)};
+                }
+                if (Consume("true"))
+                {
+                    return JsonValue{true};
+                }
+                if (Consume("false"))
+                {
+                    return JsonValue{false};
+                }
+                if (Consume("null"))
+                {
+                    return JsonValue{};
+                }
+                return ParseNumber();
+            }
+
+            Expected<JsonValue>
+            ParseNumber()
+            {
+                const std::size_t start = position_;
+                if (position_ < text_.size() && text_[position_] == '-')
+                {
+                    ++position_;
+                }
+                while (position_ < text_.size())
+                {
+                    const char character = text_[position_];
+                    const bool numeric =
+                        (character >= '0' && character <= '9') ||
+                        character == '.' || character == 'e' ||
+                        character == 'E' || character == '+' ||
+                        character == '-';
+                    if (!numeric)
+                    {
+                        break;
+                    }
+                    ++position_;
+                }
+                if (position_ == start)
+                {
+                    return Fail("a value was expected");
+                }
+                const std::string_view digits =
+                    text_.substr(start, position_ - start);
+                const auto value = ToDouble(digits);
+                if (!value)
+                {
+                    position_ = start;
+                    return Fail("malformed number");
+                }
+                return JsonValue{*value};
+            }
+
+            Expected<std::uint32_t>
+            ParseHexQuad()
+            {
+                if (position_ + 4 > text_.size())
+                {
+                    return Fail("truncated \\u escape");
+                }
+                std::uint32_t value = 0;
+                for (int index = 0; index < 4; ++index)
+                {
+                    const char character = text_[position_++];
+                    value <<= 4;
+                    if (character >= '0' && character <= '9')
+                    {
+                        value |= static_cast<std::uint32_t>(character - '0');
+                    }
+                    else if (character >= 'a' && character <= 'f')
+                    {
+                        value |=
+                            static_cast<std::uint32_t>(character - 'a' + 10);
+                    }
+                    else if (character >= 'A' && character <= 'F')
+                    {
+                        value |=
+                            static_cast<std::uint32_t>(character - 'A' + 10);
+                    }
+                    else
+                    {
+                        return Fail("malformed \\u escape");
+                    }
+                }
+                return value;
+            }
+
+            Expected<std::string>
+            ParseString()
+            {
+                ++position_; // The opening quote.
+                std::string result;
+                while (position_ < text_.size())
+                {
+                    const char character = text_[position_++];
+                    if (character == '"')
+                    {
+                        return result;
+                    }
+                    if (static_cast<unsigned char>(character) < 0x20)
+                    {
+                        return Fail("control character in a string");
+                    }
+                    if (character != '\\')
+                    {
+                        result.push_back(character);
+                        continue;
+                    }
+                    if (position_ >= text_.size())
+                    {
+                        break;
+                    }
+                    const char escape = text_[position_++];
+                    switch (escape)
+                    {
+                        case '"':
+                        case '\\':
+                        case '/':
+                            result.push_back(escape);
+                            break;
+                        case 'b':
+                            result.push_back('\b');
+                            break;
+                        case 'f':
+                            result.push_back('\f');
+                            break;
+                        case 'n':
+                            result.push_back('\n');
+                            break;
+                        case 'r':
+                            result.push_back('\r');
+                            break;
+                        case 't':
+                            result.push_back('\t');
+                            break;
+                        case 'u':
+                        {
+                            auto high = ParseHexQuad();
+                            if (!high)
+                            {
+                                return high.GetError();
+                            }
+                            std::uint32_t codePoint = *high;
+                            if (codePoint >= 0xD800 && codePoint <= 0xDBFF &&
+                                Consume("\\u"))
+                            {
+                                auto low = ParseHexQuad();
+                                if (!low)
+                                {
+                                    return low.GetError();
+                                }
+                                if (*low >= 0xDC00 && *low <= 0xDFFF)
+                                {
+                                    codePoint = 0x10000 +
+                                                ((codePoint - 0xD800) << 10) +
+                                                (*low - 0xDC00);
+                                }
+                            }
+                            AppendUtf8(result, codePoint);
+                            break;
+                        }
+                        default:
+                            return Fail("unknown escape");
+                    }
+                }
+                return Fail("unterminated string");
+            }
+
+            Expected<JsonValue>
+            ParseArray(int depth)
+            {
+                ++position_;
+                JsonValue array = JsonValue::Array();
+                SkipWhitespace();
+                if (Consume("]"))
+                {
+                    return array;
+                }
+                while (true)
+                {
+                    SkipWhitespace();
+                    auto item = ParseValue(depth + 1);
+                    if (!item)
+                    {
+                        return item;
+                    }
+                    array.Append(std::move(*item));
+                    SkipWhitespace();
+                    if (Consume("]"))
+                    {
+                        return array;
+                    }
+                    if (!Consume(","))
+                    {
+                        return Fail("',' or ']' was expected");
+                    }
+                }
+            }
+
+            Expected<JsonValue>
+            ParseObject(int depth)
+            {
+                ++position_;
+                JsonValue object = JsonValue::Object();
+                SkipWhitespace();
+                if (Consume("}"))
+                {
+                    return object;
+                }
+                while (true)
+                {
+                    SkipWhitespace();
+                    if (position_ >= text_.size() || text_[position_] != '"')
+                    {
+                        return Fail("a member name was expected");
+                    }
+                    auto key = ParseString();
+                    if (!key)
+                    {
+                        return key.GetError();
+                    }
+                    SkipWhitespace();
+                    if (!Consume(":"))
+                    {
+                        return Fail("':' was expected");
+                    }
+                    SkipWhitespace();
+                    auto value = ParseValue(depth + 1);
+                    if (!value)
+                    {
+                        return value;
+                    }
+                    object.MutableMembers().emplace_back(std::move(*key),
+                                                         std::move(*value));
+                    SkipWhitespace();
+                    if (Consume("}"))
+                    {
+                        return object;
+                    }
+                    if (!Consume(","))
+                    {
+                        return Fail("',' or '}' was expected");
+                    }
+                }
+            }
+
+            std::string_view text_;
+            std::size_t position_ = 0;
+        };
+
+        void
+        AppendNumber(std::string &output, double value)
+        {
+            if (!std::isfinite(value))
+            {
+                // JSON has no infinities; null is the conventional stand-in.
+                output += "null";
+                return;
+            }
+            if (std::fabs(value) < 9.007199254740992e15)
+            {
+                const auto integral = static_cast<long long>(value);
+                if (std::fabs(value - static_cast<double>(integral)) < 1e-9)
+                {
+                    output += std::to_string(integral);
+                    return;
+                }
+            }
+            char buffer[64];
+            std::snprintf(buffer, sizeof(buffer), "%.17g", value);
+            // The C library writes the decimal separator of the current
+            // locale, which a test may have changed.
+            for (char &character : buffer)
+            {
+                if (character == ',')
+                {
+                    character = '.';
+                }
+            }
+            output += buffer;
+        }
+
+        void
+        AppendIndent(std::string &output, int indent, int depth)
+        {
+            if (indent <= 0)
+            {
+                return;
+            }
+            output.push_back('\n');
+            output.append(static_cast<std::size_t>(indent * depth), ' ');
+        }
+    } // namespace
+
+    JsonValue::JsonValue(bool value)
+        : kind_{Kind::kBoolean}
+        , boolean_{value}
+    {
+    }
+
+    JsonValue::JsonValue(double value)
+        : kind_{Kind::kNumber}
+        , number_{value}
+    {
+    }
+
+    JsonValue::JsonValue(int value)
+        : JsonValue{static_cast<double>(value)}
+    {
+    }
+
+    JsonValue::JsonValue(unsigned value)
+        : JsonValue{static_cast<double>(value)}
+    {
+    }
+
+    JsonValue::JsonValue(long value)
+        : JsonValue{static_cast<double>(value)}
+    {
+    }
+
+    JsonValue::JsonValue(unsigned long value)
+        : JsonValue{static_cast<double>(value)}
+    {
+    }
+
+    JsonValue::JsonValue(long long value)
+        : JsonValue{static_cast<double>(value)}
+    {
+    }
+
+    JsonValue::JsonValue(unsigned long long value)
+        : JsonValue{static_cast<double>(value)}
+    {
+    }
+
+    JsonValue::JsonValue(const char *value)
+        : kind_{Kind::kString}
+        , string_{value == nullptr ? "" : value}
+    {
+    }
+
+    JsonValue::JsonValue(std::string value)
+        : kind_{Kind::kString}
+        , string_{std::move(value)}
+    {
+    }
+
+    JsonValue::JsonValue(std::string_view value)
+        : kind_{Kind::kString}
+        , string_{value}
+    {
+    }
+
+    JsonValue::JsonValue(const JsonValue &other)
+    {
+        CopyFrom(other);
+    }
+
+    JsonValue::JsonValue(JsonValue &&other) noexcept
+    {
+        MoveFrom(std::move(other));
+    }
+
+    JsonValue &
+    JsonValue::operator=(const JsonValue &other)
+    {
+        if (this != &other)
+        {
+            JsonValue copy{other};
+            Destroy();
+            MoveFrom(std::move(copy));
+        }
+        return *this;
+    }
+
+    JsonValue &
+    JsonValue::operator=(JsonValue &&other) noexcept
+    {
+        if (this != &other)
+        {
+            Destroy();
+            MoveFrom(std::move(other));
+        }
+        return *this;
+    }
+
+    JsonValue::~JsonValue() = default;
+
+    void
+    JsonValue::Destroy() noexcept
+    {
+        kind_ = Kind::kNull;
+        boolean_ = false;
+        number_ = 0.0;
+        string_.clear();
+        items_.reset();
+        members_.reset();
+    }
+
+    void
+    JsonValue::CopyFrom(const JsonValue &other)
+    {
+        kind_ = other.kind_;
+        boolean_ = other.boolean_;
+        number_ = other.number_;
+        string_ = other.string_;
+        if (other.items_)
+        {
+            items_ = std::make_unique<std::vector<JsonValue>>(*other.items_);
+        }
+        if (other.members_)
+        {
+            members_ = std::make_unique<JsonMembers>(*other.members_);
+        }
+    }
+
+    void
+    JsonValue::MoveFrom(JsonValue &&other) noexcept
+    {
+        kind_ = other.kind_;
+        boolean_ = other.boolean_;
+        number_ = other.number_;
+        string_ = std::move(other.string_);
+        items_ = std::move(other.items_);
+        members_ = std::move(other.members_);
+        other.kind_ = Kind::kNull;
+    }
+
+    JsonValue
+    JsonValue::Array(std::vector<JsonValue> items)
+    {
+        JsonValue value;
+        value.kind_ = Kind::kArray;
+        value.items_ = std::make_unique<std::vector<JsonValue>>(std::move(items));
+        return value;
+    }
+
+    JsonValue
+    JsonValue::Object(JsonMembers members)
+    {
+        JsonValue value;
+        value.kind_ = Kind::kObject;
+        value.members_ = std::make_unique<JsonMembers>(std::move(members));
+        return value;
+    }
+
+    bool
+    JsonValue::AsBoolean(bool fallback) const noexcept
+    {
+        return kind_ == Kind::kBoolean ? boolean_ : fallback;
+    }
+
+    double
+    JsonValue::AsNumber(double fallback) const noexcept
+    {
+        return kind_ == Kind::kNumber ? number_ : fallback;
+    }
+
+    std::int64_t
+    JsonValue::AsInteger(std::int64_t fallback) const noexcept
+    {
+        if (kind_ != Kind::kNumber || !std::isfinite(number_) ||
+            number_ < -9.2e18 || number_ > 9.2e18)
+        {
+            return fallback;
+        }
+        return static_cast<std::int64_t>(number_);
+    }
+
+    std::uint64_t
+    JsonValue::AsUnsigned(std::uint64_t fallback) const noexcept
+    {
+        if (kind_ != Kind::kNumber || !std::isfinite(number_) ||
+            number_ < 0.0 || number_ > 1.8e19)
+        {
+            return fallback;
+        }
+        return static_cast<std::uint64_t>(number_);
+    }
+
+    const std::string &
+    JsonValue::AsString() const noexcept
+    {
+        return kind_ == Kind::kString ? string_ : EmptyString();
+    }
+
+    const std::vector<JsonValue> &
+    JsonValue::Items() const noexcept
+    {
+        return kind_ == Kind::kArray && items_ ? *items_ : EmptyItems();
+    }
+
+    std::vector<JsonValue> &
+    JsonValue::MutableItems()
+    {
+        if (kind_ != Kind::kArray || !items_)
+        {
+            *this = Array();
+        }
+        return *items_;
+    }
+
+    const JsonMembers &
+    JsonValue::Members() const noexcept
+    {
+        return kind_ == Kind::kObject && members_ ? *members_ : EmptyMembers();
+    }
+
+    JsonMembers &
+    JsonValue::MutableMembers()
+    {
+        if (kind_ != Kind::kObject || !members_)
+        {
+            *this = Object();
+        }
+        return *members_;
+    }
+
+    const JsonValue &
+    JsonValue::operator[](std::string_view key) const noexcept
+    {
+        for (const auto &[name, value] : Members())
+        {
+            if (name == key)
+            {
+                return value;
+            }
+        }
+        return NullValue();
+    }
+
+    JsonValue &
+    JsonValue::Set(std::string_view key, JsonValue value)
+    {
+        auto &members = MutableMembers();
+        for (auto &[name, existing] : members)
+        {
+            if (name == key)
+            {
+                existing = std::move(value);
+                return existing;
+            }
+        }
+        members.emplace_back(std::string{key}, std::move(value));
+        return members.back().second;
+    }
+
+    void
+    JsonValue::Append(JsonValue value)
+    {
+        MutableItems().push_back(std::move(value));
+    }
+
+    std::string
+    JsonValue::ToString() const
+    {
+        std::string output;
+        Write(output, 0, 0);
+        return output;
+    }
+
+    std::string
+    JsonValue::ToPrettyString() const
+    {
+        std::string output;
+        Write(output, 2, 0);
+        output.push_back('\n');
+        return output;
+    }
+
+    void
+    JsonValue::Write(std::string &output, int indent, int depth) const
+    {
+        switch (kind_)
+        {
+            case Kind::kNull:
+                output += "null";
+                return;
+            case Kind::kBoolean:
+                output += boolean_ ? "true" : "false";
+                return;
+            case Kind::kNumber:
+                AppendNumber(output, number_);
+                return;
+            case Kind::kString:
+                AppendJsonString(output, string_);
+                return;
+            case Kind::kArray:
+            {
+                const auto &items = Items();
+                output.push_back('[');
+                for (std::size_t index = 0; index < items.size(); ++index)
+                {
+                    if (index > 0)
+                    {
+                        output.push_back(',');
+                    }
+                    AppendIndent(output, indent, depth + 1);
+                    items[index].Write(output, indent, depth + 1);
+                }
+                if (!items.empty())
+                {
+                    AppendIndent(output, indent, depth);
+                }
+                output.push_back(']');
+                return;
+            }
+            case Kind::kObject:
+            {
+                const auto &members = Members();
+                output.push_back('{');
+                for (std::size_t index = 0; index < members.size(); ++index)
+                {
+                    if (index > 0)
+                    {
+                        output.push_back(',');
+                    }
+                    AppendIndent(output, indent, depth + 1);
+                    AppendJsonString(output, members[index].first);
+                    output += indent > 0 ? ": " : ":";
+                    members[index].second.Write(output, indent, depth + 1);
+                }
+                if (!members.empty())
+                {
+                    AppendIndent(output, indent, depth);
+                }
+                output.push_back('}');
+                return;
+            }
+        }
+    }
+
+    Expected<JsonValue>
+    ParseJson(std::string_view text)
+    {
+        return Parser{text}.ParseDocument();
+    }
+
+    void
+    AppendJsonString(std::string &output, std::string_view text)
+    {
+        output.push_back('"');
+        for (const char character : text)
+        {
+            switch (character)
+            {
+                case '"':
+                    output += "\\\"";
+                    break;
+                case '\\':
+                    output += "\\\\";
+                    break;
+                case '\n':
+                    output += "\\n";
+                    break;
+                case '\r':
+                    output += "\\r";
+                    break;
+                case '\t':
+                    output += "\\t";
+                    break;
+                case '\b':
+                    output += "\\b";
+                    break;
+                case '\f':
+                    output += "\\f";
+                    break;
+                default:
+                    if (static_cast<unsigned char>(character) < 0x20)
+                    {
+                        char buffer[8];
+                        std::snprintf(buffer,
+                                      sizeof(buffer),
+                                      "\\u%04x",
+                                      static_cast<unsigned>(character));
+                        output += buffer;
+                    }
+                    else
+                    {
+                        output.push_back(character);
+                    }
+            }
+        }
+        output.push_back('"');
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+#include <algorithm>
+#include <clocale>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <functional>
+#include <limits>
+#include <string_view>
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        enum class Takes : std::uint8_t
+        {
+            kNothing,
+            kValue,
+            kOptionalValue,
+        };
+
+        using Apply =
+            std::function<Status(Options &, const std::optional<std::string> &)>;
+
+        /// One option: its spellings, what it takes and what it does.
+        struct OptionSpec final
+        {
+            std::string_view name;
+            char shortName = '\0';
+            Takes takes = Takes::kNothing;
+            std::string_view valueName;
+            std::string_view group;
+            std::string_view help;
+            Apply apply;
+        };
+
+        std::optional<unsigned long long>
+        ParseUnsigned(std::string_view text)
+        {
+            if (text.empty() || text.size() > 19)
+            {
+                return std::nullopt;
+            }
+            unsigned long long value = 0;
+            for (const char character : text)
+            {
+                if (character < '0' || character > '9')
+                {
+                    return std::nullopt;
+                }
+                value = value * 10 + static_cast<unsigned>(character - '0');
+            }
+            return value;
+        }
+
+        std::optional<double>
+        ParseDecimal(std::string_view text)
+        {
+            // Digits with at most one point: the format the runner writes.
+            bool point = false;
+            bool digit = false;
+            for (const char character : text)
+            {
+                if (character == '.' && !point)
+                {
+                    point = true;
+                    continue;
+                }
+                if (character < '0' || character > '9')
+                {
+                    return std::nullopt;
+                }
+                digit = true;
+            }
+            if (!digit || text.size() > 64)
+            {
+                return std::nullopt;
+            }
+            // strtod rounds correctly, in the decimal separator of the
+            // current locale, which a global constructor may have changed.
+            std::string copy{text};
+            const auto at = copy.find('.');
+            if (at != std::string::npos)
+            {
+                const char *separator = std::localeconv()->decimal_point;
+                copy.replace(at,
+                             1,
+                             separator == nullptr || *separator == '\0'
+                                 ? "."
+                                 : separator);
+            }
+            return std::strtod(copy.c_str(), nullptr);
+        }
+
+        Status
+        ReadCount(const std::optional<std::string> &value,
+                  std::string_view option,
+                  unsigned &target,
+                  unsigned minimum = 0)
+        {
+            const auto parsed = ParseUnsigned(value.value_or(""));
+            if (!parsed || *parsed > std::numeric_limits<unsigned>::max() ||
+                *parsed < minimum)
+            {
+                return Error{"--" + std::string{option} +
+                             " takes a whole number" +
+                             (minimum > 0 ? " of at least " +
+                                                std::to_string(minimum)
+                                          : std::string{}) +
+                             ", not '" + value.value_or("") + "'"};
+            }
+            target = static_cast<unsigned>(*parsed);
+            return Status::Ok();
+        }
+
+        template<typename Value>
+        Status
+        ReadChoice(const std::optional<std::string> &value,
+                   std::string_view option,
+                   std::initializer_list<std::pair<std::string_view, Value>>
+                       choices,
+                   Value &target)
+        {
+            std::string names;
+            for (const auto &[name, choice] : choices)
+            {
+                if (value && *value == name)
+                {
+                    target = choice;
+                    return Status::Ok();
+                }
+                names += names.empty() ? "" : ", ";
+                names += name;
+            }
+            return Error{"--" + std::string{option} + " takes one of " +
+                         names + ", not '" + value.value_or("") + "'"};
+        }
+
+        std::size_t
+        EditDistance(std::string_view left, std::string_view right)
+        {
+            std::vector<std::size_t> previous(right.size() + 1);
+            std::vector<std::size_t> current(right.size() + 1);
+            for (std::size_t index = 0; index <= right.size(); ++index)
+            {
+                previous[index] = index;
+            }
+            for (std::size_t row = 1; row <= left.size(); ++row)
+            {
+                current[0] = row;
+                for (std::size_t column = 1; column <= right.size(); ++column)
+                {
+                    const std::size_t substitution =
+                        previous[column - 1] +
+                        (left[row - 1] == right[column - 1] ? 0 : 1);
+                    current[column] = std::min({previous[column] + 1,
+                                                current[column - 1] + 1,
+                                                substitution});
+                }
+                std::swap(previous, current);
+            }
+            return previous[right.size()];
+        }
+
+        const std::vector<OptionSpec> &
+        Specs()
+        {
+            static const auto *specs = new std::vector<OptionSpec>{
+                // Selecting tests.
+                {"section",
+                 'c',
+                 Takes::kValue,
+                 "NAME",
+                 "Selecting tests",
+                 "run only this section; repeat for nested sections",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.sections.push_back(*value);
+                     return Status::Ok();
+                 }},
+                {"generator-index",
+                 'g',
+                 Takes::kValue,
+                 "INDEX",
+                 "Selecting tests",
+                 "run one value of the next generator, or * for all; the same "
+                 "as --path-filter=g:INDEX",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     if (*value != "*" && !ParseUnsigned(*value))
+                     {
+                         return Status{Error{"--generator-index takes an index "
+                                             "or *, not '" +
+                                             *value + "'"}};
+                     }
+                     options.paths.push_back("g:" + *value);
+                     return Status::Ok();
+                 }},
+                {"path-filter",
+                 'p',
+                 Takes::kValue,
+                 "c:SECTION|g:INDEX",
+                 "Selecting tests",
+                 "run one path through sections and generators; repeat for "
+                 "each level",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     const bool section = value->rfind("c:", 0) == 0;
+                     const bool generator = value->rfind("g:", 0) == 0;
+                     if (value->size() < 3 || (!section && !generator))
+                     {
+                         return Status{Error{
+                             "--path-filter takes c:SECTION or g:INDEX, not '" +
+                             *value + "'"}};
+                     }
+                     if (generator && value->substr(2) != "*" &&
+                         !ParseUnsigned(value->substr(2)))
+                     {
+                         return Status{Error{"--path-filter g: takes a generator "
+                                             "index or *, not '" +
+                                             value->substr(2) + "'"}};
+                     }
+                     options.paths.push_back(*value);
+                     return Status::Ok();
+                 }},
+                {"input-file",
+                 'f',
+                 Takes::kValue,
+                 "FILE",
+                 "Selecting tests",
+                 "run the tests named in FILE, one exact name per line; "
+                 "lines starting with # are comments",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     std::ifstream file(*value);
+                     if (!file)
+                     {
+                         return Status{Error{"cannot read '" + *value + "'"}};
+                     }
+                     std::string line;
+                     bool first = true;
+                     while (std::getline(file, line))
+                     {
+                         while (!line.empty() &&
+                                (line.back() == '\r' || line.back() == ' ' ||
+                                 line.back() == '\t'))
+                         {
+                             line.pop_back();
+                         }
+                         const auto start = line.find_first_not_of(" \t");
+                         line.erase(0, start == std::string::npos ? line.size()
+                                                                  : start);
+                         if (line.empty() || line.front() == '#')
+                         {
+                             continue;
+                         }
+                         // Quoted, a line is one exact test name; a comma
+                         // between specs means "or".
+                         if (line.front() != '"')
+                         {
+                             line = '"' + line + '"';
+                         }
+                         if (!first)
+                         {
+                             options.testSpecs.emplace_back(",");
+                         }
+                         options.testSpecs.push_back(line);
+                         first = false;
+                     }
+                     return Status::Ok();
+                 }},
+                {"select",
+                 '\0',
+                 Takes::kValue,
+                 "WHICH",
+                 "Selecting tests",
+                 "all (default), failed, changed, new or smart",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     return ReadChoice<Selection>(
+                         value,
+                         "select",
+                         {{"all", Selection::kAll},
+                          {"failed", Selection::kFailed},
+                          {"changed", Selection::kChanged},
+                          {"new", Selection::kNew},
+                          {"smart", Selection::kSmart}},
+                         options.selection);
+                 }},
+                {"changes-since",
+                 '\0',
+                 Takes::kValue,
+                 "REVISION",
+                 "Selecting tests",
+                 "the Git revision changes are counted from (default HEAD)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.changesSince = *value;
+                     return Status::Ok();
+                 }},
+                {"incremental",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "Selecting tests",
+                 "skip tests that passed last time and whose inputs are "
+                 "unchanged",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.incremental = true;
+                     return Status::Ok();
+                 }},
+                {"shard",
+                 '\0',
+                 Takes::kValue,
+                 "INDEX/COUNT",
+                 "Selecting tests",
+                 "run one of COUNT shards, counting from 0",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     const auto slash = value->find('/');
+                     const auto index =
+                         ParseUnsigned(std::string_view{*value}.substr(
+                             0,
+                             slash == std::string::npos ? 0 : slash));
+                     const auto count = slash == std::string::npos
+                                            ? std::nullopt
+                                            : ParseUnsigned(
+                                                  std::string_view{*value}
+                                                      .substr(slash + 1));
+                     if (!index || !count || *count == 0 || *index >= *count ||
+                         *count > std::numeric_limits<unsigned>::max())
+                     {
+                         return Status{Error{
+                             "--shard takes INDEX/COUNT with INDEX below "
+                             "COUNT, such as 0/4, not '" +
+                             *value + "'"}};
+                     }
+                     options.shard.index = static_cast<unsigned>(*index);
+                     options.shard.count = static_cast<unsigned>(*count);
+                     return Status::Ok();
+                 }},
+                {"shard-durations",
+                 '\0',
+                 Takes::kValue,
+                 "FILE",
+                 "Selecting tests",
+                 "balance shards by the durations in a JSON report or history",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.shardDurations = *value;
+                     return Status::Ok();
+                 }},
+                {"filenames-as-tags",
+                 '#',
+                 Takes::kNothing,
+                 "",
+                 "Selecting tests",
+                 "tag every test with the name of its file",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.filenamesAsTags = true;
+                     return Status::Ok();
+                 }},
+                // Running.
+                {"jobs",
+                 'j',
+                 Takes::kValue,
+                 "N",
+                 "Running",
+                 "worker processes; 0, the default, uses one per hardware "
+                 "thread",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     return ReadCount(value, "jobs", options.jobs);
+                 }},
+                {"in-process",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "Running",
+                 "run the tests in this process, one after another",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.inProcess = true;
+                     return Status::Ok();
+                 }},
+                {"isolate",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "Running",
+                 "start a fresh process for every test",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.isolate = true;
+                     return Status::Ok();
+                 }},
+                {"timeout",
+                 '\0',
+                 Takes::kValue,
+                 "SECONDS",
+                 "Running",
+                 "the time limit of one test; 0 for none (default: learned "
+                 "from history, 300 for an unknown test)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     const auto seconds = ParseDecimal(*value);
+                     if (!seconds || *seconds > 1e7)
+                     {
+                         return Status{Error{"--timeout takes seconds, such "
+                                             "as 30 or 0.5, not '" +
+                                             *value + "'"}};
+                     }
+                     options.timeout = std::chrono::milliseconds{
+                         static_cast<long long>(std::llround(*seconds * 1000))};
+                     options.timeoutGiven = true;
+                     return Status::Ok();
+                 }},
+                {"no-adaptive-timeout",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "Running",
+                 "use --timeout for every test instead of learning limits",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.adaptiveTimeout = false;
+                     return Status::Ok();
+                 }},
+                {"retries",
+                 '\0',
+                 Takes::kValue,
+                 "N|auto|off",
+                 "Running",
+                 "retry failures: auto (default) retries up to 2 times what "
+                 "may pass again, N retries every failure",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     if (*value == "auto")
+                     {
+                         options.retryMode = RetryMode::kAuto;
+                         return Status::Ok();
+                     }
+                     if (*value == "off")
+                     {
+                         options.retryMode = RetryMode::kOff;
+                         options.retries = 0;
+                         return Status::Ok();
+                     }
+                     options.retryMode = RetryMode::kAlways;
+                     return ReadCount(value, "retries", options.retries);
+                 }},
+                {"repeat",
+                 '\0',
+                 Takes::kValue,
+                 "N",
+                 "Running",
+                 "run every test N times, to find flaky tests",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     return ReadCount(value, "repeat", options.repeat, 1);
+                 }},
+                {"fail-fast",
+                 'a',
+                 Takes::kOptionalValue,
+                 "N",
+                 "Running",
+                 "stop starting tests after N failed tests (default 1)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     if (!value)
+                     {
+                         options.failFast = 1;
+                         return Status::Ok();
+                     }
+                     return ReadCount(value, "fail-fast", options.failFast, 1);
+                 }},
+                {"order",
+                 '\0',
+                 Takes::kValue,
+                 "ORDER",
+                 "Running",
+                 "priority (default), declared, name or random",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     return ReadChoice<Order>(
+                         value,
+                         "order",
+                         {{"priority", Order::kPriority},
+                          {"declared", Order::kDeclared},
+                          {"name", Order::kName},
+                          {"random", Order::kRandom}},
+                         options.order);
+                 }},
+                {"seed",
+                 '\0',
+                 Takes::kValue,
+                 "N",
+                 "Running",
+                 "the random seed of the run (default: a new one each run)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     if (*value == "random")
+                     {
+                         options.seedGiven = false;
+                         return Status::Ok();
+                     }
+                     const auto seed = ParseUnsigned(*value);
+                     if (!seed || *seed > 0xFFFFFFFFULL)
+                     {
+                         return Status{Error{
+                             "--seed takes a number below 2^32 or 'random', "
+                             "not '" +
+                             *value + "'"}};
+                     }
+                     options.seed = static_cast<std::uint32_t>(*seed);
+                     options.seedGiven = true;
+                     return Status::Ok();
+                 }},
+                {"no-bisect",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "Running",
+                 "do not search for the test that leaves state behind when a "
+                 "failure depends on the order",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.bisectOrder = false;
+                     return Status::Ok();
+                 }},
+                // How tests behave.
+                {"success",
+                 's',
+                 Takes::kNothing,
+                 "",
+                 "Test behaviour",
+                 "report passing assertions too",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.includeSuccessful = true;
+                     return Status::Ok();
+                 }},
+                {"break",
+                 'b',
+                 Takes::kNothing,
+                 "",
+                 "Test behaviour",
+                 "break into the debugger on a failure; runs in process",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.breakIntoDebugger = true;
+                     options.inProcess = true;
+                     return Status::Ok();
+                 }},
+                {"no-throw",
+                 'e',
+                 Takes::kNothing,
+                 "",
+                 "Test behaviour",
+                 "skip the assertions that expect exceptions",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.noThrow = true;
+                     return Status::Ok();
+                 }},
+                {"warn",
+                 'w',
+                 Takes::kValue,
+                 "WHAT",
+                 "Test behaviour",
+                 "fail on: no-assertions, unmatched-specs or "
+                 "infinite-generators",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     if (*value == "no-assertions" || *value == "NoAssertions")
+                     {
+                         options.warnNoAssertions = true;
+                     }
+                     else if (*value == "unmatched-specs" ||
+                              *value == "UnmatchedTestSpec")
+                     {
+                         options.warnUnmatchedSpecs = true;
+                     }
+                     else if (*value == "infinite-generators" ||
+                              *value == "InfiniteGenerators")
+                     {
+                         options.warnInfiniteGenerators = true;
+                     }
+                     else
+                     {
+                         return Status{Error{
+                             "--warn takes no-assertions, unmatched-specs or "
+                             "infinite-generators, not '" +
+                             *value + "'"}};
+                     }
+                     return Status::Ok();
+                 }},
+                {"allow-no-tests",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "Test behaviour",
+                 "succeed when no test runs",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.allowNoTests = true;
+                     return Status::Ok();
+                 }},
+                {"skip-benchmarks",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "Test behaviour",
+                 "do not run BENCHMARK blocks",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.skipBenchmarks = true;
+                     return Status::Ok();
+                 }},
+                {"benchmark-samples",
+                 '\0',
+                 Takes::kValue,
+                 "N",
+                 "Test behaviour",
+                 "samples per benchmark (default 100)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     return ReadCount(
+                         value, "benchmark-samples", options.benchmarkSamples, 1);
+                 }},
+                {"benchmark-resamples",
+                 '\0',
+                 Takes::kValue,
+                 "N",
+                 "Test behaviour",
+                 "bootstrap resamples (default 100000)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     return ReadCount(value,
+                                      "benchmark-resamples",
+                                      options.benchmarkResamples,
+                                      1);
+                 }},
+                {"benchmark-confidence-interval",
+                 '\0',
+                 Takes::kValue,
+                 "X",
+                 "Test behaviour",
+                 "between 0 and 1 (default 0.95)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     const auto interval = ParseDecimal(*value);
+                     if (!interval || *interval <= 0.0 || *interval >= 1.0)
+                     {
+                         return Status{
+                             Error{"--benchmark-confidence-interval takes a "
+                                   "number between 0 and 1, not '" +
+                                   *value + "'"}};
+                     }
+                     options.benchmarkConfidenceInterval = *interval;
+                     return Status::Ok();
+                 }},
+                {"benchmark-no-analysis",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "Test behaviour",
+                 "report the mean of the samples without statistics",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.benchmarkNoAnalysis = true;
+                     return Status::Ok();
+                 }},
+                {"benchmark-warmup-time",
+                 '\0',
+                 Takes::kValue,
+                 "MILLISECONDS",
+                 "Test behaviour",
+                 "warm-up time per benchmark (default 100)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     unsigned milliseconds = 0;
+                     auto status =
+                         ReadCount(value, "benchmark-warmup-time", milliseconds);
+                     options.benchmarkWarmupTime =
+                         std::chrono::milliseconds{milliseconds};
+                     return status;
+                 }},
+                // History and analysis.
+                {"history",
+                 '\0',
+                 Takes::kValue,
+                 "DIRECTORY",
+                 "History and analysis",
+                 "where results are remembered (default: .catch3 beside the "
+                 "binary, or CATCH3_HISTORY)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.historyDirectory = *value;
+                     options.historyEnabled = true;
+                     return Status::Ok();
+                 }},
+                {"no-history",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "History and analysis",
+                 "neither read nor write the history",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.historyEnabled = false;
+                     return Status::Ok();
+                 }},
+                {"quarantine",
+                 '\0',
+                 Takes::kValue,
+                 "MODE",
+                 "History and analysis",
+                 "auto (default), report or off",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     return ReadChoice<QuarantineMode>(
+                         value,
+                         "quarantine",
+                         {{"auto", QuarantineMode::kAuto},
+                          {"report", QuarantineMode::kReport},
+                          {"off", QuarantineMode::kOff}},
+                         options.quarantine);
+                 }},
+                {"replay",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "History and analysis",
+                 "run last run's failures again, each in the order and with "
+                 "the seed it failed with",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.replayFailures = true;
+                     return Status::Ok();
+                 }},
+                {"analytics",
+                 '\0',
+                 Takes::kOptionalValue,
+                 "json",
+                 "History and analysis",
+                 "print what the history says about the tests and exit",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     if (value && *value != "json")
+                     {
+                         return Status{Error{
+                             "--analytics takes no value or 'json', not '" +
+                             *value + "'"}};
+                     }
+                     options.mode = Mode::kAnalytics;
+                     options.analyticsJson = value.has_value();
+                     return Status::Ok();
+                 }},
+                // Output.
+                {"verbose",
+                 'v',
+                 Takes::kNothing,
+                 "",
+                 "Output",
+                 "print every test as it ends",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.verbosity = Verbosity::kVerbose;
+                     return Status::Ok();
+                 }},
+                {"quiet",
+                 'q',
+                 Takes::kNothing,
+                 "",
+                 "Output",
+                 "print only failures and the summary",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.verbosity = Verbosity::kQuiet;
+                     return Status::Ok();
+                 }},
+                {"color",
+                 '\0',
+                 Takes::kValue,
+                 "WHEN",
+                 "Output",
+                 "auto (default), always or never",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     return ReadChoice<ColorMode>(
+                         value,
+                         "color",
+                         {{"auto", ColorMode::kAuto},
+                          {"always", ColorMode::kAlways},
+                          {"never", ColorMode::kNever}},
+                         options.color);
+                 }},
+                {"junit",
+                 '\0',
+                 Takes::kValue,
+                 "FILE",
+                 "Output",
+                 "write a JUnit XML report",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.junitPath = *value;
+                     return Status::Ok();
+                 }},
+                {"json",
+                 '\0',
+                 Takes::kValue,
+                 "FILE",
+                 "Output",
+                 "write a JSON report with every attempt and its analysis",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.jsonPath = *value;
+                     return Status::Ok();
+                 }},
+                {"trace",
+                 '\0',
+                 Takes::kValue,
+                 "FILE",
+                 "Output",
+                 "write a trace of the run for chrome://tracing or Perfetto",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.tracePath = *value;
+                     return Status::Ok();
+                 }},
+                {"premature-exit-guard-file",
+                 '\0',
+                 Takes::kValue,
+                 "FILE",
+                 "Output",
+                 "create FILE when the run starts and remove it when the run "
+                 "ends normally",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.exitGuardPath = *value;
+                     return Status::Ok();
+                 }},
+                {"slowest",
+                 '\0',
+                 Takes::kOptionalValue,
+                 "N",
+                 "Output",
+                 "list the N slowest tests (default 10)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     if (!value)
+                     {
+                         options.slowest = 10;
+                         return Status::Ok();
+                     }
+                     return ReadCount(value, "slowest", options.slowest, 1);
+                 }},
+                // Information.
+                {"list",
+                 'l',
+                 Takes::kOptionalValue,
+                 "FORMAT",
+                 "Information",
+                 "list the matching tests: text (default), names or json",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.mode = Mode::kListTests;
+                     if (!value)
+                     {
+                         options.listFormat = ListFormat::kText;
+                         return Status::Ok();
+                     }
+                     return ReadChoice<ListFormat>(
+                         value,
+                         "list",
+                         {{"text", ListFormat::kText},
+                          {"names", ListFormat::kNames},
+                          {"json", ListFormat::kJson}},
+                         options.listFormat);
+                 }},
+                {"list-tags",
+                 't',
+                 Takes::kNothing,
+                 "",
+                 "Information",
+                 "list the tags of the matching tests",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.mode = Mode::kListTags;
+                     return Status::Ok();
+                 }},
+                {"help",
+                 'h',
+                 Takes::kNothing,
+                 "",
+                 "Information",
+                 "print this help",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.mode = Mode::kHelp;
+                     return Status::Ok();
+                 }},
+                {"version",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "Information",
+                 "print the version of Catch3",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.mode = Mode::kVersion;
+                     return Status::Ok();
+                 }},
+                // Internal.
+                {"catch3-worker",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "",
+                 "",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.mode = Mode::kWorker;
+                     return Status::Ok();
+                 }},
+            };
+            return *specs;
+        }
+
+        const OptionSpec *
+        FindLong(std::string_view name)
+        {
+            for (const auto &spec : Specs())
+            {
+                if (spec.name == name)
+                {
+                    return &spec;
+                }
+            }
+            return nullptr;
+        }
+
+        const OptionSpec *
+        FindShort(char name)
+        {
+            for (const auto &spec : Specs())
+            {
+                if (spec.shortName != '\0' && spec.shortName == name)
+                {
+                    return &spec;
+                }
+            }
+            return nullptr;
+        }
+
+        std::string
+        UnknownOption(std::string_view written)
+        {
+            std::string message =
+                "'" + std::string{written} + "' is not an option";
+            std::string_view bare = written;
+            while (!bare.empty() && bare.front() == '-')
+            {
+                bare.remove_prefix(1);
+            }
+            bare = bare.substr(0, bare.find('='));
+            const OptionSpec *closest = nullptr;
+            std::size_t best = 3;
+            for (const auto &spec : Specs())
+            {
+                if (spec.group.empty())
+                {
+                    continue;
+                }
+                const std::size_t distance = EditDistance(bare, spec.name);
+                if (distance < best)
+                {
+                    best = distance;
+                    closest = &spec;
+                }
+            }
+            if (closest != nullptr)
+            {
+                message += "; did you mean --" + std::string{closest->name} +
+                           "?";
+            }
+            else
+            {
+                message += "; --help lists them";
+            }
+            return message;
+        }
+    } // namespace
+
+    Expected<Options>
+    ParseOptions(const std::vector<std::string> &arguments)
+    {
+        Options options;
+        bool onlySpecs = false;
+        for (std::size_t index = 0; index < arguments.size(); ++index)
+        {
+            const std::string &argument = arguments[index];
+            if (onlySpecs || argument.empty() || argument == "-" ||
+                argument.front() != '-' ||
+                (argument.size() > 1 && argument[1] == '[') ||
+                (argument.size() > 1 && argument[1] == '~'))
+            {
+                options.testSpecs.push_back(argument);
+                continue;
+            }
+            if (argument == "--")
+            {
+                onlySpecs = true;
+                continue;
+            }
+            const OptionSpec *spec = nullptr;
+            std::optional<std::string> value;
+            std::string spelled;
+            if (argument.rfind("--", 0) == 0)
+            {
+                const auto equals = argument.find('=');
+                const std::string name = argument.substr(
+                    2,
+                    equals == std::string::npos ? std::string::npos
+                                                : equals - 2);
+                spec = FindLong(name);
+                spelled = "--" + name;
+                if (equals != std::string::npos)
+                {
+                    value = argument.substr(equals + 1);
+                }
+            }
+            else
+            {
+                spec = FindShort(argument[1]);
+                spelled = argument.substr(0, 2);
+                if (argument.size() > 2)
+                {
+                    value = argument.substr(argument[2] == '=' ? 3 : 2);
+                }
+            }
+            if (spec == nullptr)
+            {
+                return Error{UnknownOption(argument)};
+            }
+            if (spec->takes == Takes::kNothing && value)
+            {
+                return Error{spelled + " takes no value"};
+            }
+            if (spec->takes == Takes::kValue && !value)
+            {
+                // The value may also be the next argument: --jobs 4, -j 4.
+                if (index + 1 >= arguments.size())
+                {
+                    return Error{spelled + " needs a value: " + spelled + "=" +
+                                 std::string{spec->valueName}};
+                }
+                value = arguments[++index];
+            }
+            if (auto status = spec->apply(options, value); !status)
+            {
+                return status.GetError();
+            }
+        }
+        return options;
+    }
+
+    std::string
+    HelpText(const std::string &programName)
+    {
+        std::string text = "usage: " + programName +
+                           " [options] [test specs...]\n\n"
+                           "Test specs select tests by name, with * as a "
+                           "wildcard, or by [tag];\n"
+                           "~ excludes, a comma means \"or\". Hidden tests "
+                           "run only when named.\n";
+        std::string_view group;
+        for (const auto &spec : Specs())
+        {
+            if (spec.group.empty())
+            {
+                continue;
+            }
+            if (spec.group != group)
+            {
+                group = spec.group;
+                text += "\n" + std::string{group} + ":\n";
+            }
+            std::string left = "  ";
+            if (spec.shortName != '\0')
+            {
+                left += "-" + std::string(1, spec.shortName) + ", ";
+            }
+            else
+            {
+                left += "    ";
+            }
+            left += "--" + std::string{spec.name};
+            if (spec.takes == Takes::kValue)
+            {
+                left += "=" + std::string{spec.valueName};
+            }
+            else if (spec.takes == Takes::kOptionalValue)
+            {
+                left += "[=" + std::string{spec.valueName} + "]";
+            }
+            if (left.size() < 34)
+            {
+                left.append(34 - left.size(), ' ');
+            }
+            else
+            {
+                left += "\n" + std::string(34, ' ');
+            }
+            text += left + std::string{spec.help} + "\n";
+        }
+        return text;
+    }
+
+    std::vector<std::string>
+    WorkerArguments(const Options &options)
+    {
+        std::vector<std::string> arguments{"--catch3-worker"};
+        for (const auto &section : options.sections)
+        {
+            arguments.push_back("--section=" + section);
+        }
+        for (const auto &path : options.paths)
+        {
+            arguments.push_back("--path-filter=" + path);
+        }
+        if (options.filenamesAsTags)
+        {
+            arguments.emplace_back("--filenames-as-tags");
+        }
+        if (options.includeSuccessful)
+        {
+            arguments.emplace_back("--success");
+        }
+        if (options.noThrow)
+        {
+            arguments.emplace_back("--no-throw");
+        }
+        if (options.warnNoAssertions)
+        {
+            arguments.emplace_back("--warn=no-assertions");
+        }
+        if (options.warnInfiniteGenerators)
+        {
+            arguments.emplace_back("--warn=infinite-generators");
+        }
+        if (options.skipBenchmarks)
+        {
+            arguments.emplace_back("--skip-benchmarks");
+        }
+        if (options.benchmarkNoAnalysis)
+        {
+            arguments.emplace_back("--benchmark-no-analysis");
+        }
+        arguments.push_back("--benchmark-samples=" +
+                            std::to_string(options.benchmarkSamples));
+        arguments.push_back("--benchmark-resamples=" +
+                            std::to_string(options.benchmarkResamples));
+        arguments.push_back(
+            "--benchmark-warmup-time=" +
+            std::to_string(options.benchmarkWarmupTime.count()));
+        // Written with enough digits to come back unchanged.
+        char interval[64];
+        std::snprintf(interval,
+                      sizeof(interval),
+                      "%.17f",
+                      options.benchmarkConfidenceInterval);
+        for (char &character : interval)
+        {
+            // The decimal separator of the locale a test may have set.
+            if (character == ',')
+            {
+                character = '.';
+            }
+        }
+        arguments.push_back(std::string{"--benchmark-confidence-interval="} +
+                            interval);
+        arguments.push_back("--seed=" + std::to_string(options.seed));
+        return arguments;
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+#include <algorithm>
+#include <cstdio>
+#include <functional>
+#include <numeric>
+#include <random>
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        using std::chrono::milliseconds;
+
+        /// The duration assumed for a test never seen before.
+        constexpr std::int64_t kUnknownDurationMicroseconds = 500000;
+
+        /// Durations by test key, from a history or from a JSON report, for
+        /// balancing shards.
+        Expected<std::map<std::string, std::int64_t>>
+        LoadDurations(const std::string &path)
+        {
+            auto text = ReadFile(path);
+            if (!text)
+            {
+                return text.GetError();
+            }
+            auto json = ParseJson(*text);
+            if (!json)
+            {
+                return json.GetError().Context(path);
+            }
+            std::map<std::string, std::int64_t> durations;
+            const std::string &format = (*json)["format"].AsString();
+            if (format == "catch3-history")
+            {
+                auto history = History::FromJson(*json);
+                if (!history)
+                {
+                    return history.GetError().Context(path);
+                }
+                for (const auto &[key, test] : history->Tests())
+                {
+                    if (const auto median = test.DurationPercentile(0.5))
+                    {
+                        durations[key] = *median;
+                    }
+                }
+            }
+            else if (format == "catch3-run")
+            {
+                for (const auto &test : (*json)["tests"].Items())
+                {
+                    const std::string key = test["id"].AsString().empty()
+                                                ? test["name"].AsString()
+                                                : test["id"].AsString();
+                    durations[key] =
+                        test["durationMicroseconds"].AsInteger();
+                }
+            }
+            else
+            {
+                return Error{path + " is neither a Catch3 history nor a "
+                                    "Catch3 JSON report"};
+            }
+            return durations;
+        }
+
+        std::string
+        Percent(double probability)
+        {
+            char buffer[16];
+            std::snprintf(buffer,
+                          sizeof(buffer),
+                          "%.0f%%",
+                          probability * 100.0);
+            return buffer;
+        }
+
+        /// Finds the root of a set in a union-find forest.
+        std::size_t
+        Root(std::vector<std::size_t> &parents, std::size_t index)
+        {
+            while (parents[index] != index)
+            {
+                parents[index] = parents[parents[index]];
+                index = parents[index];
+            }
+            return index;
+        }
+    } // namespace
+
+    unsigned
+    StableShard(const std::string &key, unsigned count) noexcept
+    {
+        if (count <= 1)
+        {
+            return 0;
+        }
+        return static_cast<unsigned>(Fnv1a64(key) % count);
+    }
+
+    Expected<Plan>
+    MakePlan(const Options &options, const PlanInputs &inputs)
+    {
+        const Catalog &catalog = *inputs.catalog;
+        const auto &tests = catalog.Tests();
+        const History *history = inputs.history;
+        Plan plan;
+        plan.unmatchedSpecs = inputs.unmatchedSpecs;
+        plan.candidates = inputs.matched.size();
+
+        const auto historyOf = [&](const TestEntry &entry) -> const TestHistory * {
+            return history == nullptr ? nullptr : history->Find(entry.key);
+        };
+
+        std::vector<bool> selected(tests.size(), false);
+        std::vector<std::string> reasons(tests.size());
+        std::vector<std::optional<std::vector<std::string>>> replayKeys(
+            tests.size());
+        std::vector<std::optional<std::uint32_t>> replaySeeds(tests.size());
+
+        // 1. Selection.
+        if (options.replayFailures)
+        {
+            if (history != nullptr)
+            {
+                for (const auto &[key, test] : history->Tests())
+                {
+                    const TestEntry *entry = catalog.Find(key);
+                    if (entry == nullptr || !test.lastFailure)
+                    {
+                        continue;
+                    }
+                    selected[entry->index] = true;
+                    reasons[entry->index] =
+                        "failed in run " + std::to_string(test.lastFailure->run);
+                    replayKeys[entry->index] = test.lastFailure->precededBy;
+                    replaySeeds[entry->index] = test.lastFailure->seed;
+                }
+            }
+            if (std::none_of(selected.begin(), selected.end(), [](bool b) {
+                    return b;
+                }))
+            {
+                plan.notes.emplace_back(
+                    "the history holds no failure to replay");
+            }
+        }
+        else
+        {
+            const bool needsChanges =
+                options.selection == Selection::kChanged ||
+                options.selection == Selection::kSmart;
+            if (needsChanges && inputs.changes == nullptr)
+            {
+                plan.notes.emplace_back(
+                    "Git could not list the changed files, so no test is "
+                    "selected for a change");
+            }
+            for (const std::size_t index : inputs.matched)
+            {
+                const TestEntry &entry = tests[index];
+                const TestHistory *past = historyOf(entry);
+                const TestRecord *last = past == nullptr ? nullptr : past->Last();
+                const bool failedLast =
+                    last != nullptr && (IsFailure(last->outcome) || last->flaky);
+                const bool isNew = last == nullptr;
+                bool changed = false;
+                if (inputs.changes != nullptr)
+                {
+                    for (const auto &file : inputs.changes->files)
+                    {
+                        if (SameSourceFile(file, entry.file))
+                        {
+                            changed = true;
+                            break;
+                        }
+                    }
+                }
+                const double probability =
+                    past == nullptr ? 0.3 : past->FailureProbability();
+                switch (options.selection)
+                {
+                    case Selection::kAll:
+                        selected[index] = true;
+                        break;
+                    case Selection::kFailed:
+                        if (failedLast)
+                        {
+                            selected[index] = true;
+                            reasons[index] = last->flaky ? "flaky last run"
+                                                         : "failed last run";
+                        }
+                        break;
+                    case Selection::kNew:
+                        if (isNew)
+                        {
+                            selected[index] = true;
+                            reasons[index] = "no earlier result";
+                        }
+                        break;
+                    case Selection::kChanged:
+                        if (changed)
+                        {
+                            selected[index] = true;
+                            reasons[index] = "its source file changed";
+                        }
+                        break;
+                    case Selection::kSmart:
+                        if (changed)
+                        {
+                            reasons[index] = "its source file changed";
+                        }
+                        else if (failedLast)
+                        {
+                            reasons[index] = "failed last run";
+                        }
+                        else if (isNew)
+                        {
+                            reasons[index] = "no earlier result";
+                        }
+                        else if (probability >= 0.5)
+                        {
+                            reasons[index] = "likely to fail (" +
+                                             Percent(probability) + ")";
+                        }
+                        else if (past != nullptr && past->quarantine)
+                        {
+                            reasons[index] = "in quarantine";
+                        }
+                        selected[index] = !reasons[index].empty();
+                        break;
+                }
+            }
+        }
+
+        // 2. Dependencies come along, whatever selected the test.
+        std::vector<std::vector<std::size_t>> dependencies(tests.size());
+        std::vector<std::size_t> pending;
+        for (std::size_t index = 0; index < tests.size(); ++index)
+        {
+            if (selected[index])
+            {
+                pending.push_back(index);
+            }
+        }
+        while (!pending.empty())
+        {
+            const std::size_t index = pending.back();
+            pending.pop_back();
+            for (const auto &name : tests[index].dependsOn)
+            {
+                const TestEntry *dependency = catalog.Find(name);
+                if (dependency == nullptr)
+                {
+                    return Error{"test '" + tests[index].name +
+                                 "' depends on '" + name +
+                                 "', which is not a test of this binary"};
+                }
+                dependencies[index].push_back(dependency->index);
+                if (!selected[dependency->index])
+                {
+                    selected[dependency->index] = true;
+                    reasons[dependency->index] =
+                        "needed by '" + tests[index].name + "'";
+                    pending.push_back(dependency->index);
+                }
+            }
+        }
+
+        // 3. A cycle can never run.
+        {
+            std::vector<int> state(tests.size(), 0);
+            std::vector<std::size_t> path;
+            std::string cycle;
+            const std::function<bool(std::size_t)> visit =
+                [&](std::size_t index) {
+                    state[index] = 1;
+                    path.push_back(index);
+                    for (const std::size_t next : dependencies[index])
+                    {
+                        if (state[next] == 1)
+                        {
+                            const auto start =
+                                std::find(path.begin(), path.end(), next);
+                            for (auto at = start; at != path.end(); ++at)
+                            {
+                                cycle += "'" + tests[*at].name + "' -> ";
+                            }
+                            cycle += "'" + tests[next].name + "'";
+                            return true;
+                        }
+                        if (state[next] == 0 && visit(next))
+                        {
+                            return true;
+                        }
+                    }
+                    path.pop_back();
+                    state[index] = 2;
+                    return false;
+                };
+            for (std::size_t index = 0; index < tests.size(); ++index)
+            {
+                if (selected[index] && state[index] == 0 && visit(index))
+                {
+                    return Error{"the tests depend on each other in a "
+                                 "cycle: " +
+                                 cycle};
+                }
+            }
+        }
+
+        // 4. Sharding. Tests linked by dependencies stay in one shard.
+        if (options.shard.count > 1)
+        {
+            std::vector<std::size_t> parents(tests.size());
+            std::iota(parents.begin(), parents.end(), std::size_t{0});
+            for (std::size_t index = 0; index < tests.size(); ++index)
+            {
+                for (const std::size_t dependency : dependencies[index])
+                {
+                    parents[Root(parents, index)] = Root(parents, dependency);
+                }
+            }
+            // A group is named by its first key, in registration order.
+            std::map<std::size_t, std::vector<std::size_t>> groups;
+            for (std::size_t index = 0; index < tests.size(); ++index)
+            {
+                if (selected[index])
+                {
+                    groups[Root(parents, index)].push_back(index);
+                }
+            }
+            std::vector<unsigned> shardOf(tests.size(), 0);
+            if (!options.shardDurations.empty())
+            {
+                auto durations = LoadDurations(options.shardDurations);
+                if (!durations)
+                {
+                    return durations.GetError();
+                }
+                struct Group
+                {
+                    std::int64_t duration = 0;
+                    std::string key;
+                    const std::vector<std::size_t> *members = nullptr;
+                };
+                std::vector<Group> ordered;
+                for (const auto &[root, members] : groups)
+                {
+                    Group group;
+                    group.members = &members;
+                    group.key = tests[members.front()].key;
+                    for (const std::size_t member : members)
+                    {
+                        const auto found = durations->find(tests[member].key);
+                        group.duration += found == durations->end()
+                                              ? kUnknownDurationMicroseconds
+                                              : found->second;
+                    }
+                    ordered.push_back(group);
+                }
+                // Longest first into the least loaded shard balances the
+                // shards; the order is total, so every machine agrees.
+                std::sort(ordered.begin(),
+                          ordered.end(),
+                          [](const Group &left, const Group &right) {
+                              return left.duration != right.duration
+                                         ? left.duration > right.duration
+                                         : left.key < right.key;
+                          });
+                std::vector<std::int64_t> load(options.shard.count, 0);
+                for (const auto &group : ordered)
+                {
+                    const auto least = static_cast<unsigned>(
+                        std::min_element(load.begin(), load.end()) -
+                        load.begin());
+                    load[least] += group.duration;
+                    for (const std::size_t member : *group.members)
+                    {
+                        shardOf[member] = least;
+                    }
+                }
+            }
+            else
+            {
+                for (const auto &[root, members] : groups)
+                {
+                    const unsigned shard = StableShard(
+                        tests[members.front()].key, options.shard.count);
+                    for (const std::size_t member : members)
+                    {
+                        shardOf[member] = shard;
+                    }
+                }
+            }
+            for (std::size_t index = 0; index < tests.size(); ++index)
+            {
+                if (selected[index] && shardOf[index] != options.shard.index)
+                {
+                    selected[index] = false;
+                }
+            }
+        }
+
+        // 5. Fingerprints, and what an incremental run may keep.
+        std::vector<bool> kept(tests.size(), false);
+        for (std::size_t index = 0; index < tests.size(); ++index)
+        {
+            if (!selected[index])
+            {
+                continue;
+            }
+            const TestEntry &entry = tests[index];
+            const std::string fingerprint =
+                Sha256Hex(inputs.binaryFingerprint + "\n" + entry.key);
+            plan.fingerprints[entry.key] = fingerprint;
+            if (!options.incremental || options.replayFailures)
+            {
+                continue;
+            }
+            const TestHistory *past = historyOf(entry);
+            const TestRecord *last = past == nullptr ? nullptr : past->Last();
+            if (last != nullptr && last->outcome == Outcome::kPassed &&
+                !last->flaky && last->fingerprint == fingerprint &&
+                !(past->quarantine && options.quarantine != QuarantineMode::kOff))
+            {
+                kept[index] = true;
+                TestResult result;
+                result.id = entry.key;
+                result.name = entry.name;
+                result.className = entry.className;
+                result.file = entry.file;
+                result.line = entry.line;
+                result.tags = entry.tags;
+                result.outcome = Outcome::kUpToDate;
+                result.selectionReason = reasons[index];
+                plan.kept.push_back(std::move(result));
+            }
+        }
+
+        // 6. The tests to run, with their limits and predictions.
+        std::vector<std::size_t> order;
+        for (std::size_t index = 0; index < tests.size(); ++index)
+        {
+            if (selected[index] && !kept[index])
+            {
+                order.push_back(index);
+            }
+        }
+        std::map<std::size_t, PlannedTest> planned;
+        for (const std::size_t index : order)
+        {
+            const TestEntry &entry = tests[index];
+            const TestHistory *past = historyOf(entry);
+            PlannedTest test;
+            test.entry = &entry;
+            test.selectionReason = reasons[index];
+            test.fingerprint = plan.fingerprints[entry.key];
+            test.failureProbability =
+                past == nullptr ? 0.3 : past->FailureProbability();
+            test.flakyHistory = past != nullptr && past->FlakyEvents(20) > 0;
+            const auto median =
+                past == nullptr ? std::nullopt : past->DurationPercentile(0.5);
+            test.predictedMicroseconds =
+                median ? *median : kUnknownDurationMicroseconds;
+
+            const milliseconds cap =
+                options.timeoutGiven ? options.timeout : milliseconds{300000};
+            if (entry.timeout)
+            {
+                test.timeout = *entry.timeout;
+            }
+            else if (options.adaptiveTimeout && !entry.benchmark && past &&
+                     median)
+            {
+                // Generous enough for a slow machine, tight enough that a
+                // hang is noticed long before the global limit.
+                const auto p95 = past->DurationPercentile(0.95).value_or(*median);
+                const auto learned = std::max(p95 * 4, *median * 10) / 1000 + 2000;
+                test.timeout = milliseconds{std::max<std::int64_t>(5000, learned)};
+                if (cap.count() > 0 && test.timeout > cap)
+                {
+                    test.timeout = cap;
+                }
+                test.timeoutLearned = true;
+            }
+            else
+            {
+                test.timeout = cap;
+            }
+
+            if (entry.retries)
+            {
+                test.retryLimit = *entry.retries;
+            }
+            else
+            {
+                test.retryLimit = options.retryMode == RetryMode::kOff
+                                      ? 0
+                                      : options.retries;
+            }
+            if (options.quarantine != QuarantineMode::kOff)
+            {
+                if (entry.quarantined)
+                {
+                    test.quarantined = true;
+                    test.quarantineReason = "tagged [!quarantine]";
+                }
+                else if (past != nullptr && past->quarantine)
+                {
+                    test.quarantined = true;
+                    test.quarantineReason = past->quarantine->reason;
+                }
+            }
+            if (replaySeeds[index])
+            {
+                test.replaySeed = replaySeeds[index];
+            }
+            planned.emplace(index, std::move(test));
+        }
+
+        // 7. The order the scheduler prefers.
+        switch (options.order)
+        {
+            case Order::kDeclared:
+                break;
+            case Order::kName:
+                std::stable_sort(order.begin(),
+                                 order.end(),
+                                 [&](std::size_t left, std::size_t right) {
+                                     return tests[left].name < tests[right].name;
+                                 });
+                break;
+            case Order::kRandom:
+            {
+                std::mt19937 generator{options.seed};
+                std::shuffle(order.begin(), order.end(), generator);
+                break;
+            }
+            case Order::kPriority:
+            {
+                // Tests likely to fail go first, the most failures per second
+                // first, so a failing run fails early. The rest go longest
+                // first, which keeps the workers busy until the end.
+                const auto risky = [&](std::size_t index) {
+                    return planned.at(index).failureProbability >= 0.5;
+                };
+                const auto rate = [&](std::size_t index) {
+                    const auto &test = planned.at(index);
+                    const double seconds = std::max(
+                        0.05,
+                        static_cast<double>(test.predictedMicroseconds) / 1e6);
+                    return test.failureProbability / seconds;
+                };
+                std::stable_sort(
+                    order.begin(),
+                    order.end(),
+                    [&](std::size_t left, std::size_t right) {
+                        if (risky(left) != risky(right))
+                        {
+                            return risky(left);
+                        }
+                        if (risky(left))
+                        {
+                            return rate(left) > rate(right);
+                        }
+                        return planned.at(left).predictedMicroseconds >
+                               planned.at(right).predictedMicroseconds;
+                    });
+                break;
+            }
+        }
+        std::map<std::size_t, std::size_t> position;
+        for (std::size_t at = 0; at < order.size(); ++at)
+        {
+            position[order[at]] = at;
+        }
+        std::map<std::string, std::size_t> indexByKey;
+        for (const auto &entry : tests)
+        {
+            indexByKey[entry.key] = entry.index;
+        }
+        for (const std::size_t index : order)
+        {
+            PlannedTest test = std::move(planned.at(index));
+            for (const std::size_t dependency : dependencies[index])
+            {
+                // A dependency kept as up to date has already passed.
+                if (const auto found = position.find(dependency);
+                    found != position.end())
+                {
+                    test.dependencies.push_back(found->second);
+                }
+            }
+            if (replayKeys[index])
+            {
+                std::vector<std::size_t> sequence;
+                for (const auto &key : *replayKeys[index])
+                {
+                    if (const auto found = indexByKey.find(key);
+                        found != indexByKey.end())
+                    {
+                        sequence.push_back(found->second);
+                    }
+                }
+                test.replaySequence = std::move(sequence);
+            }
+            plan.tests.push_back(std::move(test));
+        }
+        return plan;
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+#include <algorithm>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <thread>
+
+
+#if defined(_WIN32)
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
+#    ifndef WIN32_LEAN_AND_MEAN
+#        define WIN32_LEAN_AND_MEAN
+#    endif
+#    include <fcntl.h>
+#    include <io.h>
+#    include <share.h>
+#    include <sys/stat.h>
+#    include <windows.h>
+#else
+#    include <cerrno>
+#    include <csignal>
+#    include <fcntl.h>
+#    include <spawn.h>
+#    include <sys/types.h>
+#    include <sys/wait.h>
+#    include <unistd.h>
+#    if defined(__APPLE__)
+#        include <crt_externs.h>
+#        include <mach-o/dyld.h>
+#    endif
+#    if !defined(__APPLE__) && !(defined(__GLIBC__) && defined(_GNU_SOURCE))
+extern char **environ;
+#    endif
+#endif
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+#if defined(_WIN32)
+        HANDLE
+        AsHandle(std::intptr_t value) noexcept
+        {
+            return reinterpret_cast<HANDLE>(value);
+        }
+
+        std::intptr_t
+        FromHandle(HANDLE handle) noexcept
+        {
+            return reinterpret_cast<std::intptr_t>(handle);
+        }
+
+        std::wstring
+        Widen(std::string_view text)
+        {
+            if (text.empty())
+            {
+                return {};
+            }
+            const int size = MultiByteToWideChar(CP_UTF8,
+                                                 0,
+                                                 text.data(),
+                                                 static_cast<int>(text.size()),
+                                                 nullptr,
+                                                 0);
+            std::wstring wide(static_cast<std::size_t>(size), L'\0');
+            MultiByteToWideChar(CP_UTF8,
+                                0,
+                                text.data(),
+                                static_cast<int>(text.size()),
+                                wide.data(),
+                                size);
+            return wide;
+        }
+
+        std::string
+        Narrow(std::wstring_view text)
+        {
+            if (text.empty())
+            {
+                return {};
+            }
+            const int size = WideCharToMultiByte(CP_UTF8,
+                                                 0,
+                                                 text.data(),
+                                                 static_cast<int>(text.size()),
+                                                 nullptr,
+                                                 0,
+                                                 nullptr,
+                                                 nullptr);
+            std::string narrow(static_cast<std::size_t>(size), '\0');
+            WideCharToMultiByte(CP_UTF8,
+                                0,
+                                text.data(),
+                                static_cast<int>(text.size()),
+                                narrow.data(),
+                                size,
+                                nullptr,
+                                nullptr);
+            return narrow;
+        }
+
+        std::string
+        LastErrorMessage(const char *what)
+        {
+            const DWORD code = GetLastError();
+            wchar_t *buffer = nullptr;
+            const DWORD length = FormatMessageW(
+                FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+                    | FORMAT_MESSAGE_IGNORE_INSERTS,
+                nullptr,
+                code,
+                0,
+                reinterpret_cast<wchar_t *>(&buffer),
+                0,
+                nullptr);
+            std::string message
+                = length > 0 ? Narrow(std::wstring_view{ buffer, length })
+                             : std::string{};
+            if (buffer != nullptr)
+            {
+                LocalFree(buffer);
+            }
+            while (!message.empty()
+                   && (message.back() == '\n' || message.back() == '\r'
+                       || message.back() == ' ' || message.back() == '.'))
+            {
+                message.pop_back();
+            }
+            return std::string{ what } + ": " + message + " (error "
+                   + std::to_string(code) + ")";
+        }
+
+        /// Quotes one argument the way the Microsoft C runtime splits a
+        /// command line back into `argv`.
+        void
+        AppendQuotedArgument(std::wstring &commandLine,
+                             const std::wstring &argument)
+        {
+            const bool needsQuotes
+                = argument.empty()
+                  || argument.find_first_of(L" \t\n\v\"") != std::wstring::npos;
+            if (!needsQuotes)
+            {
+                commandLine += argument;
+                return;
+            }
+            commandLine.push_back(L'"');
+            std::size_t backslashes = 0;
+            for (const wchar_t character : argument)
+            {
+                if (character == L'\\')
+                {
+                    ++backslashes;
+                    continue;
+                }
+                if (character == L'"')
+                {
+                    commandLine.append(backslashes * 2 + 1, L'\\');
+                }
+                else
+                {
+                    commandLine.append(backslashes, L'\\');
+                }
+                backslashes = 0;
+                commandLine.push_back(character);
+            }
+            commandLine.append(backslashes * 2, L'\\');
+            commandLine.push_back(L'"');
+        }
+
+        std::wstring
+        EnvironmentBlock(
+            const std::vector<std::pair<std::string, std::string>> &additions)
+        {
+            std::vector<std::wstring> entries;
+            wchar_t *current = GetEnvironmentStringsW();
+            if (current != nullptr)
+            {
+                for (const wchar_t *entry = current; *entry != L'\0';
+                     entry += wcslen(entry) + 1)
+                {
+                    entries.emplace_back(entry);
+                }
+                FreeEnvironmentStringsW(current);
+            }
+            for (const auto &[name, value] : additions)
+            {
+                const std::wstring wideName = Widen(name);
+                std::erase_if(entries, [&](const std::wstring &entry) {
+                    // A leading '=' marks the hidden per-drive variables.
+                    const auto equals = entry.find(L'=', 1);
+                    return equals == wideName.size()
+                           && CompareStringOrdinal(
+                                  entry.data(),
+                                  static_cast<int>(equals),
+                                  wideName.data(),
+                                  static_cast<int>(wideName.size()),
+                                  TRUE)
+                                  == CSTR_EQUAL;
+                });
+                entries.push_back(wideName + L"=" + Widen(value));
+            }
+            std::wstring block;
+            for (const auto &entry : entries)
+            {
+                block += entry;
+                block.push_back(L'\0');
+            }
+            block.push_back(L'\0');
+            return block;
+        }
+#else
+        int
+        Descriptor(std::intptr_t value) noexcept
+        {
+            return static_cast<int>(value);
+        }
+
+        char **
+        CurrentEnvironment() noexcept
+        {
+#    if defined(__APPLE__)
+            return *_NSGetEnviron();
+#    else
+            return environ;
+#    endif
+        }
+
+        std::string
+        ErrnoMessage(const char *what, int error)
+        {
+            return std::string{ what } + ": " + std::strerror(error);
+        }
+
+        bool
+        MakePipe(int (&descriptors)[2])
+        {
+#    if defined(__linux__)
+            return pipe2(descriptors, O_CLOEXEC) == 0;
+#    else
+            // Only the scheduler thread starts processes, so no other
+            // thread can fork between creating the pipe and marking it.
+            if (pipe(descriptors) != 0)
+            {
+                return false;
+            }
+            fcntl(descriptors[0], F_SETFD, FD_CLOEXEC);
+            fcntl(descriptors[1], F_SETFD, FD_CLOEXEC);
+            return true;
+#    endif
+        }
+
+        const char *
+        SignalName(int signal) noexcept
+        {
+            switch (signal)
+            {
+                case SIGSEGV:
+                    return "SIGSEGV";
+                case SIGABRT:
+                    return "SIGABRT";
+                case SIGBUS:
+                    return "SIGBUS";
+                case SIGFPE:
+                    return "SIGFPE";
+                case SIGILL:
+                    return "SIGILL";
+                case SIGKILL:
+                    return "SIGKILL";
+                case SIGTERM:
+                    return "SIGTERM";
+                case SIGPIPE:
+                    return "SIGPIPE";
+                case SIGINT:
+                    return "SIGINT";
+                default:
+                    return nullptr;
+            }
+        }
+#endif
+
+#if defined(_WIN32)
+        const char *
+        ExceptionName(std::int64_t code) noexcept
+        {
+            switch (static_cast<DWORD>(code))
+            {
+                case 0xC0000005:
+                    return "access violation";
+                case 0xC00000FD:
+                    return "stack overflow";
+                case 0xC0000094:
+                    return "integer division by zero";
+                case 0xC000008E:
+                    return "floating-point division by zero";
+                case 0xC000001D:
+                    return "illegal instruction";
+                case 0xC0000409:
+                    return "stack buffer overrun or fast fail";
+                case 0xC0000374:
+                    return "heap corruption";
+                case 0x80000003:
+                    return "breakpoint";
+                case 0xE06D7363:
+                    return "unhandled C++ exception";
+                default:
+                    return nullptr;
+            }
+        }
+#endif
+    } // namespace
+
+    std::string
+    ExitStatus::Describe() const
+    {
+        switch (kind)
+        {
+            case Kind::kExited:
+                return "exit code " + std::to_string(code);
+            case Kind::kSignaled:
+            {
+                std::string text = "signal " + std::to_string(code);
+#if !defined(_WIN32)
+                if (const char *name = SignalName(static_cast<int>(code)))
+                {
+                    text += std::string{ " (" } + name + ")";
+                }
+#endif
+                return text;
+            }
+            case Kind::kException:
+            {
+                char buffer[32];
+                std::snprintf(buffer,
+                              sizeof(buffer),
+                              "0x%08llX",
+                              static_cast<unsigned long long>(code));
+                std::string text = std::string{ "exception " } + buffer;
+#if defined(_WIN32)
+                if (const char *name = ExceptionName(code))
+                {
+                    text += std::string{ " (" } + name + ")";
+                }
+#endif
+                return text;
+            }
+        }
+        return "unknown status";
+    }
+
+    PipeReader::PipeReader(PipeReader &&other) noexcept
+        : handle_{ other.handle_ }
+    {
+        other.handle_ = -1;
+    }
+
+    PipeReader &
+    PipeReader::operator=(PipeReader &&other) noexcept
+    {
+        if (this != &other)
+        {
+            Close();
+            handle_ = other.handle_;
+            other.handle_ = -1;
+        }
+        return *this;
+    }
+
+    PipeReader::~PipeReader()
+    {
+        Close();
+    }
+
+    bool
+    PipeReader::IsOpen() const noexcept
+    {
+        return handle_ != -1;
+    }
+
+    void
+    PipeReader::Close() noexcept
+    {
+        if (handle_ == -1)
+        {
+            return;
+        }
+#if defined(_WIN32)
+        CloseHandle(AsHandle(handle_));
+#else
+        close(Descriptor(handle_));
+#endif
+        handle_ = -1;
+    }
+
+    std::int64_t
+    PipeReader::Read(char *buffer, std::size_t size) noexcept
+    {
+        if (handle_ == -1)
+        {
+            return -1;
+        }
+#if defined(_WIN32)
+        DWORD read = 0;
+        const DWORD request
+            = size > 0x10000000 ? 0x10000000 : static_cast<DWORD>(size);
+        if (!::ReadFile(AsHandle(handle_), buffer, request, &read, nullptr))
+        {
+            const DWORD error = GetLastError();
+            return error == ERROR_BROKEN_PIPE || error == ERROR_NO_DATA ? 0
+                                                                        : -1;
+        }
+        return static_cast<std::int64_t>(read);
+#else
+        while (true)
+        {
+            const auto count = read(Descriptor(handle_), buffer, size);
+            if (count >= 0)
+            {
+                return static_cast<std::int64_t>(count);
+            }
+            if (errno != EINTR)
+            {
+                return -1;
+            }
+        }
+#endif
+    }
+
+    PipeWriter::PipeWriter(PipeWriter &&other) noexcept
+        : handle_{ other.handle_ }
+    {
+        other.handle_ = -1;
+    }
+
+    PipeWriter &
+    PipeWriter::operator=(PipeWriter &&other) noexcept
+    {
+        if (this != &other)
+        {
+            Close();
+            handle_ = other.handle_;
+            other.handle_ = -1;
+        }
+        return *this;
+    }
+
+    PipeWriter::~PipeWriter()
+    {
+        Close();
+    }
+
+    bool
+    PipeWriter::IsOpen() const noexcept
+    {
+        return handle_ != -1;
+    }
+
+    void
+    PipeWriter::Close() noexcept
+    {
+        if (handle_ == -1)
+        {
+            return;
+        }
+#if defined(_WIN32)
+        CloseHandle(AsHandle(handle_));
+#else
+        close(Descriptor(handle_));
+#endif
+        handle_ = -1;
+    }
+
+    Status
+    PipeWriter::Write(std::string_view data) noexcept
+    {
+        if (handle_ == -1)
+        {
+            return Error{ "the pipe is closed" };
+        }
+        while (!data.empty())
+        {
+#if defined(_WIN32)
+            DWORD written = 0;
+            const DWORD request = data.size() > 0x10000000
+                                      ? 0x10000000
+                                      : static_cast<DWORD>(data.size());
+            if (!::WriteFile(AsHandle(handle_),
+                             data.data(),
+                             request,
+                             &written,
+                             nullptr))
+            {
+                return Error{ "the other end of the pipe is gone" };
+            }
+            data.remove_prefix(written);
+#else
+            const auto count
+                = write(Descriptor(handle_), data.data(), data.size());
+            if (count < 0)
+            {
+                if (errno == EINTR)
+                {
+                    continue;
+                }
+                return Error{ ErrnoMessage("cannot write to the pipe", errno) };
+            }
+            data.remove_prefix(static_cast<std::size_t>(count));
+#endif
+        }
+        return Status::Ok();
+    }
+
+    ChildProcess::~ChildProcess()
+    {
+        if (!exit_)
+        {
+            Kill();
+            static_cast<void>(Wait());
+        }
+#if defined(_WIN32)
+        if (process_ != -1)
+        {
+            CloseHandle(AsHandle(process_));
+        }
+        if (group_ != -1)
+        {
+            CloseHandle(AsHandle(group_));
+        }
+#endif
+    }
+
+#if defined(_WIN32)
+    Expected<std::unique_ptr<ChildProcess>>
+    ChildProcess::Start(const ChildOptions &options)
+    {
+        if (options.arguments.empty())
+        {
+            return Error{ "no program to start" };
+        }
+        SECURITY_ATTRIBUTES inheritable{};
+        inheritable.nLength = sizeof(inheritable);
+        inheritable.bInheritHandle = TRUE;
+
+        HANDLE pipes[3][2] = {};
+        for (auto &pipe : pipes)
+        {
+            if (!CreatePipe(&pipe[0], &pipe[1], &inheritable, 0))
+            {
+                const std::string message
+                    = LastErrorMessage("cannot create a pipe");
+                for (auto &created : pipes)
+                {
+                    for (HANDLE handle : created)
+                    {
+                        if (handle != nullptr)
+                        {
+                            CloseHandle(handle);
+                        }
+                    }
+                }
+                return Error{ message };
+            }
+        }
+        // The child gets the read end of its input and the write ends of its
+        // output; the ends this process keeps are not inheritable.
+        HANDLE childInput = pipes[0][0];
+        HANDLE parentInput = pipes[0][1];
+        HANDLE parentOutput = pipes[1][0];
+        HANDLE childOutput = pipes[1][1];
+        HANDLE parentErrors = pipes[2][0];
+        HANDLE childErrors = pipes[2][1];
+        SetHandleInformation(parentInput, HANDLE_FLAG_INHERIT, 0);
+        SetHandleInformation(parentOutput, HANDLE_FLAG_INHERIT, 0);
+        SetHandleInformation(parentErrors, HANDLE_FLAG_INHERIT, 0);
+
+        auto closeChildEnds = [&] {
+            CloseHandle(childInput);
+            CloseHandle(childOutput);
+            CloseHandle(childErrors);
+        };
+
+        std::unique_ptr<ChildProcess> child{ new ChildProcess{} };
+        child->input_ = PipeWriter{ FromHandle(parentInput) };
+        child->output_ = PipeReader{ FromHandle(parentOutput) };
+        child->errors_ = PipeReader{ FromHandle(parentErrors) };
+
+        // Only these three handles are inherited, so a worker never holds
+        // the pipes of another one open.
+        HANDLE inherited[3] = { childInput, childOutput, childErrors };
+        SIZE_T attributeSize = 0;
+        InitializeProcThreadAttributeList(nullptr, 1, 0, &attributeSize);
+        std::vector<unsigned char> attributeStorage(attributeSize);
+        auto *attributes = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(
+            attributeStorage.data());
+        if (!InitializeProcThreadAttributeList(attributes, 1, 0, &attributeSize)
+            || !UpdateProcThreadAttribute(attributes,
+                                          0,
+                                          PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+                                          inherited,
+                                          sizeof(inherited),
+                                          nullptr,
+                                          nullptr))
+        {
+            const std::string message
+                = LastErrorMessage("cannot prepare the process attributes");
+            closeChildEnds();
+            return Error{ message };
+        }
+
+        STARTUPINFOEXW startup{};
+        startup.StartupInfo.cb = sizeof(startup);
+        startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+        startup.StartupInfo.hStdInput = childInput;
+        startup.StartupInfo.hStdOutput = childOutput;
+        startup.StartupInfo.hStdError = childErrors;
+        startup.lpAttributeList = attributes;
+
+        std::wstring program = Widen(options.arguments.front());
+        std::wstring commandLine;
+        for (std::size_t index = 0; index < options.arguments.size(); ++index)
+        {
+            if (index > 0)
+            {
+                commandLine.push_back(L' ');
+            }
+            AppendQuotedArgument(commandLine, Widen(options.arguments[index]));
+        }
+        std::wstring environment = EnvironmentBlock(options.environment);
+        const std::wstring directory = options.workingDirectory.wstring();
+
+        PROCESS_INFORMATION information{};
+        const BOOL created
+            = CreateProcessW(options.searchPath ? nullptr : program.c_str(),
+                             commandLine.data(),
+                             nullptr,
+                             nullptr,
+                             TRUE,
+                             CREATE_UNICODE_ENVIRONMENT | CREATE_SUSPENDED
+                                 | EXTENDED_STARTUPINFO_PRESENT,
+                             environment.data(),
+                             directory.empty() ? nullptr : directory.c_str(),
+                             &startup.StartupInfo,
+                             &information);
+        DeleteProcThreadAttributeList(attributes);
+        if (!created)
+        {
+            const std::string message = LastErrorMessage(
+                ("cannot start '" + options.arguments.front() + "'").c_str());
+            closeChildEnds();
+            return Error{ message };
+        }
+        closeChildEnds();
+
+        // A job ends the whole tree at once, and its limit keeps a crash from
+        // waiting on the error-reporting dialog.
+        HANDLE job = CreateJobObjectW(nullptr, nullptr);
+        if (job != nullptr)
+        {
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+            limits.BasicLimitInformation.LimitFlags
+                = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+                  | JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION;
+            SetInformationJobObject(job,
+                                    JobObjectExtendedLimitInformation,
+                                    &limits,
+                                    sizeof(limits));
+            if (!AssignProcessToJobObject(job, information.hProcess))
+            {
+                CloseHandle(job);
+                job = nullptr;
+            }
+        }
+        ResumeThread(information.hThread);
+        CloseHandle(information.hThread);
+
+        child->id_ = static_cast<std::int64_t>(information.dwProcessId);
+        child->process_ = FromHandle(information.hProcess);
+        child->group_ = job == nullptr ? -1 : FromHandle(job);
+        return child;
+    }
+
+    void
+    ChildProcess::Kill() noexcept
+    {
+        if (exit_)
+        {
+            return;
+        }
+        if (group_ != -1)
+        {
+            TerminateJobObject(AsHandle(group_), 0xC000013A);
+        }
+        else if (process_ != -1)
+        {
+            TerminateProcess(AsHandle(process_), 0xC000013A);
+        }
+    }
+
+    ExitStatus
+    ChildProcess::Wait() noexcept
+    {
+        if (exit_)
+        {
+            return *exit_;
+        }
+        ExitStatus status;
+        if (process_ != -1)
+        {
+            WaitForSingleObject(AsHandle(process_), INFINITE);
+            DWORD code = 0;
+            GetExitCodeProcess(AsHandle(process_), &code);
+            status.code = static_cast<std::int64_t>(code);
+            // NTSTATUS error codes have both top bits set.
+            status.kind
+                = (code & 0xC0000000U) == 0xC0000000U || code == 0x80000003U
+                      ? ExitStatus::Kind::kException
+                      : ExitStatus::Kind::kExited;
+            if (status.kind == ExitStatus::Kind::kExited && code > 0x7FFFFFFFU)
+            {
+                status.code = static_cast<std::int32_t>(code);
+            }
+        }
+        exit_ = status;
+        return status;
+    }
+
+    std::optional<ExitStatus>
+    ChildProcess::WaitFor(std::chrono::milliseconds timeout) noexcept
+    {
+        if (exit_ || process_ == -1)
+        {
+            return Wait();
+        }
+        const auto waited = WaitForSingleObject(
+            AsHandle(process_),
+            static_cast<DWORD>(std::max<long long>(0, timeout.count())));
+        if (waited == WAIT_TIMEOUT)
+        {
+            return std::nullopt;
+        }
+        return Wait();
+    }
+
+    Expected<WorkerStreams>
+    TakeStandardStreams()
+    {
+        HANDLE process = GetCurrentProcess();
+        HANDLE input = nullptr;
+        HANDLE output = nullptr;
+        if (!DuplicateHandle(process,
+                             GetStdHandle(STD_INPUT_HANDLE),
+                             process,
+                             &input,
+                             0,
+                             FALSE,
+                             DUPLICATE_SAME_ACCESS)
+            || !DuplicateHandle(process,
+                                GetStdHandle(STD_OUTPUT_HANDLE),
+                                process,
+                                &output,
+                                0,
+                                FALSE,
+                                DUPLICATE_SAME_ACCESS))
+        {
+            return Error{ LastErrorMessage(
+                "cannot take the standard streams") };
+        }
+        std::fflush(stdout);
+        int nullDescriptor = -1;
+        _sopen_s(&nullDescriptor,
+                 "NUL",
+                 _O_RDONLY | _O_BINARY,
+                 _SH_DENYNO,
+                 _S_IREAD);
+        if (nullDescriptor >= 0)
+        {
+            _dup2(nullDescriptor, 0);
+            _close(nullDescriptor);
+        }
+        _dup2(2, 1);
+        // The runner writes what the worker prints through its own text-mode
+        // streams; translating line ends here as well would double them.
+        _setmode(1, _O_BINARY);
+        _setmode(2, _O_BINARY);
+        SetStdHandle(STD_INPUT_HANDLE,
+                     reinterpret_cast<HANDLE>(_get_osfhandle(0)));
+        SetStdHandle(STD_OUTPUT_HANDLE, GetStdHandle(STD_ERROR_HANDLE));
+        WorkerStreams streams;
+        streams.commands = PipeReader{ FromHandle(input) };
+        streams.events = PipeWriter{ FromHandle(output) };
+        return streams;
+    }
+
+    std::filesystem::path
+    CurrentExecutable(const char *argumentZero)
+    {
+        std::wstring buffer(MAX_PATH, L'\0');
+        while (true)
+        {
+            const DWORD length
+                = GetModuleFileNameW(nullptr,
+                                     buffer.data(),
+                                     static_cast<DWORD>(buffer.size()));
+            if (length == 0)
+            {
+                return argumentZero == nullptr
+                           ? std::filesystem::path{}
+                           : std::filesystem::path{ argumentZero };
+            }
+            if (length < buffer.size())
+            {
+                buffer.resize(length);
+                return std::filesystem::path{ buffer };
+            }
+            buffer.resize(buffer.size() * 2);
+        }
+    }
+
+    std::string
+    ReadEnvironment(const char *name)
+    {
+        const std::wstring wideName = Widen(name);
+        const DWORD size
+            = GetEnvironmentVariableW(wideName.c_str(), nullptr, 0);
+        if (size == 0)
+        {
+            return {};
+        }
+        std::wstring value(size, L'\0');
+        const DWORD length
+            = GetEnvironmentVariableW(wideName.c_str(), value.data(), size);
+        value.resize(length);
+        return Narrow(value);
+    }
+
+    bool
+    HasEnvironment(const char *name)
+    {
+        const std::wstring wideName = Widen(name);
+        return GetEnvironmentVariableW(wideName.c_str(), nullptr, 0) > 0
+               || GetLastError() != ERROR_ENVVAR_NOT_FOUND;
+    }
+
+    bool
+    IsStandardOutputTerminal() noexcept
+    {
+        DWORD mode = 0;
+        return GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &mode) != 0;
+    }
+
+    bool
+    EnableTerminalColours() noexcept
+    {
+        HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+        DWORD mode = 0;
+        if (!GetConsoleMode(output, &mode))
+        {
+            return false;
+        }
+        return SetConsoleMode(output, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+               != 0;
+    }
+
+    void
+    QuietCrashReporting() noexcept
+    {
+        SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX
+                     | SEM_NOOPENFILEERRORBOX);
+        _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+    }
+
+    std::int64_t
+    CurrentProcessId() noexcept
+    {
+        return static_cast<std::int64_t>(GetCurrentProcessId());
+    }
+
+    void
+    WriteStandardError(std::string_view text) noexcept
+    {
+        while (!text.empty())
+        {
+            const unsigned chunk = static_cast<unsigned>(
+                std::min<std::size_t>(text.size(), 1U << 20U));
+            const int written = _write(2, text.data(), chunk);
+            if (written <= 0)
+            {
+                return;
+            }
+            text.remove_prefix(static_cast<std::size_t>(written));
+        }
+    }
+#else
+    Expected<std::unique_ptr<ChildProcess>>
+    ChildProcess::Start(const ChildOptions &options)
+    {
+        if (options.arguments.empty())
+        {
+            return Error{ "no program to start" };
+        }
+        int input[2] = { -1, -1 };
+        int output[2] = { -1, -1 };
+        int errors[2] = { -1, -1 };
+        auto closeAll = [&] {
+            for (int *pipe : { input, output, errors })
+            {
+                for (int index = 0; index < 2; ++index)
+                {
+                    if (pipe[index] != -1)
+                    {
+                        close(pipe[index]);
+                        pipe[index] = -1;
+                    }
+                }
+            }
+        };
+        if (!MakePipe(input) || !MakePipe(output) || !MakePipe(errors))
+        {
+            const int error = errno;
+            closeAll();
+            return Error{ ErrnoMessage("cannot create a pipe", error) };
+        }
+
+        posix_spawn_file_actions_t actions;
+        posix_spawn_file_actions_init(&actions);
+        posix_spawn_file_actions_adddup2(&actions, input[0], 0);
+        posix_spawn_file_actions_adddup2(&actions, output[1], 1);
+        posix_spawn_file_actions_adddup2(&actions, errors[1], 2);
+
+        posix_spawnattr_t attributes;
+        posix_spawnattr_init(&attributes);
+        sigset_t defaults;
+        sigemptyset(&defaults);
+        // The runner ignores SIGPIPE; a test must see the default.
+        sigaddset(&defaults, SIGPIPE);
+        posix_spawnattr_setsigdefault(&attributes, &defaults);
+        sigset_t mask;
+        sigemptyset(&mask);
+        posix_spawnattr_setsigmask(&attributes, &mask);
+        posix_spawnattr_setpgroup(&attributes, 0);
+        posix_spawnattr_setflags(&attributes,
+                                 static_cast<short>(POSIX_SPAWN_SETPGROUP
+                                                    | POSIX_SPAWN_SETSIGDEF
+                                                    | POSIX_SPAWN_SETSIGMASK));
+
+        std::vector<std::string> environmentStorage;
+        for (char **entry = CurrentEnvironment();
+             entry != nullptr && *entry != nullptr;
+             ++entry)
+        {
+            environmentStorage.emplace_back(*entry);
+        }
+        for (const auto &[name, value] : options.environment)
+        {
+            std::erase_if(environmentStorage, [&](const std::string &entry) {
+                return entry.size() > name.size()
+                       && entry.compare(0, name.size(), name) == 0
+                       && entry[name.size()] == '=';
+            });
+            environmentStorage.push_back(name + "=" + value);
+        }
+        std::vector<char *> environment;
+        environment.reserve(environmentStorage.size() + 1);
+        for (auto &entry : environmentStorage)
+        {
+            environment.push_back(entry.data());
+        }
+        environment.push_back(nullptr);
+
+        std::vector<std::string> argumentStorage = options.arguments;
+        std::vector<char *> arguments;
+        arguments.reserve(argumentStorage.size() + 1);
+        for (auto &argument : argumentStorage)
+        {
+            arguments.push_back(argument.data());
+        }
+        arguments.push_back(nullptr);
+
+        // posix_spawn has no working-directory action everywhere, so the
+        // directory changes around the call; only this thread spawns.
+        std::filesystem::path previousDirectory;
+        if (!options.workingDirectory.empty())
+        {
+            std::error_code error;
+            previousDirectory = std::filesystem::current_path(error);
+            std::filesystem::current_path(options.workingDirectory, error);
+            if (error)
+            {
+                posix_spawn_file_actions_destroy(&actions);
+                posix_spawnattr_destroy(&attributes);
+                closeAll();
+                return Error{ "cannot enter '"
+                              + options.workingDirectory.string() + "'" };
+            }
+        }
+        pid_t pid = 0;
+        const int result = options.searchPath ? posix_spawnp(&pid,
+                                                             arguments.front(),
+                                                             &actions,
+                                                             &attributes,
+                                                             arguments.data(),
+                                                             environment.data())
+                                              : posix_spawn(&pid,
+                                                            arguments.front(),
+                                                            &actions,
+                                                            &attributes,
+                                                            arguments.data(),
+                                                            environment.data());
+        if (!previousDirectory.empty())
+        {
+            std::error_code error;
+            std::filesystem::current_path(previousDirectory, error);
+        }
+        posix_spawn_file_actions_destroy(&actions);
+        posix_spawnattr_destroy(&attributes);
+        close(input[0]);
+        close(output[1]);
+        close(errors[1]);
+        input[0] = output[1] = errors[1] = -1;
+        if (result != 0)
+        {
+            closeAll();
+            return Error{ ErrnoMessage(
+                ("cannot start '" + options.arguments.front() + "'").c_str(),
+                result) };
+        }
+
+        std::unique_ptr<ChildProcess> child{ new ChildProcess{} };
+        child->input_ = PipeWriter{ input[1] };
+        child->output_ = PipeReader{ output[0] };
+        child->errors_ = PipeReader{ errors[0] };
+        child->id_ = pid;
+        child->process_ = pid;
+        child->group_ = pid;
+        return child;
+    }
+
+    void
+    ChildProcess::Kill() noexcept
+    {
+        if (exit_ || process_ == -1)
+        {
+            return;
+        }
+        // The whole group: the worker and whatever its test started.
+        if (kill(-static_cast<pid_t>(group_), SIGKILL) != 0)
+        {
+            kill(static_cast<pid_t>(process_), SIGKILL);
+        }
+    }
+
+    ExitStatus
+    ChildProcess::Wait() noexcept
+    {
+        if (exit_)
+        {
+            return *exit_;
+        }
+        ExitStatus status;
+        if (process_ != -1)
+        {
+            int raw = 0;
+            while (waitpid(static_cast<pid_t>(process_), &raw, 0) < 0)
+            {
+                if (errno != EINTR)
+                {
+                    break;
+                }
+            }
+            if (WIFSIGNALED(raw))
+            {
+                status.kind = ExitStatus::Kind::kSignaled;
+                status.code = WTERMSIG(raw);
+            }
+            else if (WIFEXITED(raw))
+            {
+                status.code = WEXITSTATUS(raw);
+            }
+            // Whatever the test left running in the group goes too.
+            kill(-static_cast<pid_t>(group_), SIGKILL);
+        }
+        exit_ = status;
+        return status;
+    }
+
+    std::optional<ExitStatus>
+    ChildProcess::WaitFor(std::chrono::milliseconds timeout) noexcept
+    {
+        if (exit_ || process_ == -1)
+        {
+            return Wait();
+        }
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+        while (true)
+        {
+            int raw = 0;
+            const pid_t result
+                = waitpid(static_cast<pid_t>(process_), &raw, WNOHANG);
+            if (result == static_cast<pid_t>(process_))
+            {
+                ExitStatus status;
+                if (WIFSIGNALED(raw))
+                {
+                    status.kind = ExitStatus::Kind::kSignaled;
+                    status.code = WTERMSIG(raw);
+                }
+                else if (WIFEXITED(raw))
+                {
+                    status.code = WEXITSTATUS(raw);
+                }
+                kill(-static_cast<pid_t>(group_), SIGKILL);
+                exit_ = status;
+                return status;
+            }
+            if (result < 0 && errno != EINTR)
+            {
+                return Wait();
+            }
+            if (std::chrono::steady_clock::now() >= deadline)
+            {
+                return std::nullopt;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    }
+
+    Expected<WorkerStreams>
+    TakeStandardStreams()
+    {
+        const int input = fcntl(0, F_DUPFD_CLOEXEC, 3);
+        const int output = fcntl(1, F_DUPFD_CLOEXEC, 3);
+        if (input < 0 || output < 0)
+        {
+            const int error = errno;
+            if (input >= 0)
+            {
+                close(input);
+            }
+            return Error{ ErrnoMessage("cannot take the standard streams",
+                                       error) };
+        }
+        std::fflush(stdout);
+        const int nullDescriptor = open("/dev/null", O_RDONLY | O_CLOEXEC);
+        if (nullDescriptor >= 0)
+        {
+            dup2(nullDescriptor, 0);
+            close(nullDescriptor);
+        }
+        dup2(2, 1);
+        WorkerStreams streams;
+        streams.commands = PipeReader{ input };
+        streams.events = PipeWriter{ output };
+        return streams;
+    }
+
+    std::filesystem::path
+    CurrentExecutable(const char *argumentZero)
+    {
+        std::error_code error;
+#    if defined(__linux__)
+        auto path = std::filesystem::read_symlink("/proc/self/exe", error);
+        if (!error)
+        {
+            return path;
+        }
+#    elif defined(__APPLE__)
+        std::uint32_t size = 0;
+        _NSGetExecutablePath(nullptr, &size);
+        std::string buffer(size, '\0');
+        if (_NSGetExecutablePath(buffer.data(), &size) == 0)
+        {
+            buffer.resize(std::strlen(buffer.c_str()));
+            auto canonical = std::filesystem::weakly_canonical(buffer, error);
+            return error ? std::filesystem::path{ buffer } : canonical;
+        }
+#    endif
+        if (argumentZero == nullptr)
+        {
+            return {};
+        }
+        auto absolute = std::filesystem::absolute(argumentZero, error);
+        return error ? std::filesystem::path{ argumentZero } : absolute;
+    }
+
+    std::string
+    ReadEnvironment(const char *name)
+    {
+        const char *value = std::getenv(name);
+        return value == nullptr ? std::string{} : std::string{ value };
+    }
+
+    bool
+    HasEnvironment(const char *name)
+    {
+        return std::getenv(name) != nullptr;
+    }
+
+    bool
+    IsStandardOutputTerminal() noexcept
+    {
+        return isatty(1) != 0;
+    }
+
+    bool
+    EnableTerminalColours() noexcept
+    {
+        const char *terminal = std::getenv("TERM");
+        return terminal == nullptr || std::string_view{ terminal } != "dumb";
+    }
+
+    void
+    QuietCrashReporting() noexcept
+    {}
+
+    std::int64_t
+    CurrentProcessId() noexcept
+    {
+        return static_cast<std::int64_t>(getpid());
+    }
+
+    void
+    WriteStandardError(std::string_view text) noexcept
+    {
+        while (!text.empty())
+        {
+            const ssize_t written = write(2, text.data(), text.size());
+            if (written < 0 && errno == EINTR)
+            {
+                continue;
+            }
+            if (written <= 0)
+            {
+                return;
+            }
+            text.remove_prefix(static_cast<std::size_t>(written));
+        }
+    }
+#endif
+
+    unsigned
+    HardwareThreads() noexcept
+    {
+        const unsigned count = std::thread::hardware_concurrency();
+        return count == 0 ? 1 : count;
+    }
+
+    Expected<CapturedRun>
+    RunAndCapture(const ChildOptions &options)
+    {
+        auto child = ChildProcess::Start(options);
+        if (!child)
+        {
+            return child.GetError();
+        }
+        (*child)->Input().Close();
+        CapturedRun run;
+        std::thread errorReader([&] {
+            char buffer[4096];
+            while (true)
+            {
+                const auto count
+                    = (*child)->Errors().Read(buffer, sizeof(buffer));
+                if (count <= 0)
+                {
+                    return;
+                }
+                run.errors.append(buffer, static_cast<std::size_t>(count));
+            }
+        });
+        char buffer[4096];
+        while (true)
+        {
+            const auto count = (*child)->Output().Read(buffer, sizeof(buffer));
+            if (count <= 0)
+            {
+                break;
+            }
+            run.output.append(buffer, static_cast<std::size_t>(count));
+        }
+        errorReader.join();
+        run.status = (*child)->Wait();
+        return run;
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+namespace Progmasoft::Catch3::Runner
+{
+    std::optional<std::string>
+    LineReader::Next()
+    {
+        while (true)
+        {
+            const auto end = buffer_.find('\n', scanned_);
+            if (end != std::string::npos)
+            {
+                std::string line = buffer_.substr(0, end);
+                buffer_.erase(0, end + 1);
+                scanned_ = 0;
+                if (!line.empty() && line.back() == '\r')
+                {
+                    line.pop_back();
+                }
+                return line;
+            }
+            scanned_ = buffer_.size();
+            if (ended_)
+            {
+                if (buffer_.empty())
+                {
+                    return std::nullopt;
+                }
+                // A last line without its end still counts.
+                std::string line = std::move(buffer_);
+                buffer_.clear();
+                scanned_ = 0;
+                return line;
+            }
+            char chunk[8192];
+            const auto count = pipe_.Read(chunk, sizeof(chunk));
+            if (count <= 0)
+            {
+                ended_ = true;
+                continue;
+            }
+            buffer_.append(chunk, static_cast<std::size_t>(count));
+        }
+    }
+
+    Status
+    MessageWriter::Send(const JsonValue &message)
+    {
+        std::string line = message.ToString();
+        line.push_back('\n');
+        const std::lock_guard lock{mutex_};
+        return pipe_.Write(line);
+    }
+
+    JsonValue
+    Message(std::string_view kind)
+    {
+        JsonValue message = JsonValue::Object();
+        message.Set("t", kind);
+        return message;
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        JsonValue
+        Strings(const std::vector<std::string> &values)
+        {
+            JsonValue array = JsonValue::Array();
+            for (const auto &value : values)
+            {
+                array.Append(value);
+            }
+            return array;
+        }
+
+        std::vector<std::string>
+        StringsFrom(const JsonValue &value)
+        {
+            std::vector<std::string> strings;
+            for (const auto &item : value.Items())
+            {
+                strings.push_back(item.AsString());
+            }
+            return strings;
+        }
+
+        std::size_t
+        Size(const JsonValue &value)
+        {
+            return static_cast<std::size_t>(value.AsUnsigned());
+        }
+
+        /// Adds a member only when it says something, so reports and
+        /// protocol messages stay small.
+        void
+        SetText(JsonValue &object, std::string_view key, const std::string &text)
+        {
+            if (!text.empty())
+            {
+                object.Set(key, text);
+            }
+        }
+    } // namespace
+
+    JsonValue
+    ToJson(const AssertionRecord &assertion)
+    {
+        JsonValue value = JsonValue::Object();
+        value.Set("file", assertion.file);
+        value.Set("line", assertion.line);
+        SetText(value, "macro", assertion.macro);
+        SetText(value, "expression", assertion.expression);
+        SetText(value, "expansion", assertion.expansion);
+        SetText(value, "message", assertion.message);
+        if (!assertion.context.empty())
+        {
+            value.Set("context", Strings(assertion.context));
+        }
+        if (!assertion.sections.empty())
+        {
+            value.Set("sections", Strings(assertion.sections));
+        }
+        value.Set("category", CategoryName(assertion.category));
+        value.Set("passed", assertion.passed);
+        if (assertion.allowed)
+        {
+            value.Set("allowed", true);
+        }
+        return value;
+    }
+
+    AssertionRecord
+    AssertionFromJson(const JsonValue &value)
+    {
+        AssertionRecord assertion;
+        assertion.file = value["file"].AsString();
+        assertion.line = Size(value["line"]);
+        assertion.macro = value["macro"].AsString();
+        assertion.expression = value["expression"].AsString();
+        assertion.expansion = value["expansion"].AsString();
+        assertion.message = value["message"].AsString();
+        assertion.context = StringsFrom(value["context"]);
+        assertion.sections = StringsFrom(value["sections"]);
+        assertion.category = CategoryFromName(value["category"].AsString())
+                                 .value_or(FailureCategory::kAssertion);
+        assertion.passed = value["passed"].AsBoolean();
+        assertion.allowed = value["allowed"].AsBoolean();
+        return assertion;
+    }
+
+    JsonValue
+    ToJson(const BenchmarkRecord &benchmark)
+    {
+        JsonValue value = JsonValue::Object();
+        value.Set("name", benchmark.name);
+        value.Set("samples", benchmark.samples);
+        value.Set("iterations", benchmark.iterations);
+        value.Set("meanNanoseconds", benchmark.meanNanoseconds);
+        value.Set("lowMeanNanoseconds", benchmark.lowMeanNanoseconds);
+        value.Set("highMeanNanoseconds", benchmark.highMeanNanoseconds);
+        value.Set("standardDeviationNanoseconds",
+                  benchmark.standardDeviationNanoseconds);
+        value.Set("outlierVariance", benchmark.outlierVariance);
+        return value;
+    }
+
+    BenchmarkRecord
+    BenchmarkFromJson(const JsonValue &value)
+    {
+        BenchmarkRecord benchmark;
+        benchmark.name = value["name"].AsString();
+        benchmark.samples = Size(value["samples"]);
+        benchmark.iterations = Size(value["iterations"]);
+        benchmark.meanNanoseconds = value["meanNanoseconds"].AsNumber();
+        benchmark.lowMeanNanoseconds = value["lowMeanNanoseconds"].AsNumber();
+        benchmark.highMeanNanoseconds = value["highMeanNanoseconds"].AsNumber();
+        benchmark.standardDeviationNanoseconds =
+            value["standardDeviationNanoseconds"].AsNumber();
+        benchmark.outlierVariance = value["outlierVariance"].AsNumber();
+        return benchmark;
+    }
+
+    JsonValue
+    ToJson(const SectionRecord &section)
+    {
+        JsonValue value = JsonValue::Object();
+        value.Set("name", section.name);
+        value.Set("file", section.file);
+        value.Set("line", section.line);
+        value.Set("depth", section.depth);
+        value.Set("startMicroseconds", section.startMicroseconds);
+        value.Set("durationMicroseconds", section.durationMicroseconds);
+        return value;
+    }
+
+    SectionRecord
+    SectionFromJson(const JsonValue &value)
+    {
+        SectionRecord section;
+        section.name = value["name"].AsString();
+        section.file = value["file"].AsString();
+        section.line = Size(value["line"]);
+        section.depth = Size(value["depth"]);
+        section.startMicroseconds = value["startMicroseconds"].AsInteger();
+        section.durationMicroseconds =
+            value["durationMicroseconds"].AsInteger();
+        return section;
+    }
+
+    JsonValue
+    ToJson(const Attempt &attempt)
+    {
+        JsonValue value = JsonValue::Object();
+        value.Set("number", attempt.number);
+        value.Set("outcome", OutcomeName(attempt.outcome));
+        if (attempt.category != FailureCategory::kNone)
+        {
+            value.Set("category", CategoryName(attempt.category));
+        }
+        value.Set("worker", attempt.worker);
+        value.Set("freshProcess", attempt.freshProcess);
+        value.Set("seed", attempt.seed);
+        value.Set("startMicroseconds", attempt.startMicroseconds);
+        value.Set("durationMicroseconds", attempt.durationMicroseconds);
+        value.Set("assertionsPassed", attempt.assertionsPassed);
+        value.Set("assertionsFailed", attempt.assertionsFailed);
+        if (!attempt.precededBy.empty())
+        {
+            value.Set("precededBy", Strings(attempt.precededBy));
+        }
+        JsonValue assertions = JsonValue::Array();
+        for (const auto &assertion : attempt.assertions)
+        {
+            assertions.Append(ToJson(assertion));
+        }
+        value.Set("assertions", std::move(assertions));
+        if (!attempt.benchmarks.empty())
+        {
+            JsonValue benchmarks = JsonValue::Array();
+            for (const auto &benchmark : attempt.benchmarks)
+            {
+                benchmarks.Append(ToJson(benchmark));
+            }
+            value.Set("benchmarks", std::move(benchmarks));
+        }
+        if (!attempt.sections.empty())
+        {
+            JsonValue sections = JsonValue::Array();
+            for (const auto &section : attempt.sections)
+            {
+                sections.Append(ToJson(section));
+            }
+            value.Set("sections", std::move(sections));
+        }
+        SetText(value, "standardOutput", attempt.standardOutput);
+        SetText(value, "standardError", attempt.standardError);
+        SetText(value, "processOutput", attempt.processOutput);
+        SetText(value, "fatalMessage", attempt.fatalMessage);
+        SetText(value, "exitDescription", attempt.exitDescription);
+        SetText(value, "lastLocation", attempt.lastLocation);
+        SetText(value, "temporaryDirectory", attempt.temporaryDirectory);
+        return value;
+    }
+
+    Attempt
+    AttemptFromJson(const JsonValue &value)
+    {
+        Attempt attempt;
+        attempt.number = Size(value["number"]);
+        attempt.outcome =
+            OutcomeFromName(value["outcome"].AsString()).value_or(Outcome::kNotRun);
+        attempt.category = CategoryFromName(value["category"].AsString())
+                               .value_or(FailureCategory::kNone);
+        attempt.worker = Size(value["worker"]);
+        attempt.freshProcess = value["freshProcess"].AsBoolean();
+        attempt.seed = static_cast<std::uint32_t>(value["seed"].AsUnsigned());
+        attempt.startMicroseconds = value["startMicroseconds"].AsInteger();
+        attempt.durationMicroseconds = value["durationMicroseconds"].AsInteger();
+        attempt.assertionsPassed = Size(value["assertionsPassed"]);
+        attempt.assertionsFailed = Size(value["assertionsFailed"]);
+        attempt.precededBy = StringsFrom(value["precededBy"]);
+        for (const auto &item : value["assertions"].Items())
+        {
+            attempt.assertions.push_back(AssertionFromJson(item));
+        }
+        for (const auto &item : value["benchmarks"].Items())
+        {
+            attempt.benchmarks.push_back(BenchmarkFromJson(item));
+        }
+        for (const auto &item : value["sections"].Items())
+        {
+            attempt.sections.push_back(SectionFromJson(item));
+        }
+        attempt.standardOutput = value["standardOutput"].AsString();
+        attempt.standardError = value["standardError"].AsString();
+        attempt.processOutput = value["processOutput"].AsString();
+        attempt.fatalMessage = value["fatalMessage"].AsString();
+        attempt.exitDescription = value["exitDescription"].AsString();
+        attempt.lastLocation = value["lastLocation"].AsString();
+        attempt.temporaryDirectory = value["temporaryDirectory"].AsString();
+        return attempt;
+    }
+
+    JsonValue
+    ToJson(const TestResult &test)
+    {
+        JsonValue value = JsonValue::Object();
+        value.Set("id", test.id);
+        value.Set("name", test.name);
+        SetText(value, "className", test.className);
+        value.Set("file", test.file);
+        value.Set("line", test.line);
+        value.Set("tags", Strings(test.tags));
+        value.Set("outcome", OutcomeName(test.outcome));
+        if (test.category != FailureCategory::kNone)
+        {
+            value.Set("category", CategoryName(test.category));
+        }
+        value.Set("history", HistoryName(test.history));
+        value.Set("flaky", test.flaky);
+        value.Set("quarantined", test.quarantined);
+        value.Set("durationMicroseconds", test.DurationMicroseconds());
+        SetText(value, "selectionReason", test.selectionReason);
+        SetText(value, "signature", test.signature);
+        if (!test.analysis.empty())
+        {
+            value.Set("analysis", Strings(test.analysis));
+        }
+        SetText(value, "replayCommand", test.replayCommand);
+        value.Set("predictedDurationMicroseconds",
+                  test.predictedDurationMicroseconds);
+        value.Set("predictedFailureProbability",
+                  test.predictedFailureProbability);
+        JsonValue attempts = JsonValue::Array();
+        for (const auto &attempt : test.attempts)
+        {
+            attempts.Append(ToJson(attempt));
+        }
+        value.Set("attempts", std::move(attempts));
+        return value;
+    }
+
+    TestResult
+    TestResultFromJson(const JsonValue &value)
+    {
+        TestResult test;
+        test.id = value["id"].AsString();
+        test.name = value["name"].AsString();
+        test.className = value["className"].AsString();
+        test.file = value["file"].AsString();
+        test.line = Size(value["line"]);
+        test.tags = StringsFrom(value["tags"]);
+        test.outcome =
+            OutcomeFromName(value["outcome"].AsString()).value_or(Outcome::kNotRun);
+        test.category = CategoryFromName(value["category"].AsString())
+                            .value_or(FailureCategory::kNone);
+        const std::string &history = value["history"].AsString();
+        test.history = history == "new"            ? FailureHistory::kNew
+                       : history == "persistent"   ? FailureHistory::kPersistent
+                       : history == "intermittent" ? FailureHistory::kIntermittent
+                                                   : FailureHistory::kUnknown;
+        test.flaky = value["flaky"].AsBoolean();
+        test.quarantined = value["quarantined"].AsBoolean();
+        test.selectionReason = value["selectionReason"].AsString();
+        test.signature = value["signature"].AsString();
+        test.analysis = StringsFrom(value["analysis"]);
+        test.replayCommand = value["replayCommand"].AsString();
+        test.predictedDurationMicroseconds =
+            value["predictedDurationMicroseconds"].AsInteger();
+        test.predictedFailureProbability =
+            value["predictedFailureProbability"].AsNumber();
+        for (const auto &item : value["attempts"].Items())
+        {
+            test.attempts.push_back(AttemptFromJson(item));
+        }
+        return test;
+    }
+
+    JsonValue
+    ToJson(const RunResult &run)
+    {
+        const RunSummary summary = Summarize(run);
+        JsonValue value = JsonValue::Object();
+        value.Set("format", "catch3-run");
+        value.Set("version", kResultsFormatVersion);
+        value.Set("binary", run.binary);
+        value.Set("seed", run.seed);
+        value.Set("workers", run.workers);
+        value.Set("shardIndex", run.shardIndex);
+        value.Set("shardCount", run.shardCount);
+        value.Set("candidates", run.candidates);
+        value.Set("startUnixMilliseconds", run.startUnixMilliseconds);
+        value.Set("wallMicroseconds", run.wallMicroseconds);
+        JsonValue totals = JsonValue::Object();
+        totals.Set("tests", summary.tests);
+        totals.Set("passed", summary.passed);
+        totals.Set("failed", summary.failed);
+        totals.Set("failedAsExpected", summary.failedAsExpected);
+        totals.Set("skipped", summary.skipped);
+        totals.Set("crashed", summary.crashed);
+        totals.Set("timedOut", summary.timedOut);
+        totals.Set("blocked", summary.blocked);
+        totals.Set("notRun", summary.notRun);
+        totals.Set("upToDate", summary.upToDate);
+        totals.Set("flaky", summary.flaky);
+        totals.Set("quarantined", summary.quarantined);
+        totals.Set("attempts", summary.attempts);
+        totals.Set("assertionsPassed", summary.assertionsPassed);
+        totals.Set("assertionsFailed", summary.assertionsFailed);
+        totals.Set("testMicroseconds", summary.testMicroseconds);
+        value.Set("summary", std::move(totals));
+        value.Set("unmatchedSpecs", Strings(run.unmatchedSpecs));
+        value.Set("notes", Strings(run.notes));
+        JsonValue tests = JsonValue::Array();
+        for (const auto &test : run.tests)
+        {
+            tests.Append(ToJson(test));
+        }
+        value.Set("tests", std::move(tests));
+        return value;
+    }
+
+    Expected<RunResult>
+    RunResultFromJson(const JsonValue &value)
+    {
+        if (value["format"].AsString() != "catch3-run")
+        {
+            return Error{"not a Catch3 run report"};
+        }
+        const auto version = value["version"].AsInteger();
+        if (version < 1 || version > kResultsFormatVersion)
+        {
+            return Error{"report version " + std::to_string(version) +
+                         " is newer than this Catch3 reads (" +
+                         std::to_string(kResultsFormatVersion) + ")"};
+        }
+        RunResult run;
+        run.binary = value["binary"].AsString();
+        run.seed = static_cast<std::uint32_t>(value["seed"].AsUnsigned());
+        run.workers = Size(value["workers"]);
+        run.shardIndex = static_cast<unsigned>(value["shardIndex"].AsUnsigned());
+        run.shardCount =
+            static_cast<unsigned>(value["shardCount"].AsUnsigned(1));
+        run.candidates = Size(value["candidates"]);
+        run.startUnixMilliseconds = value["startUnixMilliseconds"].AsInteger();
+        run.wallMicroseconds = value["wallMicroseconds"].AsInteger();
+        run.unmatchedSpecs = StringsFrom(value["unmatchedSpecs"]);
+        run.notes = StringsFrom(value["notes"]);
+        for (const auto &item : value["tests"].Items())
+        {
+            run.tests.push_back(TestResultFromJson(item));
+        }
+        return run;
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 
 
 
 #include <algorithm>
-#include <ostream>
+#include <chrono>
+#include <cstdio>
+#include <exception>
+#include <map>
+#include <random>
 
-namespace Catch {
+namespace Progmasoft::Catch3
+{
+    namespace
+    {
+        using Runner::JsonValue;
 
-    namespace {
-        // Yes, this has to be outside the class and namespaced by naming.
-        // Making older compiler happy is hard.
-        static constexpr StringRef tapFailedString = "not ok"_sr;
-        static constexpr StringRef tapPassedString = "ok"_sr;
-        static constexpr Colour::Code tapDimColour = Colour::FileName;
+        void
+        PrintError(const std::string &message)
+        {
+            std::fprintf(stderr, "error: %s\n", message.c_str());
+        }
 
-        class TapAssertionPrinter {
-        public:
-            TapAssertionPrinter& operator= (TapAssertionPrinter const&) = delete;
-            TapAssertionPrinter(TapAssertionPrinter const&) = delete;
-            TapAssertionPrinter(std::ostream& _stream, AssertionStats const& _stats, std::size_t _counter, ColourImpl* colour_)
-                : stream(_stream)
-                , result(_stats.assertionResult)
-                , messages(_stats.infoMessages)
-                , itMessage(_stats.infoMessages.begin())
-                , printInfoMessages(true)
-                , counter(_counter)
-                , colourImpl( colour_ ) {}
-
-            void print() {
-                itMessage = messages.begin();
-
-                switch (result.getResultType()) {
-                case ResultWas::Ok:
-                    printResultType(tapPassedString);
-                    printOriginalExpression();
-                    printReconstructedExpression();
-                    if (!result.hasExpression())
-                        printRemainingMessages(Colour::None);
-                    else
-                        printRemainingMessages();
-                    break;
-                case ResultWas::ExpressionFailed:
-                    if (result.isOk()) {
-                        printResultType(tapPassedString);
-                    } else {
-                        printResultType(tapFailedString);
-                    }
-                    printOriginalExpression();
-                    printReconstructedExpression();
-                    if (result.isOk()) {
-                        printIssue(" # TODO");
-                    }
-                    printRemainingMessages();
-                    break;
-                case ResultWas::ThrewException:
-                    printResultType(tapFailedString);
-                    printIssue("unexpected exception with message:"_sr);
-                    printMessage();
-                    printExpressionWas();
-                    printRemainingMessages();
-                    break;
-                case ResultWas::FatalErrorCondition:
-                    printResultType(tapFailedString);
-                    printIssue("fatal error condition with message:"_sr);
-                    printMessage();
-                    printExpressionWas();
-                    printRemainingMessages();
-                    break;
-                case ResultWas::DidntThrowException:
-                    printResultType(tapFailedString);
-                    printIssue("expected exception, got none"_sr);
-                    printExpressionWas();
-                    printRemainingMessages();
-                    break;
-                case ResultWas::Info:
-                    printResultType("info"_sr);
-                    printMessage();
-                    printRemainingMessages();
-                    break;
-                case ResultWas::Warning:
-                    printResultType("warning"_sr);
-                    printMessage();
-                    printRemainingMessages();
-                    break;
-                case ResultWas::ExplicitFailure:
-                    printResultType(tapFailedString);
-                    printIssue("explicitly"_sr);
-                    printRemainingMessages(Colour::None);
-                    break;
-                case ResultWas::ExplicitSkip:
-                    printResultType(tapPassedString);
-                    printIssue(" # SKIP"_sr);
-                    printMessage();
-                    printRemainingMessages();
-                    break;
-                    // These cases are here to prevent compiler warnings
-                case ResultWas::Unknown:
-                case ResultWas::FailureBit:
-                case ResultWas::Exception:
-                    printResultType("** internal error **"_sr);
-                    break;
+        /// Problems found while the tests registered, such as two tests of
+        /// the same name; reported before anything runs.
+        bool
+        ReportStartupErrors()
+        {
+#if !defined(CATCH_CONFIG_DISABLE_EXCEPTIONS)
+            const auto &exceptions = Catch::getRegistryHub()
+                                         .getStartupExceptionRegistry()
+                                         .getExceptions();
+            if (exceptions.empty())
+            {
+                return false;
+            }
+            std::fprintf(stderr, "error: the tests could not be registered:\n");
+            for (const auto &exception : exceptions)
+            {
+                try
+                {
+                    std::rethrow_exception(exception);
                 }
+                catch (const std::exception &error)
+                {
+                    std::fprintf(stderr, "  %s\n", error.what());
+                }
+                catch (...)
+                {
+                    std::fprintf(stderr, "  an unknown exception\n");
+                }
+            }
+            return true;
+#else
+            return false;
+#endif
+        }
+
+        bool
+        BazelTest()
+        {
+#if defined(CATCH_CONFIG_BAZEL_SUPPORT)
+            return true;
+#else
+            return Runner::HasEnvironment("BAZEL_TEST");
+#endif
+        }
+
+        /// Bazel passes what it wants through the environment; it wins over
+        /// the command line, as `bazel test --test_filter` expects.
+        void
+        ApplyBazel(Runner::Options &options, std::vector<std::string> &notes)
+        {
+            const std::string xml = Runner::ReadEnvironment("XML_OUTPUT_FILE");
+            if (!xml.empty() && options.junitPath.empty())
+            {
+                options.junitPath = xml;
+            }
+            const std::string filter =
+                Runner::ReadEnvironment("TESTBRIDGE_TEST_ONLY");
+            if (!filter.empty())
+            {
+                options.testSpecs = {filter};
+            }
+            const std::string index = Runner::ReadEnvironment("TEST_SHARD_INDEX");
+            const std::string total = Runner::ReadEnvironment("TEST_TOTAL_SHARDS");
+            const std::string status =
+                Runner::ReadEnvironment("TEST_SHARD_STATUS_FILE");
+            if (!index.empty() && !total.empty())
+            {
+                auto parsed = Runner::ParseOptions({"--shard=" + index + "/" + total});
+                if (parsed)
+                {
+                    options.shard = parsed->shard;
+                    if (!status.empty())
+                    {
+                        // Bazel needs to see that the shard was read.
+                        static_cast<void>(
+                            Runner::WriteFileAtomically(status, ""));
+                    }
+                }
+                else
+                {
+                    notes.push_back("ignoring Bazel's shard " + index + "/" +
+                                    total + ": " + parsed.GetError().Message());
+                }
+            }
+            const std::string seed = Runner::ReadEnvironment("TEST_RANDOM_SEED");
+            if (!seed.empty())
+            {
+                auto parsed = Runner::ParseOptions({"--seed=" + seed});
+                if (parsed)
+                {
+                    options.seed = parsed->seed;
+                    options.seedGiven = true;
+                }
+            }
+            const std::string outputs =
+                Runner::ReadEnvironment("TEST_UNDECLARED_OUTPUTS_DIR");
+            if (!outputs.empty() && options.jsonPath.empty())
+            {
+                options.jsonPath =
+                    (std::filesystem::path{outputs} / "catch3.json").string();
+            }
+            if (options.historyDirectory.empty() &&
+                !Runner::HasEnvironment("CATCH3_HISTORY"))
+            {
+                // A sandboxed test has nowhere lasting to keep history.
+                options.historyEnabled = false;
+            }
+        }
+
+        std::filesystem::path
+        HistoryDirectory(const Runner::Options &options,
+                         const std::filesystem::path &program)
+        {
+            if (!options.historyDirectory.empty())
+            {
+                return options.historyDirectory;
+            }
+            const std::string fromEnvironment =
+                Runner::ReadEnvironment("CATCH3_HISTORY");
+            if (!fromEnvironment.empty())
+            {
+                return fromEnvironment;
+            }
+            return program.parent_path() / ".catch3";
+        }
+
+        JsonValue
+        Strings(const std::vector<std::string> &values)
+        {
+            JsonValue array = JsonValue::Array();
+            for (const auto &value : values)
+            {
+                array.Append(value);
+            }
+            return array;
+        }
+
+        /// The discovery protocol: what `--list=json` prints. Its shape is
+        /// fixed for a given version; IDE adapters and CMake read it.
+        std::string
+        ListJson(const Runner::Catalog &catalog,
+                 const std::vector<std::size_t> &matched,
+                 const std::string &programName)
+        {
+            JsonValue list = JsonValue::Object();
+            list.Set("format", "catch3-tests");
+            list.Set("version", 1);
+            list.Set("binary", programName);
+            list.Set("catch3", kVersion);
+            JsonValue tests = JsonValue::Array();
+            for (const std::size_t index : matched)
+            {
+                const auto &entry = catalog.Tests()[index];
+                JsonValue test = JsonValue::Object();
+                test.Set("id", entry.key);
+                test.Set("name", entry.name);
+                test.Set("className", entry.className);
+                test.Set("file", entry.file);
+                test.Set("line", entry.line);
+                test.Set("tags", Strings(entry.tags));
+                test.Set("hidden", entry.hidden);
+                test.Set("serial", entry.serial);
+                test.Set("isolated", entry.isolated);
+                test.Set("quarantined", entry.quarantined);
+                test.Set("resources", Strings(entry.resources));
+                test.Set("dependsOn", Strings(entry.dependsOn));
+                if (entry.timeout)
+                {
+                    test.Set("timeoutSeconds",
+                             static_cast<double>(entry.timeout->count()) / 1000.0);
+                }
+                if (entry.retries)
+                {
+                    test.Set("retries", *entry.retries);
+                }
+                tests.Append(std::move(test));
+            }
+            list.Set("tests", std::move(tests));
+            return list.ToPrettyString();
+        }
+
+        int
+        List(const Runner::Options &options,
+             const Runner::Catalog &catalog,
+             const std::vector<std::size_t> &matched,
+             const std::string &programName)
+        {
+            if (options.mode == Runner::Mode::kListTags)
+            {
+                std::map<std::string, std::size_t> counts;
+                for (const std::size_t index : matched)
+                {
+                    for (const auto &tag : catalog.Tests()[index].tags)
+                    {
+                        ++counts[tag];
+                    }
+                }
+                for (const auto &[tag, count] : counts)
+                {
+                    std::printf("%6zu  [%s]\n", count, tag.c_str());
+                }
+                std::printf("%zu tag(s)\n", counts.size());
+                return 0;
+            }
+            switch (options.listFormat)
+            {
+                case Runner::ListFormat::kJson:
+                    std::fputs(ListJson(catalog, matched, programName).c_str(),
+                               stdout);
+                    break;
+                case Runner::ListFormat::kNames:
+                    for (const std::size_t index : matched)
+                    {
+                        std::printf("%s\n", catalog.Tests()[index].name.c_str());
+                    }
+                    break;
+                case Runner::ListFormat::kText:
+                    for (const std::size_t index : matched)
+                    {
+                        const auto &entry = catalog.Tests()[index];
+                        std::string tags;
+                        for (const auto &tag : entry.tags)
+                        {
+                            tags += "[" + tag + "]";
+                        }
+                        std::printf("%s\n    %s:%zu\n",
+                                    entry.name.c_str(),
+                                    entry.file.c_str(),
+                                    entry.line);
+                        if (!tags.empty())
+                        {
+                            std::printf("    %s\n", tags.c_str());
+                        }
+                    }
+                    std::printf("%zu matching test(s)\n", matched.size());
+                    break;
+            }
+            return 0;
+        }
+
+        std::string
+        FormatMicroseconds(std::int64_t microseconds)
+        {
+            char buffer[32];
+            std::snprintf(buffer,
+                          sizeof(buffer),
+                          "%.3f s",
+                          static_cast<double>(microseconds) / 1e6);
+            return buffer;
+        }
+
+        /// What the history says about the tests: `--analytics`.
+        int
+        Analytics(const Runner::Options &options,
+                  const Runner::History &history,
+                  const std::filesystem::path &file)
+        {
+            struct Row
+            {
+                std::string key;
+                double failureRate = 0.0;
+                std::size_t runs = 0;
+                std::size_t flakyEvents = 0;
+                std::int64_t median = 0;
+                std::int64_t recentMedian = 0;
+                std::int64_t olderMedian = 0;
+                std::string quarantine;
+            };
+            std::vector<Row> rows;
+            for (const auto &[key, test] : history.Tests())
+            {
+                Row row;
+                row.key = key;
+                std::size_t failures = 0;
+                std::vector<std::int64_t> recent;
+                std::vector<std::int64_t> older;
+                std::size_t position = 0;
+                for (auto record = test.records.rbegin();
+                     record != test.records.rend();
+                     ++record, ++position)
+                {
+                    ++row.runs;
+                    failures += IsFailure(record->outcome) ? 1 : 0;
+                    if (record->outcome == Outcome::kPassed)
+                    {
+                        (position < 5 ? recent : older)
+                            .push_back(record->durationMicroseconds);
+                    }
+                }
+                const auto median = [](std::vector<std::int64_t> values) {
+                    if (values.empty())
+                    {
+                        return std::int64_t{0};
+                    }
+                    std::sort(values.begin(), values.end());
+                    return values[values.size() / 2];
+                };
+                row.failureRate = row.runs == 0
+                                      ? 0.0
+                                      : static_cast<double>(failures) /
+                                            static_cast<double>(row.runs);
+                row.flakyEvents = test.FlakyEvents(20);
+                row.median = test.DurationPercentile(0.5).value_or(0);
+                row.recentMedian = median(recent);
+                row.olderMedian = median(older);
+                if (test.quarantine)
+                {
+                    row.quarantine = test.quarantine->reason;
+                }
+                rows.push_back(std::move(row));
+            }
+            const auto top = [&](auto key, std::size_t count) {
+                std::vector<const Row *> ordered;
+                for (const auto &row : rows)
+                {
+                    ordered.push_back(&row);
+                }
+                std::stable_sort(ordered.begin(),
+                                 ordered.end(),
+                                 [&](const Row *left, const Row *right) {
+                                     return key(*left) > key(*right);
+                                 });
+                ordered.resize(std::min(count, ordered.size()));
+                return ordered;
+            };
+            const auto flaky =
+                top([](const Row &row) { return static_cast<double>(row.flakyEvents); }, 10);
+            const auto failing =
+                top([](const Row &row) { return row.failureRate; }, 10);
+            const auto slowest =
+                top([](const Row &row) { return static_cast<double>(row.median); }, 10);
+            const auto slower = top(
+                [](const Row &row) {
+                    return row.olderMedian > 0
+                               ? static_cast<double>(row.recentMedian) /
+                                     static_cast<double>(row.olderMedian)
+                               : 0.0;
+                },
+                10);
+
+            if (options.analyticsJson)
+            {
+                JsonValue report = JsonValue::Object();
+                report.Set("format", "catch3-analytics");
+                report.Set("version", 1);
+                report.Set("runs", history.Runs().size());
+                report.Set("tests", rows.size());
+                JsonValue tests = JsonValue::Array();
+                for (const auto &row : rows)
+                {
+                    JsonValue item = JsonValue::Object();
+                    item.Set("id", row.key);
+                    item.Set("runs", row.runs);
+                    item.Set("failureRate", row.failureRate);
+                    item.Set("flakyEvents", row.flakyEvents);
+                    item.Set("medianMicroseconds", row.median);
+                    item.Set("recentMedianMicroseconds", row.recentMedian);
+                    item.Set("olderMedianMicroseconds", row.olderMedian);
+                    if (!row.quarantine.empty())
+                    {
+                        item.Set("quarantine", row.quarantine);
+                    }
+                    tests.Append(std::move(item));
+                }
+                report.Set("tests", std::move(tests));
+                std::fputs(report.ToPrettyString().c_str(), stdout);
+                return 0;
+            }
+            std::printf("history: %s\n%zu run(s), %zu test(s)\n",
+                        file.string().c_str(),
+                        history.Runs().size(),
+                        rows.size());
+            std::printf("\nflaky (last 20 runs):\n");
+            for (const Row *row : flaky)
+            {
+                if (row->flakyEvents > 0)
+                {
+                    std::printf("  %3zu  %s\n", row->flakyEvents, row->key.c_str());
+                }
+            }
+            std::printf("\nin quarantine:\n");
+            for (const auto &row : rows)
+            {
+                if (!row.quarantine.empty())
+                {
+                    std::printf("  %s: %s\n", row.key.c_str(), row.quarantine.c_str());
+                }
+            }
+            std::printf("\nfailing most often:\n");
+            for (const Row *row : failing)
+            {
+                if (row->failureRate > 0.0)
+                {
+                    std::printf("  %3.0f%%  %s\n",
+                                row->failureRate * 100.0,
+                                row->key.c_str());
+                }
+            }
+            std::printf("\nslowest (median):\n");
+            for (const Row *row : slowest)
+            {
+                std::printf("  %10s  %s\n",
+                            FormatMicroseconds(row->median).c_str(),
+                            row->key.c_str());
+            }
+            std::printf("\ngetting slower (last 5 runs against the 15 before):\n");
+            for (const Row *row : slower)
+            {
+                if (row->olderMedian > 0 &&
+                    row->recentMedian > row->olderMedian * 3 / 2)
+                {
+                    std::printf("  %10s -> %-10s  %s\n",
+                                FormatMicroseconds(row->olderMedian).c_str(),
+                                FormatMicroseconds(row->recentMedian).c_str(),
+                                row->key.c_str());
+                }
+            }
+            return 0;
+        }
+
+        std::filesystem::path
+        SourceDirectory(const Runner::Catalog &catalog)
+        {
+            for (const auto &entry : catalog.Tests())
+            {
+                const std::filesystem::path file{entry.file};
+                if (file.is_absolute())
+                {
+                    return file.parent_path();
+                }
+            }
+            std::error_code error;
+            return std::filesystem::current_path(error);
+        }
+
+        std::int64_t
+        UnixMilliseconds()
+        {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(
+                       std::chrono::system_clock::now().time_since_epoch())
+                .count();
+        }
+
+        int
+        Run(const std::vector<std::string> &arguments)
+        {
+            const std::filesystem::path program = Runner::CurrentExecutable(
+                arguments.empty() ? nullptr : arguments.front().c_str());
+            const std::string programName =
+                program.empty() ? "tests" : program.stem().string();
+            std::vector<std::string> rest;
+            if (arguments.size() > 1)
+            {
+                rest.assign(arguments.begin() + 1, arguments.end());
+            }
+            auto parsed = Runner::ParseOptions(rest);
+            if (!parsed)
+            {
+                PrintError(parsed.GetError().Message());
+                return Catch::UnspecifiedErrorExitCode;
+            }
+            Runner::Options options = std::move(*parsed);
+            options.programName = programName;
+
+            if (options.mode == Runner::Mode::kHelp)
+            {
+                PrintHelp(programName);
+                return 0;
+            }
+            if (options.mode == Runner::Mode::kVersion)
+            {
+                std::printf("Catch3 %s\n", kVersion);
+                return 0;
+            }
+            if (ReportStartupErrors())
+            {
+                return Catch::UnspecifiedErrorExitCode;
+            }
+            if (options.filenamesAsTags)
+            {
+                Catch::getMutableRegistryHub()
+                    .getMutableTestCaseRegistry()
+                    .enableFilenameTags();
+            }
+            if (options.mode == Runner::Mode::kWorker)
+            {
+                return Runner::RunWorker(options, programName);
+            }
+
+            std::vector<std::string> notes;
+            if (BazelTest())
+            {
+                ApplyBazel(options, notes);
+            }
+            if (!options.seedGiven)
+            {
+                std::random_device device;
+                options.seed = device();
+            }
+
+            auto catalog = Runner::Catalog::Load();
+            if (!catalog)
+            {
+                PrintError(catalog.GetError().Message());
+                return Catch::UnspecifiedErrorExitCode;
+            }
+            const Catch::Config config{Runner::ToConfigData(options, programName)};
+            const auto &invalid = config.testSpec().getInvalidSpecs();
+            if (!invalid.empty())
+            {
+                for (const auto &spec : invalid)
+                {
+                    PrintError("invalid test spec: " + spec);
+                }
+                return Catch::InvalidTestSpecExitCode;
+            }
+            std::vector<std::string> unmatched;
+            auto matched = catalog->Match(config, unmatched);
+            if (options.mode == Runner::Mode::kListTests ||
+                options.mode == Runner::Mode::kListTags)
+            {
+                if (options.shard.count > 1)
+                {
+                    // A shard lists the tests it would run, dependencies
+                    // included, in registration order.
+                    Runner::PlanInputs inputs;
+                    inputs.catalog = &*catalog;
+                    inputs.matched = matched;
+                    Runner::Options listing = options;
+                    listing.order = Runner::Order::kDeclared;
+                    auto plan = Runner::MakePlan(listing, inputs);
+                    if (!plan)
+                    {
+                        PrintError(plan.GetError().Message());
+                        return Catch::UnspecifiedErrorExitCode;
+                    }
+                    matched.clear();
+                    for (const auto &test : plan->tests)
+                    {
+                        matched.push_back(test.entry->index);
+                    }
+                    std::sort(matched.begin(), matched.end());
+                }
+                return List(options, *catalog, matched, programName);
+            }
+
+            const std::filesystem::path historyFile = Runner::HistoryFile(
+                HistoryDirectory(options, program), programName);
+            Runner::History history;
+            if (options.historyEnabled || options.mode == Runner::Mode::kAnalytics)
+            {
+                auto loaded = Runner::History::Load(historyFile);
+                if (loaded)
+                {
+                    history = std::move(*loaded);
+                }
+                else
+                {
+                    notes.push_back("the history could not be read: " +
+                                    loaded.GetError().Message());
+                }
+            }
+            if (options.mode == Runner::Mode::kAnalytics)
+            {
+                return Analytics(options, history, historyFile);
+            }
+
+            std::string binaryFingerprint;
+            if (options.historyEnabled || options.incremental)
+            {
+                auto digest = Runner::Sha256File(program);
+                binaryFingerprint = digest ? *digest : std::string{};
+            }
+
+            std::optional<Runner::Changes> changes;
+            const auto readChanges = [&] {
+                if (changes)
+                {
+                    return;
+                }
+                auto read = Runner::ReadChanges(SourceDirectory(*catalog),
+                                                options.changesSince);
+                if (read)
+                {
+                    changes = std::move(*read);
+                }
+                else if (options.selection == Runner::Selection::kChanged ||
+                         options.selection == Runner::Selection::kSmart)
+                {
+                    notes.push_back(read.GetError().Message());
+                }
+            };
+            if (options.selection == Runner::Selection::kChanged ||
+                options.selection == Runner::Selection::kSmart)
+            {
+                readChanges();
+            }
+
+            Runner::PlanInputs inputs;
+            inputs.catalog = &*catalog;
+            inputs.matched = matched;
+            inputs.unmatchedSpecs = unmatched;
+            inputs.history = options.historyEnabled ? &history : nullptr;
+            inputs.changes = changes ? &*changes : nullptr;
+            inputs.binaryFingerprint = binaryFingerprint;
+            auto plan = Runner::MakePlan(options, inputs);
+            if (!plan)
+            {
+                PrintError(plan.GetError().Message());
+                return Catch::UnspecifiedErrorExitCode;
+            }
+            notes.insert(notes.end(), plan->notes.begin(), plan->notes.end());
+
+            Runner::ConsoleReport console{options, stdout};
+            const std::size_t workers =
+                options.inProcess
+                    ? 1
+                    : std::max<std::size_t>(
+                          1,
+                          std::min<std::size_t>(
+                              options.jobs == 0 ? Runner::HardwareThreads()
+                                                : options.jobs,
+                              plan->tests.size()));
+            console.RunStarting(plan->tests.size(), workers, options.seed, notes);
+
+            std::string guard = options.exitGuardPath;
+            if (BazelTest() && guard.empty())
+            {
+                guard = Runner::ReadEnvironment("TEST_PREMATURE_EXIT_FILE");
+            }
+            if (!guard.empty())
+            {
+                if (auto status = Runner::CreatePrivateFile(guard); !status)
+                {
+                    PrintError("the exit guard file: " +
+                               status.GetError().Message());
+                    return Catch::UnspecifiedErrorExitCode;
+                }
+            }
+
+            const auto started = std::chrono::steady_clock::now();
+            RunResult run;
+            run.binary = programName;
+            run.seed = options.seed;
+            run.shardIndex = options.shard.index;
+            run.shardCount = options.shard.count;
+            run.candidates = plan->candidates;
+            run.unmatchedSpecs = plan->unmatchedSpecs;
+            run.startUnixMilliseconds = UnixMilliseconds();
+            Runner::SchedulerEvents events;
+            events.testFinished = [&](const TestResult &test) {
+                console.TestFinished(test);
+            };
+            events.retrying = [&](const TestResult &test, const Attempt &attempt) {
+                console.Retrying(test, attempt);
+            };
+            auto outcome = Runner::RunPlan(
+                options, *plan, *catalog, program.string(), programName, events);
+            run.wallMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(
+                                       std::chrono::steady_clock::now() - started)
+                                       .count();
+            run.workers = outcome.workers;
+            run.tests = std::move(outcome.tests);
+            for (auto &kept : plan->kept)
+            {
+                run.tests.push_back(std::move(kept));
+            }
+            run.notes = std::move(outcome.notes);
+
+            const bool anyFailure = std::any_of(
+                run.tests.begin(), run.tests.end(), [](const TestResult &test) {
+                    return IsFailure(test.outcome) || test.flaky;
+                });
+            if (anyFailure)
+            {
+                readChanges();
+            }
+            Runner::AnalysisInputs analysis;
+            analysis.history = options.historyEnabled ? &history : nullptr;
+            analysis.changes = changes ? &*changes : nullptr;
+            analysis.plan = &*plan;
+            analysis.program = program.string();
+            analysis.changesSince = options.changesSince;
+            Runner::Analyze(run, analysis);
+            console.RunEnded(run);
+
+            if (!options.junitPath.empty())
+            {
+                if (auto status = Runner::WriteFileAtomically(
+                        options.junitPath, JUnitXmlWriter::ToString(run));
+                    !status)
+                {
+                    PrintError(status.GetError().Message());
+                }
+            }
+            if (!options.jsonPath.empty())
+            {
+                if (auto status = Runner::WriteFileAtomically(
+                        options.jsonPath, Runner::ToJson(run).ToPrettyString());
+                    !status)
+                {
+                    PrintError(status.GetError().Message());
+                }
+            }
+            if (!options.tracePath.empty())
+            {
+                if (auto status = Runner::WriteFileAtomically(
+                        options.tracePath, Runner::TraceJson(run));
+                    !status)
+                {
+                    PrintError(status.GetError().Message());
+                }
+            }
+            if (options.historyEnabled && !run.tests.empty())
+            {
+                Runner::RunRecord record;
+                record.unixMilliseconds = run.startUnixMilliseconds;
+                record.commit = changes ? changes->commit : std::string{};
+                record.binaryFingerprint = binaryFingerprint;
+                record.seed = run.seed;
+                record.tests = run.tests.size();
+                record.wallMicroseconds = run.wallMicroseconds;
+                for (const auto &test : run.tests)
+                {
+                    record.failed += test.FailsRun() ? 1 : 0;
+                }
+                auto committed = Runner::History::Commit(historyFile,
+                                                         run,
+                                                         record,
+                                                         plan->fingerprints,
+                                                         {});
+                if (!committed)
+                {
+                    std::fprintf(stderr,
+                                 "warning: the history was not saved: %s\n",
+                                 committed.GetError().Message().c_str());
+                }
+            }
+            if (!guard.empty())
+            {
+                std::error_code error;
+                std::filesystem::remove(guard, error);
+            }
+
+            if (outcome.infrastructureFailed)
+            {
+                return Catch::UnspecifiedErrorExitCode;
+            }
+            if (!run.unmatchedSpecs.empty() && options.warnUnmatchedSpecs)
+            {
+                return Catch::UnmatchedTestSpecExitCode;
+            }
+            const bool quarantineCounts =
+                options.quarantine == Runner::QuarantineMode::kReport;
+            bool failed = false;
+            std::size_t ran = 0;
+            std::size_t skipped = 0;
+            for (const auto &test : run.tests)
+            {
+                if (test.outcome != Outcome::kUpToDate)
+                {
+                    ++ran;
+                }
+                skipped += test.outcome == Outcome::kSkipped ? 1 : 0;
+                failed = failed || test.FailsRun() ||
+                         (quarantineCounts && test.quarantined &&
+                          IsFailure(test.outcome));
+            }
+            if (failed)
+            {
+                return Catch::TestFailureExitCode;
+            }
+            if (run.tests.empty() && !options.allowNoTests)
+            {
+                return Catch::NoTestsRunExitCode;
+            }
+            if (ran > 0 && skipped == ran && !options.allowNoTests)
+            {
+                return Catch::AllTestsSkippedExitCode;
+            }
+            return 0;
+        }
+    } // namespace
+
+    int
+    RunTests(const std::vector<std::string> &arguments)
+    {
+        return Run(arguments);
+    }
+
+    void
+    PrintHelp(const std::string &programName)
+    {
+        std::fputs(Runner::HelpText(programName).c_str(), stdout);
+    }
+} // namespace Progmasoft::Catch3
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+#include <algorithm>
+#include <chrono>
+#include <condition_variable>
+#include <cstdio>
+#include <deque>
+#include <filesystem>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <set>
+#include <thread>
+
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        using Scheduling::AppendBounded;
+        using Scheduling::Bisection;
+        using Scheduling::Clock;
+        using Scheduling::Event;
+        using Scheduling::Job;
+        using Scheduling::kMaximumProbes;
+        using Scheduling::kMaximumProcessOutput;
+        using Scheduling::kMaximumRecordedAssertions;
+        using Scheduling::kStartupFailuresToGiveUp;
+        using Scheduling::kStartupTimeout;
+        using Scheduling::Microseconds;
+        using Scheduling::Passing;
+        using Scheduling::Running;
+        using Scheduling::Satisfies;
+        using Scheduling::TestState;
+        using Scheduling::Worker;
+        using std::chrono::milliseconds;
+
+        class Scheduler final
+        {
+        public:
+            Scheduler(const Options &options,
+                      const Plan &plan,
+                      const Catalog &catalog,
+                      std::string program,
+                      std::string programName,
+                      const SchedulerEvents &events)
+                : options_{ options }
+                , plan_{ plan }
+                , catalog_{ catalog }
+                , program_{ std::move(program) }
+                , programName_{ std::move(programName) }
+                , events_{ events }
+                , runStart_{ Clock::now() }
+            {
+                std::error_code error;
+                temporaryRoot_ = std::filesystem::temp_directory_path(error)
+                                 / ("catch3-" + UniqueName());
+                const unsigned hardware = HardwareThreads();
+                maximumWorkers_ = options.jobs == 0 ? hardware : options.jobs;
+                maximumWorkers_ = std::max<std::size_t>(
+                    1,
+                    std::min(maximumWorkers_, plan.tests.size()));
+                retryBudget_ = std::max<std::size_t>(5, plan.tests.size() / 10);
+                states_.resize(plan.tests.size());
+                for (std::size_t position = 0; position < plan.tests.size();
+                     ++position)
+                {
+                    const PlannedTest &planned = plan.tests[position];
+                    const TestEntry &entry = *planned.entry;
+                    TestResult &result = states_[position].result;
+                    result.id = entry.key;
+                    result.name = entry.name;
+                    result.className = entry.className;
+                    result.file = entry.file;
+                    result.line = entry.line;
+                    result.tags = entry.tags;
+                    result.selectionReason = planned.selectionReason;
+                    result.quarantined = planned.quarantined;
+                    result.predictedDurationMicroseconds
+                        = planned.predictedMicroseconds;
+                    result.predictedFailureProbability
+                        = planned.failureProbability;
+                    if (planned.quarantined)
+                    {
+                        result.analysis.push_back("in quarantine: "
+                                                  + planned.quarantineReason);
+                    }
+                    states_[position].repeatsLeft
+                        = options.repeat > 0 ? options.repeat - 1 : 0;
+                }
+            }
+
+            ScheduleOutcome
+            Run()
+            {
+                for (std::size_t position = 0; position < plan_.tests.size();
+                     ++position)
+                {
+                    Job job;
+                    job.test = position;
+                    const PlannedTest &planned = plan_.tests[position];
+                    if (planned.replaySequence)
+                    {
+                        job.before = *planned.replaySequence;
+                        job.fresh = true;
+                        job.seed = planned.replaySeed;
+                    }
+                    Enqueue(std::move(job));
+                }
+                if (options_.inProcess)
+                {
+                    RunInProcess();
+                }
+                else
+                {
+                    RunInWorkers();
+                }
+                ScheduleOutcome outcome;
+                for (auto &state : states_)
+                {
+                    if (!state.finished)
+                    {
+                        state.result.outcome = Outcome::kNotRun;
+                        if (infrastructureFailed_)
+                        {
+                            state.result.category
+                                = FailureCategory::kInfrastructure;
+                        }
+                    }
+                    outcome.tests.push_back(std::move(state.result));
+                }
+                outcome.workers = workersStarted_;
+                outcome.notes = std::move(notes_);
+                outcome.infrastructureFailed = infrastructureFailed_;
+                std::error_code error;
+                // Only an empty root goes; kept directories hold failures.
+                std::filesystem::remove(temporaryRoot_, error);
+                return outcome;
             }
 
         private:
-            void printResultType(StringRef passOrFail) const {
-                if (!passOrFail.empty()) {
-                    stream << passOrFail << ' ' << counter << " -";
+            // Queue and dispatch.
+
+            void
+            Enqueue(Job job)
+            {
+                ++states_[job.test].pendingJobs;
+                states_[job.test].queued = true;
+                if (job.kind == Job::Kind::kProbe || !job.before.empty()
+                    || states_[job.test].result.attempts.size() > 0)
+                {
+                    // Retries and probes go ahead of first attempts: they
+                    // finish a verdict that is already overdue.
+                    queue_.push_front(std::move(job));
+                }
+                else
+                {
+                    queue_.push_back(std::move(job));
                 }
             }
 
-            void printIssue(StringRef issue) const {
-                stream << ' ' << issue;
+            /// Whether the dependencies of a test have their verdicts:
+            /// returns false while one is still open.
+            bool
+            DependenciesSettled(std::size_t position) const
+            {
+                for (const std::size_t dependency :
+                     plan_.tests[position].dependencies)
+                {
+                    if (!states_[dependency].finished)
+                    {
+                        return false;
+                    }
+                }
+                return true;
             }
 
-            void printExpressionWas() {
-                if (result.hasExpression()) {
-                    stream << ';';
-                    stream << colourImpl->guardColour( tapDimColour )
-                           << " expression was:";
-                    printOriginalExpression();
+            bool
+            ResourcesFree(std::size_t position) const
+            {
+                for (const auto &resource :
+                     plan_.tests[position].entry->resources)
+                {
+                    if (heldResources_.count(resource) > 0)
+                    {
+                        return false;
+                    }
                 }
+                return true;
             }
 
-            void printOriginalExpression() const {
-                if (result.hasExpression()) {
-                    stream << ' ' << result.getExpression();
+            std::size_t
+            RunningCount() const
+            {
+                std::size_t count = 0;
+                for (const auto &worker : workers_)
+                {
+                    count += worker->job.has_value() ? 1 : 0;
                 }
+                return count;
             }
 
-            void printReconstructedExpression() const {
-                if (result.hasExpandedExpression()) {
-                    stream << colourImpl->guardColour( tapDimColour ) << " for: ";
-
-                    std::string expr = result.getExpandedExpression();
-                    std::replace(expr.begin(), expr.end(), '\n', ' ');
-                    stream << expr;
+            /// The next job that may start now, removed from the queue.
+            std::optional<Job>
+            TakeRunnable()
+            {
+                for (auto job = queue_.begin(); job != queue_.end(); ++job)
+                {
+                    const std::size_t position = job->test;
+                    if (job->kind == Job::Kind::kAttempt
+                        && !DependenciesSettled(position))
+                    {
+                        continue;
+                    }
+                    const bool serial = plan_.tests[position].entry->serial;
+                    if (serial && RunningCount() > 0)
+                    {
+                        // Nothing else starts until the serial test has run.
+                        return std::nullopt;
+                    }
+                    if (serialRunning_)
+                    {
+                        return std::nullopt;
+                    }
+                    if (!ResourcesFree(position))
+                    {
+                        continue;
+                    }
+                    Job taken = std::move(*job);
+                    queue_.erase(job);
+                    return taken;
                 }
+                return std::nullopt;
             }
 
-            void printMessage() {
-                if (itMessage != messages.end()) {
-                    stream << " '" << itMessage->message << '\'';
-                    ++itMessage;
-                }
-            }
-
-            void printRemainingMessages(Colour::Code colour = tapDimColour) {
-                if (itMessage == messages.end()) {
-                    return;
-                }
-
-                // using messages.end() directly (or auto) yields compilation error:
-                std::vector<MessageInfo>::const_iterator itEnd = messages.end();
-                const std::size_t N = static_cast<std::size_t>(itEnd - itMessage);
-
-                stream << colourImpl->guardColour( colour ) << " with "
-                       << pluralise( N, "message"_sr ) << ':';
-
-                for (; itMessage != itEnd; ) {
-                    // If this assertion is a warning ignore any INFO messages
-                    if (printInfoMessages || itMessage->type != ResultWas::Info) {
-                        stream << " '" << itMessage->message << '\'';
-                        if (++itMessage != itEnd) {
-                            stream << colourImpl->guardColour(tapDimColour) << " and";
+            /// Settles tests whose dependencies failed, and those left when
+            /// the run stops early.
+            void
+            SettleBlocked()
+            {
+                bool changed = true;
+                while (changed)
+                {
+                    changed = false;
+                    for (auto job = queue_.begin(); job != queue_.end();)
+                    {
+                        const std::size_t position = job->test;
+                        std::string reason;
+                        if (job->kind == Job::Kind::kAttempt)
+                        {
+                            for (const std::size_t dependency :
+                                 plan_.tests[position].dependencies)
+                            {
+                                const auto &state = states_[dependency];
+                                if (state.finished
+                                    && !Satisfies(state.result.outcome))
+                                {
+                                    reason
+                                        = "depends on '" + state.result.name
+                                          + "', which "
+                                          + (state.result.outcome
+                                                     == Outcome::kBlocked
+                                                 ? std::string{ "was blocked" }
+                                                 : std::string{ OutcomeName(
+                                                       state.result.outcome) });
+                                    break;
+                                }
+                            }
+                        }
+                        if (reason.empty())
+                        {
+                            ++job;
+                            continue;
+                        }
+                        auto &state = states_[position];
+                        job = queue_.erase(job);
+                        --state.pendingJobs;
+                        if (state.pendingJobs == 0 && !state.finished
+                            && state.result.attempts.empty())
+                        {
+                            state.result.outcome = Outcome::kBlocked;
+                            state.result.category
+                                = FailureCategory::kDependency;
+                            state.result.analysis.insert(
+                                state.result.analysis.begin(),
+                                reason);
+                            Finish(position);
+                            changed = true;
                         }
                     }
                 }
             }
 
-        private:
-            std::ostream& stream;
-            AssertionResult const& result;
-            std::vector<MessageInfo> const& messages;
-            std::vector<MessageInfo>::const_iterator itMessage;
-            bool printInfoMessages;
-            std::size_t counter;
-            ColourImpl* colourImpl;
-        };
-
-    } // End anonymous namespace
-
-    TAPReporter::TAPReporter( ReporterConfig&& config ):
-        StreamingReporterBase( CATCH_MOVE( config ) ) {
-        rejectSuperfluousConfigKeys( m_customOptions, {} );
-
-        m_preferences.shouldReportAllAssertions = true;
-        m_preferences.shouldReportAllAssertionStarts = false;
-    }
-
-    void TAPReporter::testRunStarting( TestRunInfo const& ) {
-        if ( m_config->testSpec().hasFilters() ) {
-            m_stream << "# filters: " << m_config->testSpec() << '\n';
-        }
-        m_stream << "# rng-seed: " << m_config->rngSeed() << '\n'
-                 << std::flush;
-    }
-
-    void TAPReporter::noMatchingTestCases( StringRef unmatchedSpec ) {
-        m_stream << "# No test cases matched '" << unmatchedSpec << "'\n";
-    }
-
-    void TAPReporter::assertionEnded(AssertionStats const& _assertionStats) {
-        ++counter;
-
-        m_stream << "# " << currentTestCaseInfo->name << '\n';
-        TapAssertionPrinter printer(m_stream, _assertionStats, counter, m_colour.get());
-        printer.print();
-
-        m_stream << '\n' << std::flush;
-    }
-
-    void TAPReporter::testRunEnded(TestRunStats const& _testRunStats) {
-        m_stream << "1.." << _testRunStats.totals.assertions.total();
-        if (_testRunStats.totals.testCases.total() == 0) {
-            m_stream << " # Skipped: No tests ran.";
-        }
-        m_stream << "\n\n" << std::flush;
-        StreamingReporterBase::testRunEnded(_testRunStats);
-    }
-
-
-
-
-} // end namespace Catch
-
-
-
-
-#include <cassert>
-#include <ostream>
-
-namespace Catch {
-
-    namespace {
-        // if string has a : in first line will set indent to follow it on
-        // subsequent lines
-        void printHeaderString(std::ostream& os, std::string const& _string, std::size_t indent = 0) {
-            std::size_t i = _string.find(": ");
-            if (i != std::string::npos)
-                i += 2;
-            else
-                i = 0;
-            os << TextFlow::Column(_string)
-                  .indent(indent + i)
-                  .initialIndent(indent) << '\n';
-        }
-
-        std::string escape(StringRef str) {
-            std::string escaped = static_cast<std::string>(str);
-            replaceInPlace(escaped, "|", "||");
-            replaceInPlace(escaped, "'", "|'");
-            replaceInPlace(escaped, "\n", "|n");
-            replaceInPlace(escaped, "\r", "|r");
-            replaceInPlace(escaped, "[", "|[");
-            replaceInPlace(escaped, "]", "|]");
-            return escaped;
-        }
-    } // end anonymous namespace
-
-
-    TeamCityReporter::TeamCityReporter( ReporterConfig&& _config ):
-        StreamingReporterBase( CATCH_MOVE( _config ) ) {
-        rejectSuperfluousConfigKeys( m_customOptions, {} );
-
-        m_preferences.shouldRedirectStdOut = true;
-        m_preferences.shouldReportAllAssertionStarts = false;
-    }
-
-    TeamCityReporter::~TeamCityReporter() = default;
-
-    void TeamCityReporter::testRunStarting( TestRunInfo const& runInfo ) {
-        m_stream << "##teamcity[testSuiteStarted name='" << escape( runInfo.name )
-               << "']\n";
-    }
-
-    void TeamCityReporter::testRunEnded( TestRunStats const& runStats ) {
-        m_stream << "##teamcity[testSuiteFinished name='"
-               << escape( runStats.runInfo.name ) << "']\n";
-    }
-
-    void TeamCityReporter::assertionEnded(AssertionStats const& assertionStats) {
-        AssertionResult const& result = assertionStats.assertionResult;
-        if ( !result.isOk() ||
-             result.getResultType() == ResultWas::ExplicitSkip ) {
-
-            ReusableStringStream msg;
-            if (!m_headerPrintedForThisSection)
-                printSectionHeader(msg.get());
-            m_headerPrintedForThisSection = true;
-
-            msg << result.getSourceInfo() << '\n';
-
-            switch (result.getResultType()) {
-            case ResultWas::ExpressionFailed:
-                msg << "expression failed";
-                break;
-            case ResultWas::ThrewException:
-                msg << "unexpected exception";
-                break;
-            case ResultWas::FatalErrorCondition:
-                msg << "fatal error condition";
-                break;
-            case ResultWas::DidntThrowException:
-                msg << "no exception was thrown where one was expected";
-                break;
-            case ResultWas::ExplicitFailure:
-                msg << "explicit failure";
-                break;
-            case ResultWas::ExplicitSkip:
-                msg << "explicit skip";
-                break;
-
-                // We shouldn't get here because of the isOk() test
-            case ResultWas::Ok:
-            case ResultWas::Info:
-            case ResultWas::Warning:
-                CATCH_ERROR("Internal error in TeamCity reporter");
-                // These cases are here to prevent compiler warnings
-            case ResultWas::Unknown:
-            case ResultWas::FailureBit:
-            case ResultWas::Exception:
-                CATCH_ERROR("Not implemented");
-            }
-            if (assertionStats.infoMessages.size() == 1)
-                msg << " with message:";
-            if (assertionStats.infoMessages.size() > 1)
-                msg << " with messages:";
-            for (auto const& messageInfo : assertionStats.infoMessages)
-                msg << "\n  \"" << messageInfo.message << '"';
-
-
-            if (result.hasExpression()) {
-                msg <<
-                    "\n  " << result.getExpressionInMacro() << "\n"
-                    "with expansion:\n"
-                    "  " << result.getExpandedExpression() << '\n';
+            std::string
+            TemporaryFor(std::size_t catalogIndex, std::size_t attempt)
+            {
+                return (temporaryRoot_
+                        / ("t" + std::to_string(catalogIndex) + "-a"
+                           + std::to_string(attempt) + "-"
+                           + std::to_string(++temporaryCounter_)))
+                    .string();
             }
 
-            if ( result.getResultType() == ResultWas::ExplicitSkip ) {
-                m_stream << "##teamcity[testIgnored";
-            } else if ( currentTestCaseInfo->okToFail() ) {
-                msg << "- failure ignore as test marked as 'ok to fail'\n";
-                m_stream << "##teamcity[testIgnored";
-            } else {
-                m_stream << "##teamcity[testFailed";
-            }
-            m_stream << " name='" << escape( currentTestCaseInfo->name ) << '\''
-                     << " message='" << escape( msg.str() ) << '\'' << "]\n";
-        }
-        m_stream.flush();
-    }
-
-    void TeamCityReporter::testCaseStarting(TestCaseInfo const& testInfo) {
-        m_testTimer.start();
-        StreamingReporterBase::testCaseStarting(testInfo);
-        m_stream << "##teamcity[testStarted name='"
-            << escape(testInfo.name) << "']\n";
-        m_stream.flush();
-    }
-
-    void TeamCityReporter::testCaseEnded(TestCaseStats const& testCaseStats) {
-        StreamingReporterBase::testCaseEnded(testCaseStats);
-        auto const& testCaseInfo = *testCaseStats.testInfo;
-        if (!testCaseStats.stdOut.empty())
-            m_stream << "##teamcity[testStdOut name='"
-            << escape(testCaseInfo.name)
-            << "' out='" << escape(testCaseStats.stdOut) << "']\n";
-        if (!testCaseStats.stdErr.empty())
-            m_stream << "##teamcity[testStdErr name='"
-            << escape(testCaseInfo.name)
-            << "' out='" << escape(testCaseStats.stdErr) << "']\n";
-        m_stream << "##teamcity[testFinished name='"
-            << escape(testCaseInfo.name) << "' duration='"
-            << m_testTimer.getElapsedMilliseconds() << "']\n";
-        m_stream.flush();
-    }
-
-    void TeamCityReporter::printSectionHeader(std::ostream& os) {
-        assert(!m_sectionStack.empty());
-
-        if (m_sectionStack.size() > 1) {
-            os << lineOfChars('-') << '\n';
-
-            std::vector<SectionInfo>::const_iterator
-                it = m_sectionStack.begin() + 1, // Skip first section (test case)
-                itEnd = m_sectionStack.end();
-            for (; it != itEnd; ++it)
-                printHeaderString(os, it->name);
-            os << lineOfChars('-') << '\n';
-        }
-
-        SourceLineInfo lineInfo = m_sectionStack.front().lineInfo;
-
-        os << lineInfo << '\n';
-        os << lineOfChars('.') << "\n\n";
-    }
-
-} // end namespace Catch
-
-
-
-
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4061) // Not all labels are EXPLICITLY handled in switch
-                              // Note that 4062 (not all labels are handled
-                              // and default is missing) is enabled
-#endif
-
-namespace Catch {
-    XmlReporter::XmlReporter( ReporterConfig&& _config )
-    :   StreamingReporterBase( CATCH_MOVE(_config) ),
-        m_xml(m_stream)
-    {
-        rejectSuperfluousConfigKeys( m_customOptions, {} );
-
-        m_preferences.shouldRedirectStdOut = true;
-        m_preferences.shouldReportAllAssertions = true;
-        m_preferences.shouldReportAllAssertionStarts = false;
-    }
-
-    XmlReporter::~XmlReporter() = default;
-
-    std::string XmlReporter::getDescription() {
-        return "Reports test results as an XML document";
-    }
-
-    std::string XmlReporter::getStylesheetRef() const {
-        return std::string();
-    }
-
-    void XmlReporter::writeSourceInfo( SourceLineInfo const& sourceInfo ) {
-        m_xml
-            .writeAttribute( "filename"_sr, sourceInfo.file )
-            .writeAttribute( "line"_sr, sourceInfo.line );
-    }
-
-    void XmlReporter::testRunStarting( TestRunInfo const& testInfo ) {
-        StreamingReporterBase::testRunStarting( testInfo );
-        std::string stylesheetRef = getStylesheetRef();
-        if( !stylesheetRef.empty() )
-            m_xml.writeStylesheetRef( stylesheetRef );
-        m_xml.startElement("Catch2TestRun")
-             .writeAttribute("name"_sr, m_config->name())
-             .writeAttribute("rng-seed"_sr, m_config->rngSeed())
-             .writeAttribute("xml-format-version"_sr, 3)
-             .writeAttribute("catch2-version"_sr, libraryVersion());
-        if ( m_config->testSpec().hasFilters() ) {
-            m_xml.writeAttribute( "filters"_sr, m_config->testSpec() );
-        }
-    }
-
-    void XmlReporter::testCaseStarting( TestCaseInfo const& testInfo ) {
-        StreamingReporterBase::testCaseStarting(testInfo);
-        m_xml.startElement( "TestCase" )
-            .writeAttribute( "name"_sr, trim( StringRef(testInfo.name) ) )
-            .writeAttribute( "tags"_sr, testInfo.tagsAsString() );
-
-        writeSourceInfo( testInfo.lineInfo );
-
-        if ( m_config->showDurations() == ShowDurations::Always )
-            m_testCaseTimer.start();
-        m_xml.ensureTagClosed();
-    }
-
-    void XmlReporter::sectionStarting( SectionInfo const& sectionInfo ) {
-        StreamingReporterBase::sectionStarting( sectionInfo );
-        if( m_sectionDepth++ > 0 ) {
-            m_xml.startElement( "Section" )
-                .writeAttribute( "name"_sr, trim( StringRef(sectionInfo.name) ) );
-            writeSourceInfo( sectionInfo.lineInfo );
-            m_xml.ensureTagClosed();
-        }
-    }
-
-    void XmlReporter::assertionEnded( AssertionStats const& assertionStats ) {
-
-        AssertionResult const& result = assertionStats.assertionResult;
-
-        bool includeResults = m_config->includeSuccessfulResults() || !result.isOk();
-
-        if( includeResults || result.getResultType() == ResultWas::Warning ) {
-            // Print any info messages in <Info> tags.
-            for( auto const& msg : assertionStats.infoMessages ) {
-                if( msg.type == ResultWas::Info && includeResults ) {
-                    auto t = m_xml.scopedElement( "Info" );
-                    writeSourceInfo( msg.lineInfo );
-                    t.writeText( msg.message );
-                } else if ( msg.type == ResultWas::Warning ) {
-                    auto t = m_xml.scopedElement( "Warning" );
-                    writeSourceInfo( msg.lineInfo );
-                    t.writeText( msg.message );
+            /// Starts the next step of a worker's job.
+            void
+            StartStep(Worker &worker)
+            {
+                const Job &job = *worker.job;
+                const bool target = worker.step >= job.before.size();
+                const std::size_t catalogIndex
+                    = target ? plan_.tests[job.test].entry->index
+                             : job.before[worker.step];
+                Running running;
+                running.catalogIndex = catalogIndex;
+                running.target = target;
+                running.start = Clock::now();
+                Attempt &attempt = running.attempt;
+                attempt.worker = worker.id;
+                attempt.freshProcess = worker.history.empty();
+                attempt.seed = worker.seed.value_or(options_.seed);
+                attempt.startMicroseconds
+                    = Microseconds(running.start - runStart_);
+                for (const std::size_t before : worker.history)
+                {
+                    attempt.precededBy.push_back(catalog_.Tests()[before].key);
+                }
+                if (target)
+                {
+                    const PlannedTest &planned = plan_.tests[job.test];
+                    attempt.number
+                        = job.kind == Job::Kind::kAttempt
+                              ? states_[job.test].result.attempts.size() + 1
+                              : 0;
+                    if (planned.timeout.count() > 0 && !options_.inProcess)
+                    {
+                        running.deadline = running.start + planned.timeout;
+                    }
+                }
+                attempt.temporaryDirectory
+                    = TemporaryFor(catalogIndex, attempt.number);
+                worker.running = std::move(running);
+                if (options_.inProcess)
+                {
+                    return;
+                }
+                JsonValue command = Message("run");
+                command.Set("index", catalogIndex);
+                command.Set("attempt", worker.running->attempt.number);
+                command.Set("temp", worker.running->attempt.temporaryDirectory);
+                if (!worker.process->Input().Write(command.ToString() + "\n"))
+                {
+                    // The worker died; its closed output reports it.
                 }
             }
+
+            void
+            Assign(Worker &worker, Job job)
+            {
+                const PlannedTest &planned = plan_.tests[job.test];
+                for (const auto &resource : planned.entry->resources)
+                {
+                    heldResources_.insert(resource);
+                }
+                if (planned.entry->serial)
+                {
+                    serialRunning_ = true;
+                }
+                worker.job = std::move(job);
+                worker.step = 0;
+                StartStep(worker);
+            }
+
+            void
+            ReleaseJob(Worker &worker)
+            {
+                if (!worker.job)
+                {
+                    return;
+                }
+                const PlannedTest &planned = plan_.tests[worker.job->test];
+                for (const auto &resource : planned.entry->resources)
+                {
+                    heldResources_.erase(resource);
+                }
+                if (planned.entry->serial)
+                {
+                    serialRunning_ = false;
+                }
+                worker.job.reset();
+                worker.running.reset();
+            }
+
+            // Results.
+
+            /// An attempt of the job's target ended.
+            void
+            Complete(Worker &worker, Attempt attempt)
+            {
+                Job job = std::move(*worker.job);
+                ReleaseJob(worker);
+                auto &state = states_[job.test];
+                --state.pendingJobs;
+                std::error_code error;
+                if (Passing(attempt.outcome)
+                    && !attempt.temporaryDirectory.empty())
+                {
+                    std::filesystem::remove_all(attempt.temporaryDirectory,
+                                                error);
+                    attempt.temporaryDirectory.clear();
+                }
+                else if (!attempt.temporaryDirectory.empty()
+                         && std::filesystem::is_empty(
+                             attempt.temporaryDirectory,
+                             error))
+                {
+                    std::filesystem::remove(attempt.temporaryDirectory, error);
+                    attempt.temporaryDirectory.clear();
+                }
+                if (job.kind == Job::Kind::kProbe)
+                {
+                    ProbeEnded(job, IsFailure(attempt.outcome));
+                    return;
+                }
+                state.result.attempts.push_back(std::move(attempt));
+                Decide(job.test);
+            }
+
+            /// What follows an attempt: a repeat, a retry, a bisection, or
+            /// the verdict.
+            void
+            Decide(std::size_t position)
+            {
+                auto &state = states_[position];
+                const auto &attempts = state.result.attempts;
+                const Attempt &last = attempts.back();
+                const PlannedTest &planned = plan_.tests[position];
+                if (stopping_)
+                {
+                    Finish(position);
+                    return;
+                }
+                if (state.repeatsLeft > 0)
+                {
+                    --state.repeatsLeft;
+                    NotifyRetry(position);
+                    Job job;
+                    job.test = position;
+                    Enqueue(std::move(job));
+                    return;
+                }
+                const bool failed = IsFailure(last.outcome);
+                const bool everFailed
+                    = std::any_of(attempts.begin(),
+                                  attempts.end(),
+                                  [](const Attempt &attempt) {
+                                      return IsFailure(attempt.outcome);
+                                  });
+                if (failed && state.retriesUsed < planned.retryLimit
+                    && retryBudget_ > 0)
+                {
+                    bool retry = options_.retryMode == RetryMode::kAlways;
+                    if (options_.retryMode == RetryMode::kAuto)
+                    {
+                        // One retry, alone in a fresh process, tells a
+                        // deterministic failure from a flaky one and from
+                        // one caused by a test before it. Beyond that only
+                        // what is known to be unstable is worth more tries.
+                        const bool unstable
+                            = last.outcome == Outcome::kCrashed
+                              || last.outcome == Outcome::kTimedOut
+                              || planned.quarantined || planned.flakyHistory;
+                        retry = state.retriesUsed == 0 || unstable;
+                    }
+                    if (retry)
+                    {
+                        ++state.retriesUsed;
+                        --retryBudget_;
+                        NotifyRetry(position);
+                        Job job;
+                        job.test = position;
+                        job.fresh = true;
+                        Enqueue(std::move(job));
+                        return;
+                    }
+                }
+                // A pass alone after a failure in company: flaky, or broken
+                // by a test before it. A probe tells which.
+                if (!failed && everFailed && options_.bisectOrder
+                    && state.bisection.stage == Bisection::Stage::kNone)
+                {
+                    const Attempt *sharedFailure = nullptr;
+                    for (const auto &attempt : attempts)
+                    {
+                        if (IsFailure(attempt.outcome)
+                            && !attempt.precededBy.empty()
+                            && attempt.outcome != Outcome::kTimedOut)
+                        {
+                            sharedFailure = &attempt;
+                            break;
+                        }
+                    }
+                    if (sharedFailure != nullptr && last.freshProcess)
+                    {
+                        std::vector<std::size_t> sequence;
+                        for (const auto &key : sharedFailure->precededBy)
+                        {
+                            if (const TestEntry *entry = catalog_.Find(key))
+                            {
+                                sequence.push_back(entry->index);
+                            }
+                        }
+                        if (!sequence.empty())
+                        {
+                            state.bisection.stage
+                                = Bisection::Stage::kConfirming;
+                            state.bisection.candidates = sequence;
+                            StartProbe(position, sequence);
+                            return;
+                        }
+                    }
+                }
+                Finish(position);
+            }
+
+            void
+            StartProbe(std::size_t position, std::vector<std::size_t> sequence)
+            {
+                auto &bisection = states_[position].bisection;
+                ++bisection.probes;
+                bisection.probing = sequence;
+                Job job;
+                job.kind = Job::Kind::kProbe;
+                job.test = position;
+                job.before = sequence;
+                job.fresh = true;
+                job.probeSequence = std::move(sequence);
+                Enqueue(std::move(job));
+            }
+
+            void
+            ProbeEnded(const Job &job, bool failed)
+            {
+                const std::size_t position = job.test;
+                auto &bisection = states_[position].bisection;
+                if (bisection.stage == Bisection::Stage::kConfirming)
+                {
+                    if (!failed)
+                    {
+                        // It does not fail again after the same tests: flaky.
+                        bisection.stage = Bisection::Stage::kDone;
+                        Finish(position);
+                        return;
+                    }
+                    bisection.reproduced = true;
+                    bisection.stage = Bisection::Stage::kSearching;
+                }
+                else if (bisection.stage == Bisection::Stage::kSearching)
+                {
+                    if (failed)
+                    {
+                        bisection.candidates = bisection.probing;
+                    }
+                    else
+                    {
+                        std::vector<std::size_t> rest;
+                        for (const std::size_t candidate : bisection.candidates)
+                        {
+                            if (std::find(bisection.probing.begin(),
+                                          bisection.probing.end(),
+                                          candidate)
+                                == bisection.probing.end())
+                            {
+                                rest.push_back(candidate);
+                            }
+                        }
+                        bisection.candidates = std::move(rest);
+                    }
+                }
+                if (bisection.candidates.size() <= 1
+                    || bisection.probes >= kMaximumProbes)
+                {
+                    if (bisection.candidates.size() == 1)
+                    {
+                        bisection.culprit = bisection.candidates.front();
+                    }
+                    bisection.stage = Bisection::Stage::kDone;
+                    Finish(position);
+                    return;
+                }
+                const auto half = bisection.candidates.size() / 2;
+                StartProbe(position,
+                           std::vector<std::size_t>(
+                               bisection.candidates.begin(),
+                               bisection.candidates.begin()
+                                   + static_cast<std::ptrdiff_t>(half)));
+            }
+
+            void
+            NotifyRetry(std::size_t position)
+            {
+                const auto &result = states_[position].result;
+                if (events_.retrying && !result.attempts.empty())
+                {
+                    events_.retrying(result, result.attempts.back());
+                }
+            }
+
+            /// Gives a test its verdict.
+            void
+            Finish(std::size_t position)
+            {
+                auto &state = states_[position];
+                if (state.finished)
+                {
+                    return;
+                }
+                state.finished = true;
+                TestResult &result = state.result;
+                const auto &attempts = result.attempts;
+                if (!attempts.empty())
+                {
+                    const Attempt *firstFailure = nullptr;
+                    const Attempt *lastPass = nullptr;
+                    for (const auto &attempt : attempts)
+                    {
+                        if (IsFailure(attempt.outcome)
+                            && firstFailure == nullptr)
+                        {
+                            firstFailure = &attempt;
+                        }
+                        if (Passing(attempt.outcome))
+                        {
+                            lastPass = &attempt;
+                        }
+                    }
+                    const auto &bisection = state.bisection;
+                    if (bisection.reproduced && firstFailure != nullptr)
+                    {
+                        // Broken by state another test leaves behind: a real
+                        // defect that a retry must not hide.
+                        result.outcome = firstFailure->outcome;
+                        result.category = firstFailure->category;
+                        std::string finding
+                            = "fails only after other tests in the same "
+                              "process and passes alone";
+                        if (bisection.culprit)
+                        {
+                            finding
+                                += "; it fails after '"
+                                   + catalog_.Tests()[*bisection.culprit].name
+                                   + "', which leaves state behind";
+                        }
+                        result.analysis.insert(result.analysis.begin(),
+                                               finding);
+                    }
+                    else if (firstFailure != nullptr && lastPass != nullptr)
+                    {
+                        result.flaky = true;
+                        result.outcome = lastPass->outcome;
+                        result.category = FailureCategory::kNone;
+                        result.analysis.insert(
+                            result.analysis.begin(),
+                            "flaky: failed with "
+                                + std::string{ CategoryName(
+                                    firstFailure->category) }
+                                + " and passed on attempt "
+                                + std::to_string(lastPass->number));
+                    }
+                    else
+                    {
+                        result.outcome = attempts.back().outcome;
+                        result.category = attempts.back().category;
+                    }
+                }
+                if (result.FailsRun())
+                {
+                    ++failedTests_;
+                    if (options_.failFast > 0
+                        && failedTests_ >= options_.failFast && !stopping_)
+                    {
+                        stopping_ = true;
+                        notes_.push_back("stopped after "
+                                         + std::to_string(failedTests_)
+                                         + " failed test(s) (--fail-fast)");
+                    }
+                }
+                if (events_.testFinished)
+                {
+                    events_.testFinished(result);
+                }
+            }
+
+            // Messages.
+
+            void
+            HandleLine(Worker &worker, const std::string &line)
+            {
+                auto parsed = ParseJson(line);
+                if (!parsed)
+                {
+                    // Not a message: something wrote to the protocol stream.
+                    if (worker.running)
+                    {
+                        AppendBounded(worker.running->attempt.processOutput,
+                                      line + "\n");
+                    }
+                    return;
+                }
+                const JsonValue &message = *parsed;
+                const std::string &kind = message["t"].AsString();
+                if (kind == "hello")
+                {
+                    if (message["identity"].AsString() != catalog_.Identity())
+                    {
+                        notes_.push_back(
+                            "a worker saw different tests than the runner; "
+                            "the binary may have changed during the run");
+                        KillWorker(worker);
+                        return;
+                    }
+                    worker.ready = true;
+                    startupFailures_ = 0;
+                    return;
+                }
+                if (!worker.running)
+                {
+                    return;
+                }
+                Running &running = *worker.running;
+                Attempt &attempt = running.attempt;
+                if (kind == "section")
+                {
+                    if (message["begin"].AsBoolean())
+                    {
+                        SectionRecord section;
+                        section.name = message["name"].AsString();
+                        section.file = message["file"].AsString();
+                        section.line = static_cast<std::size_t>(
+                            message["line"].AsUnsigned());
+                        section.depth = static_cast<std::size_t>(
+                            message["depth"].AsUnsigned());
+                        section.startMicroseconds = message["at"].AsInteger();
+                        section.durationMicroseconds = -1;
+                        if (attempt.sections.size() < 1000)
+                        {
+                            attempt.sections.push_back(section);
+                        }
+                    }
+                    else
+                    {
+                        const auto depth = message["depth"].AsUnsigned();
+                        for (auto section = attempt.sections.rbegin();
+                             section != attempt.sections.rend();
+                             ++section)
+                        {
+                            if (section->depth == depth
+                                && section->durationMicroseconds < 0)
+                            {
+                                section->durationMicroseconds
+                                    = message["duration"].AsInteger();
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if (kind == "at")
+                {
+                    attempt.lastLocation = message["location"].AsString();
+                }
+                else if (kind == "assertion")
+                {
+                    // Newer than any location sent before it, which is sent
+                    // only now and then.
+                    attempt.lastLocation
+                        = message["file"].AsString() + ":"
+                          + std::to_string(message["line"].AsUnsigned());
+                    if (attempt.assertions.size() < kMaximumRecordedAssertions)
+                    {
+                        attempt.assertions.push_back(
+                            AssertionFromJson(message));
+                    }
+                }
+                else if (kind == "benchmark")
+                {
+                    attempt.benchmarks.push_back(BenchmarkFromJson(message));
+                }
+                else if (kind == "fatal")
+                {
+                    running.fatal = true;
+                    attempt.fatalMessage = message["message"].AsString();
+                    if (!message["location"].AsString().empty())
+                    {
+                        attempt.lastLocation = message["location"].AsString();
+                    }
+                }
+                else if (kind == "end")
+                {
+                    attempt.outcome
+                        = OutcomeFromName(message["outcome"].AsString())
+                              .value_or(Outcome::kFailed);
+                    attempt.category
+                        = CategoryFromName(message["category"].AsString())
+                              .value_or(FailureCategory::kNone);
+                    if (running.fatal)
+                    {
+                        attempt.outcome = Outcome::kCrashed;
+                        attempt.category = FailureCategory::kCrash;
+                    }
+                    attempt.assertionsPassed = static_cast<std::size_t>(
+                        message["passed"].AsUnsigned());
+                    attempt.assertionsFailed = static_cast<std::size_t>(
+                        message["failed"].AsUnsigned());
+                    attempt.durationMicroseconds
+                        = message["duration"].AsInteger();
+                    attempt.standardOutput = message["stdout"].AsString();
+                    attempt.standardError = message["stderr"].AsString();
+                    if (running.fatal)
+                    {
+                        // The worker dies after a fatal condition; its exit
+                        // completes the attempt.
+                        return;
+                    }
+                    StepEnded(worker);
+                }
+            }
+
+            /// The current step of a worker's job ended normally.
+            void
+            StepEnded(Worker &worker)
+            {
+                Running running = std::move(*worker.running);
+                worker.running.reset();
+                worker.history.push_back(running.catalogIndex);
+                if (!running.target)
+                {
+                    // A test run only to set up a probe or a replay. If it
+                    // could not run, the job cannot either.
+                    std::error_code error;
+                    std::filesystem::remove_all(
+                        running.attempt.temporaryDirectory,
+                        error);
+                    ++worker.step;
+                    StartStep(worker);
+                    return;
+                }
+                Complete(worker, std::move(running.attempt));
+                if (worker.dedicated)
+                {
+                    Quit(worker);
+                }
+            }
+
+            void
+            Quit(Worker &worker)
+            {
+                if (worker.quitting || options_.inProcess)
+                {
+                    return;
+                }
+                worker.quitting = true;
+                static_cast<void>(worker.process->Input().Write(
+                    Message("quit").ToString() + "\n"));
+                worker.process->Input().Close();
+            }
+
+            void
+            KillWorker(Worker &worker)
+            {
+                worker.quitting = true;
+                if (worker.process)
+                {
+                    worker.process->Kill();
+                }
+            }
+
+            /// A worker's output closed: it ended, on purpose or not.
+            void
+            WorkerEnded(Worker &worker)
+            {
+                auto status = worker.process->WaitFor(milliseconds{ 5000 });
+                if (!status)
+                {
+                    worker.process->Kill();
+                    status = worker.process->Wait();
+                }
+                // A worker that never said hello failed to start, unless the
+                // run was already ending.
+                if (!worker.ready && !stopping_ && !infrastructureFailed_)
+                {
+                    ++startupFailures_;
+                    lastStartupOutput_ = worker.startupOutput;
+                    if (startupFailures_ >= kStartupFailuresToGiveUp)
+                    {
+                        infrastructureFailed_ = true;
+                        std::string note = "workers could not start ("
+                                           + status->Describe() + ")";
+                        if (!lastStartupOutput_.empty())
+                        {
+                            note += ": " + lastStartupOutput_;
+                        }
+                        notes_.push_back(note);
+                    }
+                }
+                if (worker.running)
+                {
+                    Running running = std::move(*worker.running);
+                    worker.running.reset();
+                    Attempt &attempt = running.attempt;
+                    if (worker.killedForTimeout)
+                    {
+                        attempt.outcome = Outcome::kTimedOut;
+                        attempt.category = FailureCategory::kTimeout;
+                    }
+                    else
+                    {
+                        attempt.outcome = Outcome::kCrashed;
+                        attempt.category = FailureCategory::kCrash;
+                        attempt.exitDescription = status->Describe();
+                        attempt.durationMicroseconds
+                            = Microseconds(Clock::now() - running.start);
+                    }
+                    if (running.target)
+                    {
+                        Complete(worker, std::move(attempt));
+                    }
+                    else if (worker.job)
+                    {
+                        // A test before the target died: the job has to start
+                        // over in another process.
+                        Job job = std::move(*worker.job);
+                        ReleaseJob(worker);
+                        --states_[job.test].pendingJobs;
+                        if (job.kind == Job::Kind::kProbe)
+                        {
+                            ProbeEnded(job, false);
+                        }
+                        else
+                        {
+                            Enqueue(std::move(job));
+                        }
+                    }
+                }
+                else if (worker.job)
+                {
+                    Job job = std::move(*worker.job);
+                    ReleaseJob(worker);
+                    --states_[job.test].pendingJobs;
+                    if (!infrastructureFailed_)
+                    {
+                        Enqueue(std::move(job));
+                    }
+                }
+            }
+
+            // Worker processes.
+
+            Worker *
+            SpawnWorker(bool dedicated, std::optional<std::uint32_t> seed)
+            {
+                if (infrastructureFailed_)
+                {
+                    return nullptr;
+                }
+                Options workerOptions = options_;
+                if (seed)
+                {
+                    workerOptions.seed = *seed;
+                }
+                ChildOptions child;
+                child.arguments.push_back(program_);
+                for (auto &argument : WorkerArguments(workerOptions))
+                {
+                    child.arguments.push_back(std::move(argument));
+                }
+                const std::size_t id = ++workersStarted_;
+                child.environment.emplace_back("CATCH3_WORKER",
+                                               std::to_string(id));
+                auto process = ChildProcess::Start(child);
+                if (!process)
+                {
+                    ++startupFailures_;
+                    notes_.push_back(process.GetError().Message());
+                    if (startupFailures_ >= kStartupFailuresToGiveUp)
+                    {
+                        infrastructureFailed_ = true;
+                    }
+                    return nullptr;
+                }
+                auto worker = std::make_unique<Worker>();
+                worker->id = id;
+                worker->dedicated = dedicated;
+                worker->seed = seed;
+                worker->started = Clock::now();
+                worker->process = std::move(*process);
+                Worker *raw = worker.get();
+                worker->outputReader = std::thread([this, raw] {
+                    LineReader reader{ raw->process->Output() };
+                    while (auto line = reader.Next())
+                    {
+                        Push({ raw->id, Event::Kind::kLine, std::move(*line) });
+                    }
+                    Push({ raw->id, Event::Kind::kOutputClosed, {} });
+                });
+                worker->errorReader = std::thread([this, raw] {
+                    char buffer[4096];
+                    while (true)
+                    {
+                        const auto count
+                            = raw->process->Errors().Read(buffer,
+                                                          sizeof(buffer));
+                        if (count <= 0)
+                        {
+                            break;
+                        }
+                        Push({ raw->id,
+                               Event::Kind::kErrors,
+                               std::string(buffer,
+                                           static_cast<std::size_t>(count)) });
+                    }
+                    Push({ raw->id, Event::Kind::kErrorsClosed, {} });
+                });
+                workers_.push_back(std::move(worker));
+                return raw;
+            }
+
+            void
+            Push(Event event)
+            {
+                {
+                    const std::lock_guard lock{ eventMutex_ };
+                    eventQueue_.push_back(std::move(event));
+                }
+                eventReady_.notify_one();
+            }
+
+            Worker *
+            FindWorker(std::size_t id)
+            {
+                for (auto &worker : workers_)
+                {
+                    if (worker->id == id)
+                    {
+                        return worker.get();
+                    }
+                }
+                return nullptr;
+            }
+
+            void
+            Dispatch()
+            {
+                if (stopping_)
+                {
+                    return;
+                }
+                while (true)
+                {
+                    // An idle, ready, shared worker takes the next job that
+                    // may share a process; otherwise a new worker starts if
+                    // there is room.
+                    std::size_t live = 0;
+                    Worker *idle = nullptr;
+                    for (auto &worker : workers_)
+                    {
+                        if (worker->quitting)
+                        {
+                            continue;
+                        }
+                        ++live;
+                        if (worker->ready && !worker->job && !worker->dedicated
+                            && idle == nullptr)
+                        {
+                            idle = worker.get();
+                        }
+                    }
+                    auto job = TakeRunnable();
+                    if (!job)
+                    {
+                        return;
+                    }
+                    const PlannedTest &planned = plan_.tests[job->test];
+                    const bool fresh = job->fresh || options_.isolate
+                                       || planned.entry->isolated;
+                    if (!fresh && idle != nullptr)
+                    {
+                        Assign(*idle, std::move(*job));
+                        continue;
+                    }
+                    if (live >= maximumWorkers_)
+                    {
+                        if (fresh && idle != nullptr)
+                        {
+                            // Make room: an idle shared worker gives way.
+                            Quit(*idle);
+                        }
+                        queue_.push_front(std::move(*job));
+                        return;
+                    }
+                    Worker *worker = SpawnWorker(fresh, job->seed);
+                    if (worker == nullptr)
+                    {
+                        queue_.push_front(std::move(*job));
+                        return;
+                    }
+                    // The job waits until the worker says hello.
+                    worker->job = std::move(*job);
+                    worker->step = 0;
+                    pendingStart_.push_back(worker->id);
+                    const PlannedTest &assigned
+                        = plan_.tests[worker->job->test];
+                    for (const auto &resource : assigned.entry->resources)
+                    {
+                        heldResources_.insert(resource);
+                    }
+                    if (assigned.entry->serial)
+                    {
+                        serialRunning_ = true;
+                    }
+                }
+            }
+
+            void
+            StartPending()
+            {
+                for (auto id = pendingStart_.begin();
+                     id != pendingStart_.end();)
+                {
+                    Worker *worker = FindWorker(*id);
+                    if (worker == nullptr || !worker->job)
+                    {
+                        id = pendingStart_.erase(id);
+                        continue;
+                    }
+                    if (worker->ready)
+                    {
+                        StartStep(*worker);
+                        id = pendingStart_.erase(id);
+                        continue;
+                    }
+                    ++id;
+                }
+            }
+
+            void
+            CheckDeadlines()
+            {
+                const auto now = Clock::now();
+                for (auto &worker : workers_)
+                {
+                    if (worker->running && !worker->killedForTimeout
+                        && now >= worker->running->deadline)
+                    {
+                        worker->killedForTimeout = true;
+                        Attempt &attempt = worker->running->attempt;
+                        attempt.durationMicroseconds
+                            = Microseconds(now - worker->running->start);
+                        KillWorker(*worker);
+                    }
+                    else if (!worker->ready && !worker->quitting
+                             && now - worker->started > kStartupTimeout)
+                    {
+                        worker->startupOutput
+                            += "\n(no answer within 60 seconds)";
+                        KillWorker(*worker);
+                    }
+                }
+            }
+
+            Clock::time_point
+            NextDeadline() const
+            {
+                auto deadline = Clock::now() + milliseconds{ 500 };
+                for (const auto &worker : workers_)
+                {
+                    if (worker->running)
+                    {
+                        deadline
+                            = std::min(deadline, worker->running->deadline);
+                    }
+                }
+                return deadline;
+            }
+
+            bool
+            Done() const
+            {
+                if (!workers_.empty())
+                {
+                    return false;
+                }
+                if (infrastructureFailed_ || stopping_)
+                {
+                    return true;
+                }
+                return queue_.empty();
+            }
+
+            void
+            RunInWorkers()
+            {
+                while (true)
+                {
+                    SettleBlocked();
+                    if (stopping_ || infrastructureFailed_)
+                    {
+                        // Queued work will not start; running work finishes.
+                        for (const auto &job : queue_)
+                        {
+                            --states_[job.test].pendingJobs;
+                        }
+                        queue_.clear();
+                        for (auto &worker : workers_)
+                        {
+                            if (!worker->job)
+                            {
+                                Quit(*worker);
+                            }
+                        }
+                    }
+                    Dispatch();
+                    StartPending();
+                    // Idle workers with nothing left to do go home.
+                    if (queue_.empty())
+                    {
+                        for (auto &worker : workers_)
+                        {
+                            if (worker->ready && !worker->job)
+                            {
+                                Quit(*worker);
+                            }
+                        }
+                    }
+                    if (Done())
+                    {
+                        break;
+                    }
+                    std::deque<Event> events;
+                    {
+                        std::unique_lock lock{ eventMutex_ };
+                        eventReady_.wait_until(lock, NextDeadline(), [&] {
+                            return !eventQueue_.empty();
+                        });
+                        events.swap(eventQueue_);
+                    }
+                    for (auto &event : events)
+                    {
+                        Handle(event);
+                    }
+                    CheckDeadlines();
+                    Reap();
+                    if (queue_.empty() && workers_.empty())
+                    {
+                        // Probes and retries may have been queued by the
+                        // last events; the loop picks them up.
+                        SettleBlocked();
+                        if (queue_.empty())
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            void
+            Handle(Event &event)
+            {
+                Worker *worker = FindWorker(event.worker);
+                if (worker == nullptr)
+                {
+                    return;
+                }
+                switch (event.kind)
+                {
+                    case Event::Kind::kLine:
+                        HandleLine(*worker, event.text);
+                        break;
+                    case Event::Kind::kErrors:
+                        if (worker->running)
+                        {
+                            AppendBounded(
+                                worker->running->attempt.processOutput,
+                                event.text);
+                        }
+                        else
+                        {
+                            // Output of no test: listeners and global set-up
+                            // of the worker. It is passed on, not lost.
+                            AppendBounded(worker->startupOutput, event.text);
+                            std::fwrite(event.text.data(),
+                                        1,
+                                        event.text.size(),
+                                        stderr);
+                            std::fflush(stderr);
+                        }
+                        break;
+                    case Event::Kind::kOutputClosed:
+                        worker->outputClosed = true;
+                        break;
+                    case Event::Kind::kErrorsClosed:
+                        worker->errorsClosed = true;
+                        break;
+                }
+            }
+
+            /// Collects workers whose streams have both closed.
+            void
+            Reap()
+            {
+                for (auto worker = workers_.begin(); worker != workers_.end();)
+                {
+                    if (!(*worker)->outputClosed || !(*worker)->errorsClosed)
+                    {
+                        ++worker;
+                        continue;
+                    }
+                    (*worker)->outputReader.join();
+                    (*worker)->errorReader.join();
+                    WorkerEnded(**worker);
+                    worker = workers_.erase(worker);
+                }
+            }
+
+            void
+            RunInProcess()
+            {
+                Worker local;
+                local.id = 0;
+                local.ready = true;
+                workersStarted_ = 1;
+                TestExecutor executor{ options_,
+                                       catalog_,
+                                       programName_,
+                                       [&](const JsonValue &message) {
+                                           HandleLine(local,
+                                                      message.ToString());
+                                       } };
+                while (true)
+                {
+                    SettleBlocked();
+                    if (stopping_)
+                    {
+                        break;
+                    }
+                    auto job = TakeRunnable();
+                    if (!job)
+                    {
+                        break;
+                    }
+                    Assign(local, std::move(*job));
+                    while (local.running)
+                    {
+                        const auto index = local.running->catalogIndex;
+                        const auto number = local.running->attempt.number;
+                        const auto temporary
+                            = local.running->attempt.temporaryDirectory;
+                        executor.Run(index, number, temporary);
+                        if (local.running
+                            && local.running->catalogIndex == index
+                            && local.running->attempt.temporaryDirectory
+                                   == temporary)
+                        {
+                            // The test reported no end: count it as failed
+                            // rather than wait for it forever.
+                            local.running->attempt.outcome = Outcome::kFailed;
+                            StepEnded(local);
+                        }
+                    }
+                }
+                for (const auto &job : queue_)
+                {
+                    --states_[job.test].pendingJobs;
+                }
+                queue_.clear();
+            }
+
+            const Options &options_;
+            const Plan &plan_;
+            const Catalog &catalog_;
+            std::string program_;
+            std::string programName_;
+            const SchedulerEvents &events_;
+            Clock::time_point runStart_;
+            std::filesystem::path temporaryRoot_;
+            std::size_t temporaryCounter_ = 0;
+            std::size_t maximumWorkers_ = 1;
+            std::size_t retryBudget_ = 0;
+            std::vector<TestState> states_;
+            std::deque<Job> queue_;
+            std::vector<std::unique_ptr<Worker>> workers_;
+            std::vector<std::size_t> pendingStart_;
+            std::set<std::string> heldResources_;
+            bool serialRunning_ = false;
+            std::size_t workersStarted_ = 0;
+            std::size_t startupFailures_ = 0;
+            std::string lastStartupOutput_;
+            bool infrastructureFailed_ = false;
+            bool stopping_ = false;
+            std::size_t failedTests_ = 0;
+            std::vector<std::string> notes_;
+            std::mutex eventMutex_;
+            std::condition_variable eventReady_;
+            std::deque<Event> eventQueue_;
+        };
+    } // namespace
+
+    ScheduleOutcome
+    RunPlan(const Options &options,
+            const Plan &plan,
+            const Catalog &catalog,
+            const std::string &program,
+            const std::string &programName,
+            const SchedulerEvents &events)
+    {
+        Scheduler scheduler{ options, plan,        catalog,
+                             program, programName, events };
+        return scheduler.Run();
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+
+#include <cstdlib>
+#include <filesystem>
+#include <mutex>
+#include <system_error>
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        constexpr std::array<const char *, 3> kVariables = {
+            "TMPDIR", "TMP", "TEMP"};
+
+        std::mutex &
+        CurrentMutex()
+        {
+            static auto *mutex = new std::mutex();
+            return *mutex;
         }
 
-        // Drop out if result was successful but we're not printing them.
-        if ( !includeResults && result.getResultType() != ResultWas::Warning &&
-             result.getResultType() != ResultWas::ExplicitSkip ) {
+        std::string &
+        Current()
+        {
+            static auto *directory = new std::string();
+            return *directory;
+        }
+
+        void
+        SetVariable(const char *name, const std::optional<std::string> &value)
+        {
+#if defined(_WIN32)
+            // An empty value removes the variable.
+            _putenv_s(name, value ? value->c_str() : "");
+#else
+            if (value)
+            {
+                setenv(name, value->c_str(), 1);
+            }
+            else
+            {
+                unsetenv(name);
+            }
+#endif
+        }
+    } // namespace
+
+    TemporaryDirectoryScope::TemporaryDirectoryScope(
+        const std::string &directory)
+    {
+        if (directory.empty())
+        {
             return;
         }
-
-        // Print the expression if there is one.
-        if( result.hasExpression() ) {
-            m_xml.startElement( "Expression" )
-                .writeAttribute( "success"_sr, result.succeeded() )
-                .writeAttribute( "type"_sr, result.getTestMacroName() );
-
-            writeSourceInfo( result.getSourceInfo() );
-
-            m_xml.scopedElement( "Original" )
-                .writeText( result.getExpression() );
-            m_xml.scopedElement( "Expanded" )
-                .writeText( result.getExpandedExpression() );
+        std::error_code error;
+        std::filesystem::create_directories(directory, error);
+        if (error)
+        {
+            return;
         }
-
-        // And... Print a result applicable to each result type.
-        switch( result.getResultType() ) {
-            case ResultWas::ThrewException:
-                m_xml.startElement( "Exception" );
-                writeSourceInfo( result.getSourceInfo() );
-                m_xml.writeText( result.getMessage() );
-                m_xml.endElement();
-                break;
-            case ResultWas::FatalErrorCondition:
-                m_xml.startElement( "FatalErrorCondition" );
-                writeSourceInfo( result.getSourceInfo() );
-                m_xml.writeText( result.getMessage() );
-                m_xml.endElement();
-                break;
-            case ResultWas::Info:
-                m_xml.scopedElement( "Info" )
-                     .writeText( result.getMessage() );
-                break;
-            case ResultWas::Warning:
-                // Warning will already have been written
-                break;
-            case ResultWas::ExplicitFailure:
-                m_xml.startElement( "Failure" );
-                writeSourceInfo( result.getSourceInfo() );
-                m_xml.writeText( result.getMessage() );
-                m_xml.endElement();
-                break;
-            case ResultWas::ExplicitSkip:
-                m_xml.startElement( "Skip" );
-                writeSourceInfo( result.getSourceInfo() );
-                m_xml.writeText( result.getMessage() );
-                m_xml.endElement();
-                break;
-            default:
-                break;
-        }
-
-        if( result.hasExpression() )
-            m_xml.endElement();
-    }
-
-    void XmlReporter::sectionEnded( SectionStats const& sectionStats ) {
-        StreamingReporterBase::sectionEnded( sectionStats );
-        if ( --m_sectionDepth > 0 ) {
+        active_ = true;
+        for (std::size_t index = 0; index < kVariables.size(); ++index)
+        {
+            if (HasEnvironment(kVariables[index]))
             {
-                XmlWriter::ScopedElement e = m_xml.scopedElement( "OverallResults" );
-                e.writeAttribute( "successes"_sr, sectionStats.assertions.passed );
-                e.writeAttribute( "failures"_sr, sectionStats.assertions.failed );
-                e.writeAttribute( "expectedFailures"_sr, sectionStats.assertions.failedButOk );
-                e.writeAttribute( "skipped"_sr, sectionStats.assertions.skipped > 0 );
-
-                if ( m_config->showDurations() == ShowDurations::Always )
-                    e.writeAttribute( "durationInSeconds"_sr, sectionStats.durationInSeconds );
+                previous_[index] = ReadEnvironment(kVariables[index]);
             }
-            // Ends assertion tag
-            m_xml.endElement();
+            SetVariable(kVariables[index], directory);
         }
+        const std::lock_guard lock{CurrentMutex()};
+        Current() = directory;
     }
 
-    void XmlReporter::testCaseEnded( TestCaseStats const& testCaseStats ) {
-        StreamingReporterBase::testCaseEnded( testCaseStats );
-        XmlWriter::ScopedElement e = m_xml.scopedElement( "OverallResult" );
-        e.writeAttribute( "success"_sr, testCaseStats.totals.assertions.allOk() );
-        e.writeAttribute( "skips"_sr, testCaseStats.totals.assertions.skipped );
-
-        if ( m_config->showDurations() == ShowDurations::Always )
-            e.writeAttribute( "durationInSeconds"_sr, m_testCaseTimer.getElapsedSeconds() );
-        if( !testCaseStats.stdOut.empty() )
-            m_xml.scopedElement( "StdOut" ).writeText( trim( StringRef(testCaseStats.stdOut) ), XmlFormatting::Newline );
-        if( !testCaseStats.stdErr.empty() )
-            m_xml.scopedElement( "StdErr" ).writeText( trim( StringRef(testCaseStats.stdErr) ), XmlFormatting::Newline );
-
-        m_xml.endElement();
-    }
-
-    void XmlReporter::testRunEnded( TestRunStats const& testRunStats ) {
-        StreamingReporterBase::testRunEnded( testRunStats );
-        m_xml.scopedElement( "OverallResults" )
-            .writeAttribute( "successes"_sr, testRunStats.totals.assertions.passed )
-            .writeAttribute( "failures"_sr, testRunStats.totals.assertions.failed )
-            .writeAttribute( "expectedFailures"_sr, testRunStats.totals.assertions.failedButOk )
-            .writeAttribute( "skips"_sr, testRunStats.totals.assertions.skipped );
-        m_xml.scopedElement( "OverallResultsCases")
-            .writeAttribute( "successes"_sr, testRunStats.totals.testCases.passed )
-            .writeAttribute( "failures"_sr, testRunStats.totals.testCases.failed )
-            .writeAttribute( "expectedFailures"_sr, testRunStats.totals.testCases.failedButOk )
-            .writeAttribute( "skips"_sr, testRunStats.totals.testCases.skipped );
-        m_xml.endElement();
-    }
-
-    void XmlReporter::benchmarkPreparing( StringRef name ) {
-        m_xml.startElement("BenchmarkResults")
-             .writeAttribute("name"_sr, name);
-    }
-
-    void XmlReporter::benchmarkStarting(BenchmarkInfo const &info) {
-        m_xml.writeAttribute("samples"_sr, info.samples)
-            .writeAttribute("resamples"_sr, info.resamples)
-            .writeAttribute("iterations"_sr, info.iterations)
-            .writeAttribute("clockResolution"_sr, info.clockResolution)
-            .writeAttribute("estimatedDuration"_sr, info.estimatedDuration)
-            .writeComment("All values in nano seconds"_sr);
-    }
-
-    void XmlReporter::benchmarkEnded(BenchmarkStats<> const& benchmarkStats) {
-        m_xml.scopedElement("mean")
-            .writeAttribute("value"_sr, benchmarkStats.mean.point.count())
-            .writeAttribute("lowerBound"_sr, benchmarkStats.mean.lower_bound.count())
-            .writeAttribute("upperBound"_sr, benchmarkStats.mean.upper_bound.count())
-            .writeAttribute("ci"_sr, benchmarkStats.mean.confidence_interval);
-        m_xml.scopedElement("standardDeviation")
-            .writeAttribute("value"_sr, benchmarkStats.standardDeviation.point.count())
-            .writeAttribute("lowerBound"_sr, benchmarkStats.standardDeviation.lower_bound.count())
-            .writeAttribute("upperBound"_sr, benchmarkStats.standardDeviation.upper_bound.count())
-            .writeAttribute("ci"_sr, benchmarkStats.standardDeviation.confidence_interval);
-        m_xml.scopedElement("outliers")
-            .writeAttribute("variance"_sr, benchmarkStats.outlierVariance)
-            .writeAttribute("lowMild"_sr, benchmarkStats.outliers.low_mild)
-            .writeAttribute("lowSevere"_sr, benchmarkStats.outliers.low_severe)
-            .writeAttribute("highMild"_sr, benchmarkStats.outliers.high_mild)
-            .writeAttribute("highSevere"_sr, benchmarkStats.outliers.high_severe);
-        m_xml.endElement();
-    }
-
-    void XmlReporter::benchmarkFailed(StringRef error) {
-        m_xml.scopedElement("failed").
-            writeAttribute("message"_sr, error);
-        m_xml.endElement();
-    }
-
-    void XmlReporter::listReporters(std::vector<ReporterDescription> const& descriptions) {
-        auto outerTag = m_xml.scopedElement("AvailableReporters");
-        for (auto const& reporter : descriptions) {
-            auto inner = m_xml.scopedElement("Reporter");
-            m_xml.startElement("Name", XmlFormatting::Indent)
-                 .writeText(reporter.name, XmlFormatting::None)
-                 .endElement(XmlFormatting::Newline);
-            m_xml.startElement("Description", XmlFormatting::Indent)
-                 .writeText(reporter.description, XmlFormatting::None)
-                 .endElement(XmlFormatting::Newline);
+    TemporaryDirectoryScope::~TemporaryDirectoryScope()
+    {
+        if (!active_)
+        {
+            return;
         }
-    }
-
-    void XmlReporter::listListeners(std::vector<ListenerDescription> const& descriptions) {
-        auto outerTag = m_xml.scopedElement( "RegisteredListeners" );
-        for ( auto const& listener : descriptions ) {
-            auto inner = m_xml.scopedElement( "Listener" );
-            m_xml.startElement( "Name", XmlFormatting::Indent )
-                .writeText( listener.name, XmlFormatting::None )
-                .endElement( XmlFormatting::Newline );
-            m_xml.startElement( "Description", XmlFormatting::Indent )
-                .writeText( listener.description, XmlFormatting::None )
-                .endElement( XmlFormatting::Newline );
+        for (std::size_t index = 0; index < kVariables.size(); ++index)
+        {
+            SetVariable(kVariables[index], previous_[index]);
         }
+        const std::lock_guard lock{CurrentMutex()};
+        Current().clear();
     }
+} // namespace Progmasoft::Catch3::Runner
 
-    void XmlReporter::listTests(std::vector<TestCaseHandle> const& tests) {
-        auto outerTag = m_xml.scopedElement("MatchingTests");
-        for (auto const& test : tests) {
-            auto innerTag = m_xml.scopedElement("TestCase");
-            auto const& testInfo = test.getTestCaseInfo();
-            m_xml.startElement("Name", XmlFormatting::Indent)
-                 .writeText(testInfo.name, XmlFormatting::None)
-                 .endElement(XmlFormatting::Newline);
-            m_xml.startElement("ClassName", XmlFormatting::Indent)
-                 .writeText(testInfo.className, XmlFormatting::None)
-                 .endElement(XmlFormatting::Newline);
-            m_xml.startElement("Tags", XmlFormatting::Indent)
-                 .writeText(testInfo.tagsAsString(), XmlFormatting::None)
-                 .endElement(XmlFormatting::Newline);
-
-            auto sourceTag = m_xml.scopedElement("SourceInfo");
-            m_xml.startElement("File", XmlFormatting::Indent)
-                 .writeText(testInfo.lineInfo.file, XmlFormatting::None)
-                 .endElement(XmlFormatting::Newline);
-            m_xml.startElement("Line", XmlFormatting::Indent)
-                 .writeText(std::to_string(testInfo.lineInfo.line), XmlFormatting::None)
-                 .endElement(XmlFormatting::Newline);
-        }
-    }
-
-    void XmlReporter::listTags(std::vector<TagInfo> const& tags) {
-        auto outerTag = m_xml.scopedElement("TagsFromMatchingTests");
-        for (auto const& tag : tags) {
-            auto innerTag = m_xml.scopedElement("Tag");
-            m_xml.startElement("Count", XmlFormatting::Indent)
-                 .writeText(std::to_string(tag.count), XmlFormatting::None)
-                 .endElement(XmlFormatting::Newline);
-            auto aliasTag = m_xml.scopedElement("Aliases");
-            for (auto const& alias : tag.spellings) {
-                m_xml.startElement("Alias", XmlFormatting::Indent)
-                     .writeText(alias, XmlFormatting::None)
-                     .endElement(XmlFormatting::Newline);
+namespace Progmasoft::Catch3
+{
+    std::filesystem::path
+    TestTemporaryDirectory()
+    {
+        {
+            const std::lock_guard lock{Runner::CurrentMutex()};
+            if (!Runner::Current().empty())
+            {
+                return std::filesystem::path{Runner::Current()};
             }
         }
+        std::error_code error;
+        auto directory = std::filesystem::temp_directory_path(error);
+        return error ? std::filesystem::path{"."} : directory;
     }
-
-} // end namespace Catch
-
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
+} // namespace Progmasoft::Catch3

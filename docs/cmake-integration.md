@@ -166,28 +166,27 @@ Note that this variable is only available in CTest.
 
 * `REPORTER reporter`
 
-Use the specified reporter when running the test case. The reporter will
-be passed to the test runner as `--reporter reporter`.
+Write a report of each test: `junit` passes `--junit=<file>` and `json`
+passes `--json=<file>` to the test executable; `console` writes no file.
+`junit` and `json` need `OUTPUT_DIR`.
 
 * `OUTPUT_DIR dir`
 
-If specified, the parameter is passed along as
-`--out dir/<test_name>` to test executable. The actual file name is the
-same as the test name. This should be used instead of
-`EXTRA_ARGS --out foo` to avoid race conditions writing the result output
-when using parallel test execution.
+The directory the reports of `REPORTER` go to, one file per test, named
+after the test. Use it instead of `EXTRA_ARGS --junit=foo` so that tests
+that run at the same time do not write the same file.
 
 * `OUTPUT_PREFIX prefix`
 
 May be used in conjunction with `OUTPUT_DIR`.
 If specified, `prefix` is added to each output file name, like so
-`--out dir/prefix<test_name>`.
+`dir/prefix<test_name>`.
 
 * `OUTPUT_SUFFIX suffix`
 
 May be used in conjunction with `OUTPUT_DIR`.
 If specified, `suffix` is added to each output file name, like so
-`--out dir/<test_name>suffix`. This can be used to add a file extension to
+`dir/<test_name>suffix`. This can be used to add a file extension to
 the output file name e.g. ".xml".
 
 * `DISCOVERY_MODE mode`
@@ -294,7 +293,7 @@ and the seed changes every invocation of CTest.
 Currently there are 3 customization points for this script:
 
  * SHARD_COUNT - number of shards to split target's tests into
- * REPORTER    - reporter spec to use for tests
+ * REPORTER    - report options for the shards, such as --junit=FILE
  * TEST_SPEC   - test spec used for filtering tests
 
 Example usage:
@@ -304,13 +303,11 @@ include(CatchShardTests)
 
 catch_add_sharded_tests(foo-tests
   SHARD_COUNT 4
-  REPORTER "xml::out=-"
   TEST_SPEC "A"
 )
 
 catch_add_sharded_tests(tests
   SHARD_COUNT 8
-  REPORTER "xml::out=-"
   TEST_SPEC "B"
 )
 ```

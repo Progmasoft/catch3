@@ -42,6 +42,7 @@ namespace Catch {
 #elif defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpointer-bool-conversion"
+#pragma clang diagnostic ignored "-Wmicrosoft-cast"
 #endif
 
         template<typename T>

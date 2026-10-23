@@ -7,8 +7,9 @@
 // SPDX-License-Identifier: BSL-1.0
 
 /**\file
- * Test that the different events are sent to listeners before they are
- * sent to the reporters.
+ * Test that a listener receives the events of a test run in the process
+ * that runs the tests: the start and the end of the run, and the start and
+ * the end of an assertion.
  *
  * We only do this for a subset of the events, as doing all of them would
  * be annoying, and we can assume that their implementation is roughly
@@ -18,82 +19,51 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/reporters/catch_reporter_event_listener.hpp>
 #include <catch2/reporters/catch_reporter_registrars.hpp>
-#include <catch2/reporters/catch_reporter_streaming_base.hpp>
 
 #include <iostream>
-#include <utility>
 
 namespace {
 
-    static bool testRunStartingReceivedByListener = false;
-    static bool testRunEndedReceivedByListener = false;
-    static bool assertionStartingReceivedByListener = false;
-    static bool assertionEndedReceivedByListener = false;
-
     class TestListener : public Catch::EventListenerBase {
+        bool m_testRunStarting = false;
+        bool m_assertionStarting = false;
+        bool m_assertionEnded = false;
+
     public:
         TestListener( Catch::IConfig const* config ):
             EventListenerBase( config ) {
-            std::cout << "X28 - TestListener constructed.\n";
+            m_preferences.shouldReportAllAssertions = true;
         }
 
         void testRunStarting( Catch::TestRunInfo const& ) override {
-            testRunStartingReceivedByListener = true;
-        }
-
-        void testRunEnded( Catch::TestRunStats const& ) override {
-            testRunEndedReceivedByListener = true;
+            m_testRunStarting = true;
         }
 
         void assertionStarting( Catch::AssertionInfo const& ) override {
-            assertionStartingReceivedByListener = true;
+            if ( !m_testRunStarting ) {
+                std::cerr << "X28 - ERROR: assertion before the run started\n";
+            }
+            m_assertionStarting = true;
         }
 
         void assertionEnded( Catch::AssertionStats const& ) override {
-            assertionEndedReceivedByListener = true;
-        }
-    };
-
-    class TestReporter : public Catch::StreamingReporterBase {
-    public:
-        TestReporter( Catch::ReporterConfig&& _config ):
-            StreamingReporterBase( std::move(_config) ) {
-            std::cout << "X28 - TestReporter constructed\n";
-        }
-
-        void testRunStarting( Catch::TestRunInfo const& ) override {
-            if ( !testRunStartingReceivedByListener ) {
-                std::cout << "X28 - ERROR\n";
+            if ( !m_assertionStarting ) {
+                std::cerr << "X28 - ERROR: assertion ended before it started\n";
             }
+            m_assertionEnded = true;
         }
 
         void testRunEnded( Catch::TestRunStats const& ) override {
-            if ( !testRunEndedReceivedByListener ) {
-                std::cout << "X28 - ERROR\n";
+            if ( m_testRunStarting && m_assertionStarting && m_assertionEnded ) {
+                std::cerr << "X28 - listener received every event\n";
+            } else {
+                std::cerr << "X28 - ERROR: an event is missing\n";
             }
         }
-
-        void assertionStarting( Catch::AssertionInfo const& ) override {
-            if ( !assertionStartingReceivedByListener ) {
-                std::cout << "X28 - ERROR\n";
-            }
-        }
-
-        void assertionEnded( Catch::AssertionStats const& ) override {
-            if ( !assertionEndedReceivedByListener ) {
-                std::cout << "X28 - ERROR\n";
-            }
-        }
-
-        static std::string getDescription() { return "X28 test reporter"; }
-        ~TestReporter() override;
     };
-
-    TestReporter::~TestReporter() = default;
 
 } // end unnamed namespace
 
-CATCH_REGISTER_REPORTER( "test-reporter", TestReporter )
 CATCH_REGISTER_LISTENER( TestListener )
 
 TEST_CASE( "Dummy test case" ) { REQUIRE( 1 == 1 ); }

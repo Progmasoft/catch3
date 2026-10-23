@@ -106,6 +106,10 @@ namespace Catch {
         // !TBD We need to do this another way!
         bool aborting() const;
 
+        //! What the running test printed so far and was captured; for a
+        //! process that ends inside a test, whose end is never reported.
+        std::string capturedOutput();
+
     private:
         void assertionPassedFastPath( SourceLineInfo lineInfo );
         // Update the non-thread-safe m_totals from the atomic assertion counts.

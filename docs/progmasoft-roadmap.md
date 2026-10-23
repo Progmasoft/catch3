@@ -6,9 +6,11 @@ unit testing, property testing, mocking, coverage, mutation testing, test
 generation and test selection, driven by a runner of its own. Two rules hold
 for every step:
 
-- **Catch2 stays compatible.** The `Catch` namespace, the `catch2/` headers,
-  the macros, the command line and the reporters keep working unchanged. New
-  capabilities live under `Progmasoft::Catch3` and `Progmasoft/Catch3/`.
+- **Catch2's API stays compatible.** The `Catch` namespace, the `catch2/`
+  headers, the macros, matchers, generators and listeners keep working
+  unchanged. The runner is Catch3's own: Catch2's session, command line and
+  reporters were replaced. New capabilities live under `Progmasoft::Catch3`
+  and `Progmasoft/Catch3/`.
 - **Nothing is claimed before it is tested.** A feature is listed as done when
   its tests run in CI on Windows, Linux and macOS.
 
@@ -17,29 +19,35 @@ The steps are ordered by what each one builds on.
 | Step | Capability | State |
 | --- | --- | --- |
 | 1 | Native property testing: choice-sequence shrinking, combinators, state machines, statistics, targeted search, example database, differential and metamorphic oracles | done; see [Native property testing](progmasoft-properties.md#top) |
-| 2 | The `catch3` runner | planned |
+| 2 | The Catch3 runner | done; see [The Catch3 runner](progmasoft-runner.md#top) |
 | 3 | Mocking | planned |
 | 4 | Per-test code coverage | planned |
 | 5 | Change-impact test selection and test prioritization | planned |
 | 6 | Mutation testing | planned |
 | 7 | Coverage-, mutation- and history-guided test generation | planned |
 
-## 2. The `catch3` runner
+## 2. The Catch3 runner
 
-Catch2's runner executes the tests of one binary in one process. The features
-that follow need more: they run many binaries, each test in isolation, under
+Catch2's runner executed the tests of one binary in one process. The
+features that follow need more: they run each test in isolation, under
 coverage or mutation, and decide which tests to run and in which order. The
-`catch3` runner is a separate program that drives Catch2 test binaries from
-the outside, so existing binaries need no change:
+Catch3 runner replaced Catch2's in every test binary:
 
-- it discovers test cases with `--list-tests --reporter json` and runs them
-  with `--reporter json`, both stable parts of Catch2's command line;
-- it runs tests in parallel processes, shards them across machines, enforces
-  per-test timeouts, isolates crashes, and retries flaky tests with a record
-  of every attempt;
-- it keeps a history of results and durations, the input for prioritization;
-- it writes JUnit XML, JSON and a terminal report, and keeps Catch2's exit
-  codes;
+- tests run in parallel worker processes that take the next test when they
+  are free; a crash or hang ends one test, not the run;
+- failures are retried alone, which tells deterministic, flaky and
+  order-dependent failures apart, and the test that leaves state behind is
+  found by bisection;
+- a history of verdicts and durations drives quarantine, adaptive time
+  limits, predictive ordering, incremental runs, replay and analytics;
+- tests are selected by change, by past failure or by prediction, and
+  sharded by a stable hash or by duration;
+- tags declare dependencies, shared resources, serial tests, time limits and
+  retries;
+- every failure gets a category, a signature and an analysis;
+- reports are console, JUnit XML with flaky and rerun elements, JSON and a
+  trace; the discovery listing has a fixed, versioned format;
+- every test gets a temporary directory of its own;
 - its command line is parsed by a hand-written, typed parser, like the other
   Progmasoft tools.
 

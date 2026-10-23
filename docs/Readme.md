@@ -1,9 +1,10 @@
 <a id="top"></a>
 # Catch3 documentation
 
-Catch3 combines the upstream Catch2-compatible runner and API with
-Progmasoft's C++20 extensions. Start with the [tutorial](tutorial.md#top),
-then read [what Catch3 adds](progmasoft-catch3.md),
+Catch3 keeps Catch2's API for writing tests, runs them with
+[its own runner](progmasoft-runner.md#top) and adds Progmasoft's C++20
+extensions. Start with the [tutorial](tutorial.md#top), then read
+[the runner](progmasoft-runner.md#top), [what Catch3 adds](progmasoft-catch3.md),
 [native property testing](progmasoft-properties.md), [the roadmap](progmasoft-roadmap.md) and
 [why the two API families remain distinct](why-catch3.md). The compatibility
 pages below retain real `catch2/` include paths, `Catch2::` CMake targets,
@@ -24,7 +25,7 @@ engine, not a claim that Catch3 is an official Catch2 release.
 * [Test cases and sections](test-cases-and-sections.md#top)
 * [Test fixtures](test-fixtures.md#top)
 * [Explicitly skipping, passing, and failing tests at runtime](skipping-passing-failing.md#top)
-* [Reporters (output customization)](reporters.md#top)
+* [Reports](reporters.md#top)
 * [Event Listeners](event-listeners.md#top)
 * [Data Generators (value parameterized tests)](generators.md#top)
 * [Other macros](other-macros.md#top)
@@ -36,6 +37,7 @@ engine, not a claim that Catch3 is an official Catch2 release.
 * [String Conversions](tostring.md#top)
 
 **Running:**
+* [The Catch3 runner](progmasoft-runner.md#top)
 * [Command line reference](command-line.md#top)
 * [Running specific section/generator](filtering-execution-path.md#top)
 

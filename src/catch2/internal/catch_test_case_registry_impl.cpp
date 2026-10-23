@@ -10,7 +10,6 @@
 #include <catch2/internal/catch_enforce.hpp>
 #include <catch2/interfaces/catch_interfaces_config.hpp>
 #include <catch2/interfaces/catch_interfaces_registry_hub.hpp>
-#include <catch2/internal/catch_sharding.hpp>
 #include <catch2/catch_test_case_info.hpp>
 #include <catch2/catch_test_spec.hpp>
 #include <catch2/internal/catch_move_and_forward.hpp>
@@ -135,7 +134,8 @@ namespace Catch {
                 filtered.push_back(testCase);
             }
         }
-        return createShard(CATCH_MOVE(filtered), config.shardCount(), config.shardIndex());
+        // The Catch3 runner shards the run itself.
+        return filtered;
     }
     std::vector<TestCaseHandle> const& getAllTestCasesSorted( IConfig const& config ) {
         return getRegistryHub().getTestCaseRegistry().getAllTestsSorted( config );
