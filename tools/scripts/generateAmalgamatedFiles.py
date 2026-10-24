@@ -39,7 +39,7 @@ file_header = '''\
 
 // SPDX-License-Identifier: BSL-1.0
 
-//  Catch v{version_string}
+//  Catch3 v{catch3_version}, on the Catch2 v{version_string} engine
 //  Generated: {generation_time}
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
@@ -54,8 +54,17 @@ file_header = '''\
 # REUSE-IgnoreEnd
 
 # Returns file header with proper version string and generation time
+def catch3_version():
+    version_file = os.path.join(root_path, 'Progmasoft', 'Catch3', 'Version.hpp')
+    with open(version_file, mode='r', encoding='utf-8') as input:
+        match = re.search(r'kVersion = "([^"]+)"', input.read())
+    if not match:
+        raise RuntimeError('no kVersion in ' + version_file)
+    return match.group(1)
+
 def formatted_file_header(version):
     return file_header.format(version_string=version.getVersionString(),
+                              catch3_version=catch3_version(),
                               generation_time=datetime.datetime.now())
 
 # Which headers were already concatenated (and thus should not be

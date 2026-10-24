@@ -22,7 +22,7 @@ The result of this move is a significant improvement in compilation
 times, e.g. the inclusion overhead of Catch2 in the common case has been
 reduced by roughly 80%. The improved ease of maintenance also led to
 various runtime performance improvements and the introduction of new features.
-For details, look at [the release notes of 3.0.1](release-notes.md#301).
+For details, look at [the release notes of Catch2 3.0.1](https://github.com/catchorg/Catch2/blob/devel/docs/release-notes.md#301).
 
 _Note that we still provide one header + one translation unit (TU)
 distribution but do not consider it the primarily supported option. You

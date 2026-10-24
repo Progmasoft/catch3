@@ -4,7 +4,7 @@ pkg_version=@Catch2_VERSION@
 
 Name: Catch2 with main function
 Description: A modern, C++-native test framework for C++14 and above (links in default main)
-URL: https://github.com/catchorg/Catch2
+URL: https://github.com/Progmasoft/catch3
 Version: ${pkg_version}
 Requires: catch2 = ${pkg_version}
 Libs: -L${libdir} -l@lib_name@
