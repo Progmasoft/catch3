@@ -6,14 +6,14 @@ Catch3 keeps Catch2's API for writing tests, runs them with
 extensions. Start with the [tutorial](tutorial.md#top), then read
 [the runner](progmasoft-runner.md#top), [what Catch3 adds](progmasoft-catch3.md),
 [native property testing](progmasoft-properties.md), [the roadmap](progmasoft-roadmap.md) and
-[why the two API families remain distinct](why-catch3.md). The compatibility
-pages below retain real `catch2/` include paths, `Catch2::` CMake targets,
-and upstream version history; renaming those would make examples incorrect.
+[why Catch3 exists](why-catch3.md).
 
-The Progmasoft extension API lives under `Progmasoft/Catch3/...` and the
-`Progmasoft::Catch3` namespace. Its built library is separate from the
-upstream-compatible engine. The compatibility pages are about the bundled
-engine, not a claim that Catch3 is an official Catch2 release.
+Every header is under `Progmasoft/Catch3/`, and the library is
+`Catch3::Catch3` (`find_package(Catch3)`, `//:catch3` in Bazel). The pages
+marked as compatibility references describe the test-writing API Catch3
+shares with Catch2: the macros and the `Catch::` namespace. Progmasoft's own
+API lives in the `Progmasoft::Catch3` namespace. Catch3 is not an official
+Catch2 release.
 
 ## Reference
 

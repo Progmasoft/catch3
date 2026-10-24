@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/@lib_dir@
+pkg_version=@Catch3_VERSION@
+
+Name: Catch3 with main function
+Description: Catch3 with its default main
+URL: https://github.com/Progmasoft/catch3
+Version: ${pkg_version}
+Requires: catch3 = ${pkg_version}
+Libs: -L${libdir} -l@lib_name@

@@ -6,11 +6,11 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
-#include <catch2/internal/catch_enforce.hpp>
-#include <catch2/internal/catch_case_insensitive_comparisons.hpp>
-#include <catch2/internal/catch_optional.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/Generators.hpp>
+#include <Progmasoft/Catch3/Internal/Enforce.hpp>
+#include <Progmasoft/Catch3/Internal/CaseInsensitiveComparisons.hpp>
+#include <Progmasoft/Catch3/Internal/Optional.hpp>
 
 #include <helpers/type_with_lit_0_comparisons.hpp>
 

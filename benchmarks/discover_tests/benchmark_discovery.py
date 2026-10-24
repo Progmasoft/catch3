@@ -152,12 +152,12 @@ def print_table(counts, tag_modes, results):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Benchmark the CMake-side cost of catch_discover_tests."
+        description="Benchmark the CMake-side cost of catch3_discover_tests."
     )
     parser.add_argument(
         "--script",
         required=True,
-        help="Path to the CatchAddTests.cmake to benchmark.",
+        help="Path to the Catch3AddTests.cmake to benchmark.",
     )
     args = parser.parse_args()
 

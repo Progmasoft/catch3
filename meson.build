@@ -6,15 +6,15 @@
 # SPDX-License-Identifier: BSL-1.0
 
 project(
-  'catch2',
+  'catch3',
   'cpp',
-  version: '3.16.1', # CML version placeholder, don't delete
+  version: '0.3.0',
   license: 'BSL-1.0',
   # Meson 1.1 added clang-cl support for the C++20 mode used by Progmasoft tests.
   meson_version: '>=1.1.0',
 )
 
-subdir('src/catch2')
+subdir('src/Progmasoft/Catch3')
 subdir('src/Progmasoft')
 if get_option('tests')
   subdir('tests')

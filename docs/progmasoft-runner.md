@@ -262,7 +262,7 @@ version.
   object per test with `id`, `name`, `className`, `file`, `line`, `tags`,
   `hidden`, and what the runner tags say: `serial`, `isolated`,
   `quarantined`, `resources`, `dependsOn`, `timeoutSeconds` and `retries`.
-  CMake's `catch_discover_tests` reads it.
+  CMake's `catch3_discover_tests` reads it.
 * **Run report**, `--json`: `"format": "catch3-run"`, version 1.
 * **Analytics**, `--analytics=json`: `"format": "catch3-analytics"`,
   version 1.
@@ -281,7 +281,7 @@ for a JUnit report, `TESTBRIDGE_TEST_ONLY` for `--test_filter`,
 sharding, `TEST_RANDOM_SEED` for the seed, `TEST_PREMATURE_EXIT_FILE` for
 the exit guard and `TEST_UNDECLARED_OUTPUTS_DIR` for a JSON report.
 
-[`catch_discover_tests`](cmake-integration.md#automatic-test-registration)
+[`catch3_discover_tests`](cmake-integration.md#automatic-test-registration)
 registers each test with CTest through the discovery format. The runner
 also parallelises a whole binary under one CTest test, which usually starts
 fewer processes.

@@ -7,10 +7,10 @@
 // SPDX-License-Identifier: BSL-1.0
 
 /**\file 
- * "empty" include of catch_test_macros.hpp
+ * "empty" include of Progmasoft/Catch3/TestMacros.hpp
  * 
- * This file does only one thing: include `catch2/catch_test_macros.hpp`,
+ * This file does only one thing: include `Progmasoft/Catch3/TestMacros.hpp`,
  * so that we can measure the compilation cost of the header.
  */
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>

@@ -15,7 +15,7 @@
  * listener, which disables the assertion fast path.
  */
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 TEST_CASE(
     "Delayed unscoped message clearing does not catch newly inserted messages",

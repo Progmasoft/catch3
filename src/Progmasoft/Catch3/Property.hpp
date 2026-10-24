@@ -3,7 +3,7 @@
 #pragma once
 
 #include <Progmasoft/Catch3/Generator.hpp>
-#include <catch2/catch_tostring.hpp>
+#include <Progmasoft/Catch3/ToString.hpp>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -186,8 +186,8 @@ namespace Progmasoft::Catch3
         {
             for (const auto &statistic : Statistics)
             {
-                output << "\n  " << statistic.Label << ": "
-                       << statistic.Count << " ("
+                output << "\n  " << statistic.Label << ": " << statistic.Count
+                       << " ("
                        << static_cast<long long>(statistic.Percentage * 10.0
                                                  + 0.5)
                               / 10.0
@@ -203,6 +203,26 @@ namespace Progmasoft::Catch3
 
     namespace Detail
     {
+
+        /// The failure of one trial of CheckProperty with a Generator, which
+        /// has no replay token and no notes of its own.
+        [[nodiscard]] inline PropertyFailure
+        TrialFailure(std::uint64_t rootSeed,
+                     std::uint64_t trialSeed,
+                     std::size_t trial,
+                     std::size_t shrinkSteps,
+                     std::string counterexample,
+                     std::string reason)
+        {
+            PropertyFailure failure;
+            failure.RootSeed = rootSeed;
+            failure.TrialSeed = trialSeed;
+            failure.Trial = trial;
+            failure.ShrinkSteps = shrinkSteps;
+            failure.Counterexample = std::move(counterexample);
+            failure.Reason = std::move(reason);
+            return failure;
+        }
 
         template<typename ValueType>
         [[nodiscard]] std::string
@@ -259,8 +279,8 @@ namespace Progmasoft::Catch3
         };
 
         template<typename ElementType, typename AllocatorType>
-        struct PropertyValuePrinter<std::vector<ElementType, AllocatorType>>
-            final
+        struct PropertyValuePrinter<
+            std::vector<ElementType, AllocatorType>> final
         {
             [[nodiscard]] static std::string
             Print(const std::vector<ElementType, AllocatorType> &value)
@@ -354,10 +374,10 @@ namespace Progmasoft::Catch3
     {
         if (options.Trials == 0)
         {
-            return { PropertyStatus::kInvalidConfiguration,
-                     0,
-                     std::nullopt,
-                     "Trials must be greater than zero" };
+            PropertyResult invalid;
+            invalid.Status = PropertyStatus::kInvalidConfiguration;
+            invalid.Error = "Trials must be greater than zero";
+            return invalid;
         }
 
         PropertyResult result;
@@ -385,20 +405,24 @@ namespace Progmasoft::Catch3
                 result.Status = PropertyStatus::kErrored;
                 result.Error = std::string("generator threw std::exception: ")
                                + exception.what();
-                result.Failure
-                    = PropertyFailure{ options.Seed,      trialSeed,
-                                       trial + 1,         0,
-                                       "<not generated>", result.Error };
+                result.Failure = Detail::TrialFailure(options.Seed,
+                                                      trialSeed,
+                                                      trial + 1,
+                                                      0,
+                                                      "<not generated>",
+                                                      result.Error);
                 return result;
             }
             catch (...)
             {
                 result.Status = PropertyStatus::kErrored;
                 result.Error = "generator threw a non-standard exception";
-                result.Failure
-                    = PropertyFailure{ options.Seed,      trialSeed,
-                                       trial + 1,         0,
-                                       "<not generated>", result.Error };
+                result.Failure = Detail::TrialFailure(options.Seed,
+                                                      trialSeed,
+                                                      trial + 1,
+                                                      0,
+                                                      "<not generated>",
+                                                      result.Error);
                 return result;
             }
 #endif
@@ -450,12 +474,12 @@ namespace Progmasoft::Catch3
                 result.Error = std::string("shrinker threw std::exception: ")
                                + exception.what();
                 result.Failure
-                    = PropertyFailure{ options.Seed,
-                                       trialSeed,
-                                       trial + 1,
-                                       shrinkChecks,
-                                       Detail::DescribeValue(*sample),
-                                       *reason };
+                    = Detail::TrialFailure(options.Seed,
+                                           trialSeed,
+                                           trial + 1,
+                                           shrinkChecks,
+                                           Detail::DescribeValue(*sample),
+                                           *reason);
                 return result;
             }
             catch (...)
@@ -463,23 +487,24 @@ namespace Progmasoft::Catch3
                 result.Status = PropertyStatus::kErrored;
                 result.Error = "shrinker threw a non-standard exception";
                 result.Failure
-                    = PropertyFailure{ options.Seed,
-                                       trialSeed,
-                                       trial + 1,
-                                       shrinkChecks,
-                                       Detail::DescribeValue(*sample),
-                                       *reason };
+                    = Detail::TrialFailure(options.Seed,
+                                           trialSeed,
+                                           trial + 1,
+                                           shrinkChecks,
+                                           Detail::DescribeValue(*sample),
+                                           *reason);
                 return result;
             }
 #endif
 
             result.Status = PropertyStatus::kFailed;
-            result.Failure = PropertyFailure{ options.Seed,
-                                              trialSeed,
-                                              trial + 1,
-                                              shrinkChecks,
-                                              Detail::DescribeValue(*sample),
-                                              *reason };
+            result.Failure
+                = Detail::TrialFailure(options.Seed,
+                                       trialSeed,
+                                       trial + 1,
+                                       shrinkChecks,
+                                       Detail::DescribeValue(*sample),
+                                       *reason);
             return result;
         }
 

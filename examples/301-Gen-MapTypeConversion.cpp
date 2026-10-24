@@ -13,8 +13,8 @@
 // that converts the strings using stoi, so the returned type is actually
 // an int.
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators_adapters.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/Adapters.hpp>
 
 #include <string>
 #include <sstream>

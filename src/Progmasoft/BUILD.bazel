@@ -1,72 +1,100 @@
 # Copyright (c) 2026 Progmasoft.
 # SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+load("@bazel_skylib//rules:expand_template.bzl", "expand_template")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
-package(default_visibility = ["//visibility:public"])
+# Catch3: the Catch2-compatible engine in Catch3/, the runner in Runner/,
+# property testing and snapshots. It is built as C++20; code that includes
+# only the engine's headers needs C++14. //:catch3 and //:catch3_main are the
+# public names.
+CPP20 = select({
+    "@platforms//os:windows": ["/std:c++20"],
+    "//conditions:default": ["-std=c++20"],
+})
 
-# The Catch3 runner, built into //:catch2. It is C++20; Catch2's headers
-# still need only C++14 in the code that includes them.
-cc_library(
-    name = "runner",
-    srcs = glob(["Runner/*.cpp"]) + [
-        "Results.cpp",
-        "XmlWriter.cpp",
-        "//:src/catch2/catch_session.cpp",
-    ],
-    hdrs = glob(["Runner/*.hpp"]) + [
-        "Catch3/Results.hpp",
-        "Catch3/Runner.hpp",
-        "Catch3/Version.hpp",
-        "Catch3/XmlWriter.hpp",
-    ],
-    copts = select({
-        "@platforms//os:windows": ["/std:c++20"],
-        "//conditions:default": ["-std=c++20"],
-    }),
-    linkstatic = True,
-    strip_include_prefix = "/src",
-    deps = ["//:catch2_core"],
+# The engine's configuration header, with Bazel support switched on.
+expand_template(
+    name = "catch_user_config",
+    out = "Catch3/UserConfig.hpp",
+    substitutions = {
+        "#cmakedefine CATCH_CONFIG_ANDROID_LOGWRITE": "",
+        "#cmakedefine CATCH_CONFIG_BAZEL_SUPPORT": "#define CATCH_CONFIG_BAZEL_SUPPORT",
+        "#cmakedefine CATCH_CONFIG_COLOUR_WIN32": "",
+        "#cmakedefine CATCH_CONFIG_COUNTER": "",
+        "#cmakedefine CATCH_CONFIG_CPP11_TO_STRING": "",
+        "#cmakedefine CATCH_CONFIG_CPP17_BYTE": "",
+        "#cmakedefine CATCH_CONFIG_CPP17_OPTIONAL": "",
+        "#cmakedefine CATCH_CONFIG_CPP17_STRING_VIEW": "",
+        "#cmakedefine CATCH_CONFIG_CPP17_UNCAUGHT_EXCEPTIONS": "",
+        "#cmakedefine CATCH_CONFIG_CPP17_VARIANT": "",
+        "#cmakedefine CATCH_CONFIG_DEPRECATION_ANNOTATIONS": "",
+        "#cmakedefine CATCH_CONFIG_DISABLE_EXCEPTIONS_CUSTOM_HANDLER": "",
+        "#cmakedefine CATCH_CONFIG_DISABLE_EXCEPTIONS": "",
+        "#cmakedefine CATCH_CONFIG_DISABLE_STRINGIFICATION": "",
+        "#cmakedefine CATCH_CONFIG_DISABLE": "",
+        "#cmakedefine CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS": "",
+        "#cmakedefine CATCH_CONFIG_ENABLE_OPTIONAL_STRINGMAKER": "",
+        "#cmakedefine CATCH_CONFIG_ENABLE_PAIR_STRINGMAKER": "",
+        "#cmakedefine CATCH_CONFIG_ENABLE_TUPLE_STRINGMAKER": "",
+        "#cmakedefine CATCH_CONFIG_ENABLE_VARIANT_STRINGMAKER": "",
+        "#cmakedefine CATCH_CONFIG_EXPERIMENTAL_REDIRECT": "",
+        "#cmakedefine CATCH_CONFIG_FALLBACK_STRINGIFIER @CATCH_CONFIG_FALLBACK_STRINGIFIER@": "",
+        "#cmakedefine CATCH_CONFIG_FAST_COMPILE": "",
+        "#cmakedefine CATCH_CONFIG_GETENV": "",
+        "#cmakedefine CATCH_CONFIG_GLOBAL_NEXTAFTER": "",
+        "#cmakedefine CATCH_CONFIG_NO_ANDROID_LOGWRITE": "",
+        "#cmakedefine CATCH_CONFIG_NO_COLOUR_WIN32": "",
+        "#cmakedefine CATCH_CONFIG_NO_COUNTER": "",
+        "#cmakedefine CATCH_CONFIG_NO_CPP11_TO_STRING": "",
+        "#cmakedefine CATCH_CONFIG_NO_CPP17_BYTE": "",
+        "#cmakedefine CATCH_CONFIG_NO_CPP17_OPTIONAL": "",
+        "#cmakedefine CATCH_CONFIG_NO_CPP17_STRING_VIEW": "",
+        "#cmakedefine CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS": "",
+        "#cmakedefine CATCH_CONFIG_NO_CPP17_VARIANT": "",
+        "#cmakedefine CATCH_CONFIG_NO_DEPRECATION_ANNOTATIONS": "",
+        "#cmakedefine CATCH_CONFIG_NO_GETENV": "",
+        "#cmakedefine CATCH_CONFIG_NO_GLOBAL_NEXTAFTER": "",
+        "#cmakedefine CATCH_CONFIG_NO_POSIX_SIGNALS": "",
+        "#cmakedefine CATCH_CONFIG_NO_USE_ASYNC": "",
+        "#cmakedefine CATCH_CONFIG_NO_EXPERIMENTAL_STATIC_ANALYSIS_SUPPORT": "",
+        "#cmakedefine CATCH_CONFIG_NO_WCHAR": "",
+        "#cmakedefine CATCH_CONFIG_NO_WINDOWS_SEH": "",
+        "#cmakedefine CATCH_CONFIG_NOSTDOUT": "",
+        "#cmakedefine CATCH_CONFIG_POSIX_SIGNALS": "",
+        "#cmakedefine CATCH_CONFIG_PREFIX_ALL": "",
+        "#cmakedefine CATCH_CONFIG_PREFIX_MESSAGES": "",
+        "#cmakedefine CATCH_CONFIG_SHARED_LIBRARY": "",
+        "#cmakedefine CATCH_CONFIG_EXPERIMENTAL_STATIC_ANALYSIS_SUPPORT": "",
+        "#cmakedefine CATCH_CONFIG_USE_ASYNC": "",
+        "#cmakedefine CATCH_CONFIG_WCHAR": "",
+        "#cmakedefine CATCH_CONFIG_WINDOWS_CRTDBG": "",
+        "#cmakedefine CATCH_CONFIG_WINDOWS_SEH": "",
+        "#cmakedefine CATCH_CONFIG_USE_BUILTIN_CONSTANT_P": "",
+        "#cmakedefine CATCH_CONFIG_NO_USE_BUILTIN_CONSTANT_P": "",
+        "#cmakedefine CATCH_CONFIG_THREAD_SAFE_ASSERTIONS": "",
+        "#cmakedefine CATCH_CONFIG_NO_THREAD_SAFE_ASSERTIONS": "",
+    },
+    template = "Catch3/UserConfig.hpp.in",
 )
 
 cc_library(
     name = "catch3",
-    srcs = [
-        "ChoiceShrinker.cpp",
-        "Context.cpp",
-        "PropertyEngine.cpp",
-        "Snapshot.cpp",
-    ],
-    hdrs = [
-        "Catch3.hpp",
-        "Catch3/Assertions.hpp",
-        "Catch3/Detail/InvalidArgument.hpp",
-        "Catch3/Detail/Sequence.hpp",
-        "Catch3/ForAll.hpp",
-        "Catch3/Generator.hpp",
-        "Catch3/Generators/Boolean.hpp",
-        "Catch3/Generators/Element.hpp",
-        "Catch3/Generators/Integer.hpp",
-        "Catch3/Generators/Text.hpp",
-        "Catch3/Generators/Tuple.hpp",
-        "Catch3/Generators/Vector.hpp",
-        "Catch3/Property.hpp",
-        "Catch3/Random.hpp",
-        "Catch3/Relations.hpp",
-        "Catch3/Snapshot.hpp",
-        "Catch3/Stateful.hpp",
-        "Catch3/Strategy/ChoiceSource.hpp",
-        "Catch3/Strategy/Containers.hpp",
-        "Catch3/Strategy/Context.hpp",
-        "Catch3/Strategy/Engine.hpp",
-        "Catch3/Strategy/Numeric.hpp",
-        "Catch3/Strategy/Strategy.hpp",
-    ],
-    copts = select({
-        "@platforms//os:windows": ["/std:c++20"],
-        "//conditions:default": ["-std=c++20"],
-    }),
+    srcs = glob(
+        ["**/*.cpp"],
+        exclude = ["Catch3/Internal/Main.cpp"],
+    ),
+    hdrs = glob(["**/*.hpp"]) + [":Catch3/UserConfig.hpp"],
+    copts = CPP20,
+    linkstatic = True,
     strip_include_prefix = "/src",
-    deps = [
-        "//:catch2",
-    ],
+    visibility = ["//:__pkg__"],
+)
+
+cc_library(
+    name = "catch3_main",
+    srcs = ["Catch3/Internal/Main.cpp"],
+    copts = CPP20,
+    linkstatic = True,
+    visibility = ["//:__pkg__"],
+    deps = [":catch3"],
 )

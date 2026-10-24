@@ -63,13 +63,12 @@ self_test = executable(
   'SelfTest',
   self_test_sources,
   include_directories: ['../src', './SelfTest'],
-  link_with: [catch2_with_main, catch2],
+  link_with: [catch3_with_main, catch3],
 )
 
 test('SelfTest', self_test, args: ['--no-history'])
 
-# Validate Progmasoft's C++20 extension without changing Catch2's library
-# language requirement or the upstream SelfTest compilation mode.
+# The Progmasoft tests need C++20; SelfTest keeps the C++ mode it has upstream.
 progmasoft_property_tests = executable(
   'ProgmasoftPropertyTests',
   [
@@ -88,7 +87,7 @@ progmasoft_property_tests = executable(
     'Progmasoft/Strategy.tests.cpp',
   ],
   include_directories: '../src',
-  dependencies: [progmasoft_catch3_dep, catch2_with_main_dep],
+  dependencies: [catch3_with_main_dep],
   override_options: ['cpp_std=c++20'],
 )
 
@@ -97,7 +96,7 @@ runner_fixture = executable(
   'RunnerFixture',
   'Progmasoft/RunnerFixture.cpp',
   include_directories: '../src',
-  dependencies: [catch2_with_main_dep],
+  dependencies: [catch3_with_main_dep],
   override_options: ['cpp_std=c++20'],
 )
 

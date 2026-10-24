@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #pragma once
 
-#include <catch2/catch_message.hpp>
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/Message.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
-#include <catch2/interfaces/catch_interfaces_capture.hpp>
+#include <Progmasoft/Catch3/Interfaces/IResultCapture.hpp>
 
 #include <Progmasoft/Catch3/ForAll.hpp>
 #include <Progmasoft/Catch3/Property.hpp>

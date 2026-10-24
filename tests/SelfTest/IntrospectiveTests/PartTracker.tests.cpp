@@ -6,10 +6,10 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
-#include <catch2/internal/catch_test_case_tracker.hpp>
-#include <catch2/internal/catch_path_filter.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/Generators.hpp>
+#include <Progmasoft/Catch3/Internal/TestCaseTracker.hpp>
+#include <Progmasoft/Catch3/Internal/PathFilter.hpp>
 
 
 using namespace Catch;

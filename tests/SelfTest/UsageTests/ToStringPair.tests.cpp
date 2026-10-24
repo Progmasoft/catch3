@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 #define CATCH_CONFIG_ENABLE_PAIR_STRINGMAKER
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 TEST_CASE( "std::pair<int,std::string> -> toString", "[toString][pair]" ) {
     std::pair<int,std::string> value( 34, "xyzzy" );

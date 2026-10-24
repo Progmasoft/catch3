@@ -6,8 +6,8 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/internal/catch_compare_traits.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Internal/CompareTraits.hpp>
 #include <helpers/type_with_lit_0_comparisons.hpp>
 
 

@@ -13,14 +13,14 @@
 #endif
 
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_approx.hpp>
-#include <catch2/catch_config.hpp>
-#include <catch2/benchmark/catch_benchmark.hpp>
-#include <catch2/benchmark/catch_chronometer.hpp>
-#include <catch2/benchmark/detail/catch_analyse.hpp>
-#include <catch2/benchmark/detail/catch_benchmark_function.hpp>
-#include <catch2/benchmark/detail/catch_estimate_clock.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Approx.hpp>
+#include <Progmasoft/Catch3/Config.hpp>
+#include <Progmasoft/Catch3/Benchmark/Benchmark.hpp>
+#include <Progmasoft/Catch3/Benchmark/Chronometer.hpp>
+#include <Progmasoft/Catch3/Benchmark/Detail/Analyse.hpp>
+#include <Progmasoft/Catch3/Benchmark/Detail/BenchmarkFunction.hpp>
+#include <Progmasoft/Catch3/Benchmark/Detail/EstimateClock.hpp>
 
 #include <numeric>
 

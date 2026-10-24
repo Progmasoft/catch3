@@ -1,13 +1,13 @@
 # Progmasoft Catch3 additions
 
-Progmasoft Catch3 keeps Catch2's API for writing tests and replaces Catch2's
-runner with its own. Tests, `catch2/` include paths, `Catch2::` CMake targets
-and the BSL-1.0 files of the engine stay as they are; the
-[Catch3 runner](progmasoft-runner.md#top) runs them in parallel worker
+Progmasoft Catch3 keeps Catch2's API for writing tests, its macros and the
+`Catch::` namespace, and replaces Catch2's runner with its own. The
+[Catch3 runner](progmasoft-runner.md#top) runs tests in parallel worker
 processes and adds retries, flaky-test detection, quarantine, history,
 predictive ordering, test selection, sharding, time limits and failure
-analysis. Progmasoft-owned headers use the `Progmasoft/Catch3` include tree
-and `Progmasoft::Catch3` namespace.
+analysis. Every header is in the `Progmasoft/Catch3` include tree; the files
+of the engine that come from Catch2 keep its BSL-1.0 license, and
+Progmasoft's own API is in the `Progmasoft::Catch3` namespace.
 
 ## Property testing
 
@@ -19,8 +19,8 @@ metamorphic oracles. New tests should use it. The value-shrinking
 `CheckProperty` API described here remains supported for existing tests.
 [The roadmap](progmasoft-roadmap.md#top) lists what comes next.
 
-`<Progmasoft/Catch3.hpp>` is the umbrella header. It brings in Catch2's
-`catch_all.hpp` as well as the Progmasoft extensions, so it is convenient but
+`<Progmasoft/Catch3.hpp>` is the umbrella header. It brings in the engine's
+`Progmasoft/Catch3/All.hpp` as well as the Progmasoft extensions, so it is convenient but
 increases compile time. Include individual headers when a translation unit only
 needs a narrow part of the API.
 
@@ -162,32 +162,30 @@ through `JUnitXmlWriter::Write` or `ToString`, with `<rerunFailure>` and
 and XML-forbidden control characters, and omits timestamps so identical
 results produce identical output.
 
-The results, the JUnit writer and the runner are compiled into the
-`Catch2::Catch2` library; the snapshot API is compiled into the
-`Progmasoft::Catch3` target. Generator templates and convenience macros
-remain in headers where their types or call-site expansion require it.
+The results, the JUnit writer, the runner, property testing and the
+snapshot API are compiled into the `Catch3::Catch3` library. Generator
+templates and convenience macros remain in headers where their types or
+call-site expansion require it.
 
 ## Build and integration
 
-The CMake build exposes `Progmasoft::Catch3`, a compiled C++20 library linked to
-`Catch2::Catch2`. `Catch2::Catch2`, which holds the runner, is built as C++20;
-code that includes only Catch2's headers still needs only C++14. After
-installation, consumers can use:
+The CMake package is `Catch3`, with the targets `Catch3::Catch3` and
+`Catch3::Catch3WithMain`. The library is built as C++20; code that includes
+only the engine's headers still needs only C++14. After installation,
+consumers can use:
 
 ```cmake
-find_package(Catch2 3.16 CONFIG REQUIRED)
-find_package(ProgmasoftCatch3 3.16 CONFIG REQUIRED)
-target_link_libraries(MyTests PRIVATE Progmasoft::Catch3 Catch2::Catch2WithMain)
+find_package(Catch3 0.3 CONFIG REQUIRED)
+target_link_libraries(MyTests PRIVATE Catch3::Catch3WithMain)
 ```
 
-The Bazel target is `//src/Progmasoft:catch3`; its tests are
-`//tests/Progmasoft:property_tests`. The compatibility project continues to
-build with Catch2's upstream build and test structure. Bazel is the primary
+The Bazel target is `//:catch3`; its tests are
+`//tests/Progmasoft:property_tests`. Bazel is the primary
 build path; CMake, Meson, Xmake, and Premake are also maintained as alternate
 ways to build the same engine and property tests. Their root files are
 `CMakeLists.txt`, `meson.build`, `xmake.lua`, and `premake5.lua`. Xmake and
-Premake materialize Catch2's default generated configuration header from the
-checked-in upstream template. Meson 1.1.0 or newer is required for the Clang-CL
+Premake materialize the default generated configuration header,
+`Progmasoft/Catch3/UserConfig.hpp`, from the checked-in template. Meson 1.1.0 or newer is required for the Clang-CL
 C++20 test target.
 
 For project history, compatibility intent, license split, and current feature
@@ -205,7 +203,7 @@ The alternate project builds exercise the same property suite:
 
 ```sh
 # CMake
-cmake -S . -B build/cmake -DCATCH_DEVELOPMENT_BUILD=ON -DCATCH_BUILD_TESTING=ON
+cmake -S . -B build/cmake -DCATCH3_DEVELOPMENT_BUILD=ON -DCATCH3_BUILD_TESTING=ON
 cmake --build build/cmake --target ProgmasoftSelfTest
 ctest --test-dir build/cmake -R Progmasoft --output-on-failure
 

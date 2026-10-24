@@ -9,7 +9,7 @@
 #ifndef CATCH_TEST_HELPERS_RANGE_TEST_HELPERS_HPP_INCLUDED
 #define CATCH_TEST_HELPERS_RANGE_TEST_HELPERS_HPP_INCLUDED
 
-#include <catch2/catch_tostring.hpp>
+#include <Progmasoft/Catch3/ToString.hpp>
 
 #include <initializer_list>
 #include <list>

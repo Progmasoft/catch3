@@ -8,7 +8,7 @@
 
 // 020-TestCase-1.cpp
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 TEST_CASE( "1: All test cases reside in other .cpp files (empty)", "[multi-file:1]" ) {
 }

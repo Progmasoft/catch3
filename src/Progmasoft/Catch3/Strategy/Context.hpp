@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #pragma once
 
-#include <catch2/catch_tostring.hpp>
+#include <Progmasoft/Catch3/ToString.hpp>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -55,7 +55,8 @@ namespace Progmasoft::Catch3
             explicit TrialRecordScope(TrialRecord &record) noexcept;
             ~TrialRecordScope();
             TrialRecordScope(const TrialRecordScope &) = delete;
-            TrialRecordScope &operator=(const TrialRecordScope &) = delete;
+            TrialRecordScope &
+            operator=(const TrialRecordScope &) = delete;
 
         private:
             TrialRecord *previous_;
@@ -82,10 +83,12 @@ namespace Progmasoft::Catch3
             explicit PropertyNameScope(std::string name);
             ~PropertyNameScope();
             PropertyNameScope(const PropertyNameScope &) = delete;
-            PropertyNameScope &operator=(const PropertyNameScope &) = delete;
+            PropertyNameScope &
+            operator=(const PropertyNameScope &) = delete;
 
         private:
-            std::string previous_;
+            std::string name_;
+            const std::string *previous_;
         };
 
     } // namespace Detail
@@ -123,23 +126,29 @@ namespace Progmasoft::Catch3
 
 /// Fails the current property trial, without unwinding, when the condition
 /// is false. Use it in a property body that returns void.
-#define CATCH3_PROPERTY_ASSERT( ... )                                     \
-    do {                                                                  \
-        if ( !static_cast<bool>( __VA_ARGS__ ) ) {                        \
-            ::Progmasoft::Catch3::Detail::RecordPropertyFailure(          \
-                #__VA_ARGS__, __FILE__, static_cast<std::size_t>( __LINE__ ) ); \
-            return;                                                       \
-        }                                                                 \
-    } while ( false )
+#define CATCH3_PROPERTY_ASSERT(...)                                            \
+    do                                                                         \
+    {                                                                          \
+        if (!static_cast<bool>(__VA_ARGS__))                                   \
+        {                                                                      \
+            ::Progmasoft::Catch3::Detail::RecordPropertyFailure(               \
+                #__VA_ARGS__,                                                  \
+                __FILE__,                                                      \
+                static_cast<std::size_t>(__LINE__));                           \
+            return;                                                            \
+        }                                                                      \
+    } while (false)
 
 /// Discards the current trial when the condition is false. A discarded
 /// trial is neither a pass nor a failure; see PropertyOptions::MaxDiscardRatio.
-#define CATCH3_PROPERTY_ASSUME( ... )                                     \
-    do {                                                                  \
-        if ( !static_cast<bool>( __VA_ARGS__ ) ) {                        \
-            if ( auto *catch3Record =                                     \
-                     ::Progmasoft::Catch3::Detail::CurrentTrialRecord() ) \
-                catch3Record->Discarded = true;                           \
-            return;                                                       \
-        }                                                                 \
-    } while ( false )
+#define CATCH3_PROPERTY_ASSUME(...)                                            \
+    do                                                                         \
+    {                                                                          \
+        if (!static_cast<bool>(__VA_ARGS__))                                   \
+        {                                                                      \
+            if (auto *catch3Record                                             \
+                = ::Progmasoft::Catch3::Detail::CurrentTrialRecord())          \
+                catch3Record->Discarded = true;                                \
+            return;                                                            \
+        }                                                                      \
+    } while (false)

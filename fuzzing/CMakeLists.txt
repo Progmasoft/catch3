@@ -5,7 +5,7 @@
 # and has all the dependencies, so the individual fuzzers can be
 # added one line each.
 add_library(fuzzhelper NullOStream.h NullOStream.cpp)
-target_link_libraries(fuzzhelper PUBLIC Catch2::Catch2)
+target_link_libraries(fuzzhelper PUBLIC Catch3::Catch3)
 
 # The runner fuzzers include its C++20 headers.
 target_compile_features(fuzzhelper PUBLIC cxx_std_20)

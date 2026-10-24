@@ -1,68 +1,73 @@
 #!/usr/bin/env python3
 
 """
-Checks that all of the "catch_foo_all.hpp" headers include all subheaders.
+Checks that all of the "All.hpp" headers of the engine include all subheaders.
 
-The logic is simple: given a folder, e.g. `catch2/matchers`, then the
-ccorresponding header is called `catch_matchers_all.hpp` and contains
-* all headers in `catch2/matchers`,
-* all headers in `catch2/matchers/{internal, detail}`,
-* all convenience catch_matchers_*_all.hpp headers from any non-internal subfolders
+The logic is simple: given a folder, e.g. `Progmasoft/Catch3/Matchers`, the
+corresponding header is `Progmasoft/Catch3/Matchers/All.hpp` and contains
+* all engine headers in `Progmasoft/Catch3/Matchers`,
+* all engine headers in `Progmasoft/Catch3/Matchers/{Internal, Detail}`,
+* the `All.hpp` headers of its other subfolders that hold engine headers.
 
-The top level header is called `catch_all.hpp`.
+The top level header is `Progmasoft/Catch3/All.hpp`. Engine headers are the
+ones listed in upstreamFiles.txt; Progmasoft's own headers in the same
+folders are not part of the convenience headers.
 """
 
-internal_dirs = ['detail', 'internal']
+internal_dirs = ['Detail', 'Internal']
 
-from scriptCommon import catchPath
-from glob import glob
-from pprint import pprint
+from scriptCommon import catchPath, upstreamFiles
 import os
 import re
+import sys
 
-def normalized_path(path):
-    r"""Replaces \ in paths on Windows with /"""
-    return path.replace('\\', '/')
-
-def normalized_paths(paths):
-    r"""Replaces \ with / in every path"""
-    return [normalized_path(path) for path in paths]
-
-source_path = catchPath + '/src/catch2'
-source_path = normalized_path(source_path)
-include_parser = re.compile(r'#include <(catch2/.+\.hpp)>')
+source_root = 'src/Progmasoft/Catch3'
+include_parser = re.compile(r'#include <(Progmasoft/Catch3/.+\.hpp)>')
+engine_headers = {path[len('src/'):] for path in upstreamFiles() if path.endswith('.hpp')}
 
 errors_found = False
 
-def headers_in_folder(folder):
-    return glob(folder + '/*.hpp')
 
-def folders_in_folder(folder):
-    return [x for x in os.scandir(folder) if x.is_dir()]
+def engine_headers_in(folder):
+    """Engine headers directly in folder, as include paths."""
+    prefix = folder + '/'
+    return sorted(h for h in engine_headers
+                  if h.startswith(prefix) and '/' not in h[len(prefix):])
+
+
+def subfolders_with_engine_headers(folder):
+    prefix = folder + '/'
+    names = set()
+    for header in engine_headers:
+        if header.startswith(prefix):
+            rest = header[len(prefix):]
+            if '/' in rest:
+                names.add(rest.split('/')[0])
+    return sorted(names)
+
 
 def collated_includes(folder):
-    base = headers_in_folder(folder)
-    for subfolder in folders_in_folder(folder):
-        if subfolder.name in internal_dirs:
-            base.extend(headers_in_folder(subfolder.path))
+    base = engine_headers_in(folder)
+    for name in subfolders_with_engine_headers(folder):
+        subfolder = folder + '/' + name
+        if name in internal_dirs:
+            base.extend(engine_headers_in(subfolder))
         else:
-            base.append(subfolder.path + '/catch_{}_all.hpp'.format(subfolder.name))
-    return normalized_paths(sorted(base))
+            base.append(subfolder + '/All.hpp')
+    return sorted(base)
+
 
 def includes_from_file(header):
     includes = []
-    with open(header, 'r', encoding = 'utf-8') as file:
+    with open(os.path.join(catchPath, 'src', header), 'r', encoding='utf-8') as file:
         for line in file:
             if not line.startswith('#include'):
                 continue
             match = include_parser.match(line)
             if match:
                 includes.append(match.group(1))
-    return normalized_paths(includes)
+    return includes
 
-def normalize_includes(includes):
-    """Returns """
-    return [include[len(catchPath)+5:] for include in includes]
 
 def get_duplicates(xs):
     seen = set()
@@ -73,55 +78,42 @@ def get_duplicates(xs):
         seen.add(x)
     return duplicated
 
+
 def verify_convenience_header(folder):
     """
-    Performs the actual checking of convenience header for specific folder.
-    Checks that
-    1) The header even exists
-    2) That all includes in the header are sorted
-    3) That there are no duplicated includes
-    4) That all includes that should be in the header are actually present in the header
-    5) That there are no superfluous includes that should not be in the header
+    Checks the convenience header of one folder:
+    1) The header exists
+    2) Its includes are sorted
+    3) It has no duplicated includes
+    4) It includes every header it should
+    5) It includes nothing else
     """
     global errors_found
-
-    path = normalized_path(folder.path)
-
-    assert path.startswith(source_path), '{} does not start with {}'.format(path, source_path)
-    stripped_path = path[len(source_path) + 1:]
-    path_pieces = stripped_path.split('/')
-
-    if path == source_path:
-        header_name = 'catch_all.hpp'
-    else:
-        header_name = 'catch_{}_all.hpp'.format('_'.join(path_pieces))
+    header_name = folder + '/All.hpp'
 
     # 1) Does it exist?
-    full_path = path + '/' + header_name
-    if not os.path.isfile(full_path):
+    if header_name not in engine_headers:
         errors_found = True
-        print('Missing convenience header: {}'.format(full_path))
+        print('Missing convenience header: {}'.format(header_name))
         return
-    file_incs = includes_from_file(path + '/' + header_name)
-    # 2) Are the includes are sorted?
+    file_incs = includes_from_file(header_name)
+    # 2) Are the includes sorted?
     if sorted(file_incs) != file_incs:
         errors_found = True
         print("'{}': Includes are not in sorted order!".format(header_name))
 
     # 3) Are there no duplicates?
-    duplicated = get_duplicates(file_incs)
-    for duplicate in duplicated:
+    for duplicate in get_duplicates(file_incs):
         errors_found = True
         print("'{}': Duplicated include: '{}'".format(header_name, duplicate))
 
-    target_includes = normalize_includes(collated_includes(path))
-    # Avoid requiring the convenience header to include itself
-    target_includes = [x for x in target_includes if header_name not in x]
+    # The convenience header does not include itself.
+    target_includes = [x for x in collated_includes(folder) if x != header_name]
     # 4) Are all required headers present?
     file_incs_set = set(file_incs)
     for include in target_includes:
         if (include not in file_incs_set and
-            include != 'catch2/internal/catch_windows_h_proxy.hpp'):
+                include != 'Progmasoft/Catch3/Internal/WindowsHProxy.hpp'):
             errors_found = True
             print("'{}': missing include '{}'".format(header_name, include))
 
@@ -133,19 +125,17 @@ def verify_convenience_header(folder):
             print("'{}': superfluous include '{}'".format(header_name, include))
 
 
+def walk_source_folders(folder):
+    verify_convenience_header(folder)
+    for name in subfolders_with_engine_headers(folder):
+        if name not in internal_dirs:
+            walk_source_folders(folder + '/' + name)
 
-def walk_source_folders(current):
-    verify_convenience_header(current)
-    for folder in folders_in_folder(current.path):
-        fname = folder.name
-        if fname not in internal_dirs:
-            walk_source_folders(folder)
 
-# This is an ugly hack because we cannot instantiate DirEntry manually
-base_dir = [x for x in os.scandir(catchPath + '/src') if x.name == 'catch2']
-walk_source_folders(base_dir[0])
+walk_source_folders('Progmasoft/Catch3')
 
 # Propagate error "code" upwards
 if not errors_found:
     print('Everything ok')
-exit(errors_found)
+else:
+    sys.exit(1)

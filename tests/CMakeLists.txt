@@ -1,6 +1,6 @@
 include(CatchMiscFunctions)
 
-if(CATCH_BUILD_SURROGATES)
+if(CATCH3_BUILD_SURROGATES)
   message(STATUS "Configuring targets for surrogate TUs")
 
   # If the folder does not exist before we ask for output redirect to
@@ -13,7 +13,10 @@ if(CATCH_BUILD_SURROGATES)
     set(pathPrefix ${PROJECT_SOURCE_DIR}/src)
     file(RELATIVE_PATH includePath ${pathPrefix} ${sourceHeader})
 
-    get_filename_component(basicFileName "${sourceHeader}" NAME_WE)
+    # Headers in different directories may share a name, so the directory
+    # is part of the surrogate's name.
+    string(REGEX REPLACE "\\.hpp$" "" basicFileName "${includePath}")
+    string(REPLACE "/" "_" basicFileName "${basicFileName}")
     set(surrogateFilePath ${CMAKE_CURRENT_BINARY_DIR}/surrogates/surrogate_${basicFileName}.cpp)
 
     add_custom_command(
@@ -25,24 +28,26 @@ if(CATCH_BUILD_SURROGATES)
     set(${pathToFile} ${surrogateFilePath} PARENT_SCOPE)
   endfunction()
 
-  # Extracts all non-helper (e.g. catch_all.hpp) headers from the
-  # Catch2 target, and returns them through the argument.
-  function(ExtractCatch2Headers OutArg)
-    get_target_property(targetSources Catch2 SOURCES)
+  # Extracts all non-helper (e.g. Progmasoft/Catch3/All.hpp) headers from the
+  # Catch3 target, and returns them through the argument.
+  function(ExtractCatch3Headers OutArg)
+    # The engine's headers are the ones that come from Catch2. The other
+    # headers need C++20; the surrogates check the engine's headers at the
+    # language level of the build.
+    file(STRINGS "${CATCH_DIR}/tools/scripts/upstreamFiles.txt" upstreamFiles REGEX "^src/")
+    get_target_property(targetSources Catch3 SOURCES)
     foreach(Source ${targetSources})
       string(REGEX MATCH "^.*\\.hpp$" isHeader ${Source})
-      string(REGEX MATCH "_all.hpp" isAllHeader ${Source})
-      # The runner's headers need C++20; the surrogates check Catch2's
-      # headers at the language level of the build.
-      string(REGEX MATCH "/Progmasoft/" isRunnerHeader ${Source})
-      if(isHeader AND NOT isAllHeader AND NOT isRunnerHeader)
+      string(REGEX MATCH "/All\\.hpp$" isAllHeader ${Source})
+      file(RELATIVE_PATH relativeSource "${CATCH_DIR}" "${Source}")
+      if(isHeader AND NOT isAllHeader AND relativeSource IN_LIST upstreamFiles)
         list(APPEND AllHeaders ${Source})
       endif()
     endforeach()
     set(${OutArg} ${AllHeaders} PARENT_SCOPE)
   endfunction()
 
-  ExtractCatch2Headers(mainHeaders)
+  ExtractCatch3Headers(mainHeaders)
 
   if(NOT mainHeaders)
     message(FATAL_ERROR "No headers in the main target were detected. Something is broken.")
@@ -53,10 +58,10 @@ if(CATCH_BUILD_SURROGATES)
     list(APPEND surrogateFiles ${pathToGeneratedFile})
   endforeach()
 
-  add_executable(Catch2SurrogateTarget
+  add_executable(Catch3SurrogateTarget
     ${surrogateFiles}
   )
-  target_link_libraries(Catch2SurrogateTarget PRIVATE Catch2WithMain)
+  target_link_libraries(Catch3SurrogateTarget PRIVATE Catch3WithMain)
 endif()
 
 ####
@@ -146,7 +151,7 @@ include(CTest)
 
 add_executable(SelfTest ${TEST_SOURCES} ${TEST_HEADERS})
 target_include_directories(SelfTest PRIVATE ${SELF_TEST_DIR})
-target_link_libraries(SelfTest PRIVATE Catch2WithMain)
+target_link_libraries(SelfTest PRIVATE Catch3WithMain)
 
 # Exercise the C++20 Progmasoft layer independently so the upstream Catch2
 # SelfTest continues to compile at its supported baseline language level.
@@ -165,12 +170,12 @@ add_executable(ProgmasoftSelfTest
   Progmasoft/Stateful.tests.cpp
   Progmasoft/Strategy.tests.cpp
 )
-target_link_libraries(ProgmasoftSelfTest PRIVATE Progmasoft::Catch3 Catch2WithMain)
+target_link_libraries(ProgmasoftSelfTest PRIVATE Catch3WithMain)
 target_compile_features(ProgmasoftSelfTest PRIVATE cxx_std_20)
 
 # Tests that misbehave on purpose, for the runner's integration tests.
 add_executable(RunnerFixture Progmasoft/RunnerFixture.cpp)
-target_link_libraries(RunnerFixture PRIVATE Catch2WithMain)
+target_link_libraries(RunnerFixture PRIVATE Catch3WithMain)
 target_compile_features(RunnerFixture PRIVATE cxx_std_20)
 add_dependencies(ProgmasoftSelfTest RunnerFixture)
 
@@ -180,12 +185,12 @@ set_tests_properties(Progmasoft::PropertyTests PROPERTIES
 )
 if(BUILD_SHARED_LIBS AND WIN32)
   add_custom_command(TARGET SelfTest PRE_LINK
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Catch2>
-    $<TARGET_FILE:Catch2WithMain> $<TARGET_FILE_DIR:SelfTest>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Catch3>
+    $<TARGET_FILE:Catch3WithMain> $<TARGET_FILE_DIR:SelfTest>
   )
 endif()
 
-if(CATCH_ENABLE_COVERAGE)
+if(CATCH3_ENABLE_COVERAGE)
   set(ENABLE_COVERAGE ON CACHE BOOL "Enable coverage build." FORCE)
   find_package(codecov)
   add_coverage(SelfTest)
@@ -410,7 +415,7 @@ set_tests_properties("Runner::SeedIsReported"
     PASS_REGULAR_EXPRESSION "seed 18181818"
 )
 
-if(CATCH_ENABLE_CONFIGURE_TESTS)
+if(CATCH3_ENABLE_CONFIGURE_TESTS)
   foreach(testName "Disable" "DisableStringification"
                     "ExperimentalRedirect")
     add_test(NAME "CMakeConfig::${testName}"
@@ -430,7 +435,7 @@ if(CATCH_ENABLE_CONFIGURE_TESTS)
   endforeach()
 endif()
 
-if(CATCH_ENABLE_CMAKE_HELPER_TESTS)
+if(CATCH3_ENABLE_CMAKE_HELPER_TESTS)
   add_test(NAME "CMakeHelper::DiscoverTests"
     COMMAND
       Python3::Interpreter "${CMAKE_CURRENT_LIST_DIR}/TestScripts/DiscoverTests/VerifyRegistration.py" "${CATCH_DIR}" "${CMAKE_CURRENT_BINARY_DIR}"
@@ -444,14 +449,14 @@ if(CATCH_ENABLE_CMAKE_HELPER_TESTS)
   add_test(NAME "CMakeHelper::PrepareCommandFragment"
     COMMAND
       "${CMAKE_COMMAND}"
-      "-DCATCH_ADD_TESTS_SCRIPT=${CATCH_DIR}/extras/CatchAddTests.cmake"
+      "-DCATCH3_ADD_TESTS_SCRIPT=${CATCH_DIR}/extras/Catch3AddTests.cmake"
       -P "${CMAKE_CURRENT_LIST_DIR}/TestScripts/DiscoverTests/TestPrepareCommandFragment.cmake"
   )
 
   add_test(NAME "CMakeHelper::DecomposeJsonArray"
     COMMAND
       "${CMAKE_COMMAND}"
-      "-DCATCH_ADD_TESTS_SCRIPT=${CATCH_DIR}/extras/CatchAddTests.cmake"
+      "-DCATCH3_ADD_TESTS_SCRIPT=${CATCH_DIR}/extras/Catch3AddTests.cmake"
       -P "${CMAKE_CURRENT_LIST_DIR}/TestScripts/DiscoverTests/TestDecomposeJsonArray.cmake"
   )
 endif()

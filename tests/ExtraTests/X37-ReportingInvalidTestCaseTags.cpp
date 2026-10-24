@@ -10,7 +10,7 @@
  * Checks that TEST_CASE registration validates tags.
  */
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 TEST_CASE( "Empty tag is not allowed", "[]" ) {}
 

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(Catch2ExtraTests LANGUAGES CXX)
+project(Catch3ExtraTests LANGUAGES CXX)
 
 message(STATUS "Extra tests included")
 
@@ -37,7 +37,7 @@ add_executable(PrefixedMacros ${TESTS_DIR}/X01-PrefixedMacros.cpp)
 target_compile_definitions(PrefixedMacros PRIVATE CATCH_CONFIG_PREFIX_ALL CATCH_CONFIG_RUNTIME_STATIC_REQUIRE)
 # We want to verify that the main library can also be built with prefixed
 # macros, regression test for #3087.
-target_link_libraries(PrefixedMacros Catch2_buildall_interface)
+target_link_libraries(PrefixedMacros Catch3_buildall_interface)
 
 add_test(NAME CATCH_CONFIG_PREFIX_ALL COMMAND PrefixedMacros --no-history --success)
 set_tests_properties(CATCH_CONFIG_PREFIX_ALL
@@ -53,7 +53,7 @@ add_executable(DisabledMacros ${TESTS_DIR}/X02-DisabledMacros.cpp)
 target_compile_definitions(DisabledMacros PRIVATE CATCH_CONFIG_DISABLE)
 # Macro configuration does not touch the compiled parts, so we can link
 # it against the main library
-target_link_libraries(DisabledMacros Catch2WithMain)
+target_link_libraries(DisabledMacros Catch3WithMain)
 
 add_test(NAME CATCH_CONFIG_DISABLE-1 COMMAND DisabledMacros --no-history --success)
 set_tests_properties(CATCH_CONFIG_DISABLE-1
@@ -79,7 +79,7 @@ else()
 endif()
 foreach(target DisabledExceptions-DefaultHandler DisabledExceptions-CustomHandler)
   target_compile_options(${target} PUBLIC ${CATCH_NO_EXCEPTIONS_OPTIONS})
-  target_link_libraries(${target} Catch2_buildall_interface)
+  target_link_libraries(${target} Catch3_buildall_interface)
 endforeach()
 target_compile_definitions(DisabledExceptions-CustomHandler PUBLIC CATCH_CONFIG_DISABLE_EXCEPTIONS_CUSTOM_HANDLER)
 
@@ -94,7 +94,7 @@ set_tests_properties(CATCH_CONFIG_DISABLE_EXCEPTIONS-1
 # Bazel passes its wishes in the environment: a JUnit file, a filter, a
 # shard, a seed.
 add_executable(BazelReporterNoCatchConfig ${TESTS_DIR}/X30-BazelReporter.cpp)
-target_link_libraries(BazelReporterNoCatchConfig Catch2WithMain)
+target_link_libraries(BazelReporterNoCatchConfig Catch3WithMain)
 add_test(NAME NO_CATCH_CONFIG_BAZEL_REPORTER-1
   COMMAND
   Python3::Interpreter "${CATCH_DIR}/tests/TestScripts/testBazelReporter.py" $<TARGET_FILE:BazelReporterNoCatchConfig> "${CMAKE_CURRENT_BINARY_DIR}"
@@ -151,7 +151,7 @@ set_tests_properties(CATCH_CONFIG_DISABLE_EXCEPTIONS-4
 )
 
 add_executable(DeferredStaticChecks ${TESTS_DIR}/X05-DeferredStaticChecks.cpp)
-target_link_libraries(DeferredStaticChecks PRIVATE Catch2WithMain)
+target_link_libraries(DeferredStaticChecks PRIVATE Catch3WithMain)
 target_compile_definitions(DeferredStaticChecks PRIVATE "CATCH_CONFIG_RUNTIME_STATIC_REQUIRE")
 
 add_test(NAME DeferredStaticChecks COMMAND DeferredStaticChecks --no-history --retries=off)
@@ -161,7 +161,7 @@ set_tests_properties(DeferredStaticChecks
 )
 
 add_executable(MixingClearedAndUnclearedMessages ${TESTS_DIR}/X06-MixingClearedAndUnclearedMessages.cpp)
-target_link_libraries(MixingClearedAndUnclearedMessages PRIVATE Catch2WithMain)
+target_link_libraries(MixingClearedAndUnclearedMessages PRIVATE Catch3WithMain)
 
 add_test(NAME MixingClearedAndUnclearedMessages
   COMMAND
@@ -175,7 +175,7 @@ set_tests_properties(MixingClearedAndUnclearedMessages
 
 add_executable(FallbackStringifier ${TESTS_DIR}/X10-FallbackStringifier.cpp)
 target_compile_definitions(FallbackStringifier PRIVATE CATCH_CONFIG_FALLBACK_STRINGIFIER=fallbackStringifier)
-target_link_libraries(FallbackStringifier Catch2WithMain)
+target_link_libraries(FallbackStringifier Catch3WithMain)
 
 add_test(NAME FallbackStringifier COMMAND FallbackStringifier --no-history --success)
 set_tests_properties(FallbackStringifier
@@ -185,7 +185,7 @@ set_tests_properties(FallbackStringifier
 
 add_executable(DisableStringification ${TESTS_DIR}/X11-DisableStringification.cpp)
 target_compile_definitions(DisableStringification PRIVATE CATCH_CONFIG_DISABLE_STRINGIFICATION)
-target_link_libraries(DisableStringification Catch2WithMain)
+target_link_libraries(DisableStringification Catch3WithMain)
 add_test(NAME CATCH_CONFIG_DISABLE_STRINGIFICATION COMMAND DisableStringification --no-history --success)
 set_tests_properties(CATCH_CONFIG_DISABLE_STRINGIFICATION
   PROPERTIES
@@ -197,13 +197,13 @@ set_tests_properties(CATCH_CONFIG_DISABLE_STRINGIFICATION
 if(MSVC)
   # This test fails if it does not compile and succeeds otherwise
   add_executable(WindowsHeader ${TESTS_DIR}/X90-WindowsHeaderInclusion.cpp)
-  target_link_libraries(WindowsHeader Catch2WithMain)
+  target_link_libraries(WindowsHeader Catch3WithMain)
   add_test(NAME WindowsHeader COMMAND WindowsHeader --no-history)
   list(APPEND CATCH_TEST_TARGETS ${EXTRA_TEST_BINARIES} WindowsHeader)
 endif()
 
 add_executable(PartialTestCaseEvents ${TESTS_DIR}/X21-PartialTestCaseEvents.cpp)
-target_link_libraries(PartialTestCaseEvents PRIVATE Catch2WithMain)
+target_link_libraries(PartialTestCaseEvents PRIVATE Catch3WithMain)
 add_test(
   NAME PartialTestCaseEvents
   COMMAND Python3::Interpreter ${CATCH_DIR}/tests/TestScripts/testPartialTestCaseEvent.py $<TARGET_FILE:PartialTestCaseEvents>
@@ -214,7 +214,7 @@ set_tests_properties(PartialTestCaseEvents
 )
 
 add_executable(CapturedStdoutInTestCaseEvents ${TESTS_DIR}/X27-CapturedStdoutInTestCaseEvents.cpp)
-target_link_libraries(CapturedStdoutInTestCaseEvents PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(CapturedStdoutInTestCaseEvents PRIVATE Catch3::Catch3WithMain)
 add_test(
   NAME Listeners::CapturedStdOutInEvents
   COMMAND CapturedStdoutInTestCaseEvents --no-history
@@ -225,7 +225,7 @@ set_tests_properties(Listeners::CapturedStdOutInEvents
 )
 
 add_executable(ListenerStdoutCaptureInMultireporter ${TESTS_DIR}/X24-ListenerStdoutCaptureInMultireporter.cpp)
-target_link_libraries(ListenerStdoutCaptureInMultireporter PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(ListenerStdoutCaptureInMultireporter PRIVATE Catch3::Catch3WithMain)
 
 # The runner keeps what a passing test prints, whatever a listener prefers;
 # what the listener prints outside a test reaches the output.
@@ -240,7 +240,7 @@ set_tests_properties(Listeners::NoncapturingListenerDoesntCauseStdoutPassThrough
 )
 
 add_executable(ListenerCanAskForCapturedStdout ${TESTS_DIR}/X25-ListenerCanAskForCapturedStdout.cpp)
-target_link_libraries(ListenerCanAskForCapturedStdout PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(ListenerCanAskForCapturedStdout PRIVATE Catch3::Catch3WithMain)
 add_test(
   NAME Listeners::CapturingListenerCausesStdoutCapture
   COMMAND ListenerCanAskForCapturedStdout --no-history
@@ -252,7 +252,7 @@ set_tests_properties(Listeners::CapturingListenerCausesStdoutCapture
 )
 
 add_executable(ListenersGetEventsBeforeReporters ${TESTS_DIR}/X28-ListenersGetEventsBeforeReporters.cpp)
-target_link_libraries(ListenersGetEventsBeforeReporters PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(ListenersGetEventsBeforeReporters PRIVATE Catch3::Catch3WithMain)
 add_test(
   NAME ListenersGetRunEvents
   COMMAND ListenersGetEventsBeforeReporters --no-history
@@ -264,7 +264,7 @@ set_tests_properties(ListenersGetRunEvents
 )
 
 add_executable(DuplicatedTestCases-SameNameAndTags ${TESTS_DIR}/X31-DuplicatedTestCases.cpp)
-target_link_libraries(DuplicatedTestCases-SameNameAndTags PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(DuplicatedTestCases-SameNameAndTags PRIVATE Catch3::Catch3WithMain)
 add_test(
   NAME DuplicatedTestCases::SameNameAndTags
   COMMAND $<TARGET_FILE:DuplicatedTestCases-SameNameAndTags> --no-history
@@ -275,7 +275,7 @@ set_tests_properties(DuplicatedTestCases::SameNameAndTags
 )
 
 add_executable(DuplicatedTestCases-SameNameDifferentTags ${TESTS_DIR}/X32-DuplicatedTestCasesDifferentTags.cpp)
-target_link_libraries(DuplicatedTestCases-SameNameDifferentTags PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(DuplicatedTestCases-SameNameDifferentTags PRIVATE Catch3::Catch3WithMain)
 add_test(
   NAME DuplicatedTestCases::SameNameDifferentTags
   COMMAND $<TARGET_FILE:DuplicatedTestCases-SameNameDifferentTags> --no-history
@@ -286,7 +286,7 @@ set_tests_properties(DuplicatedTestCases::SameNameDifferentTags
 )
 
 add_executable(DuplicatedTestCases-DuplicatedTestCaseMethods ${TESTS_DIR}/X33-DuplicatedTestCaseMethods.cpp)
-target_link_libraries(DuplicatedTestCases-DuplicatedTestCaseMethods PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(DuplicatedTestCases-DuplicatedTestCaseMethods PRIVATE Catch3::Catch3WithMain)
 add_test(
   NAME DuplicatedTestCases::DuplicatedTestCaseMethods
   COMMAND $<TARGET_FILE:DuplicatedTestCases-DuplicatedTestCaseMethods> --no-history
@@ -297,7 +297,7 @@ set_tests_properties(DuplicatedTestCases::DuplicatedTestCaseMethods
 )
 
 add_executable(DuplicatedTestCases-DifferentFixtures ${TESTS_DIR}/X34-DuplicatedTestCaseMethodsDifferentFixtures.cpp)
-target_link_libraries(DuplicatedTestCases-DifferentFixtures PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(DuplicatedTestCases-DifferentFixtures PRIVATE Catch3::Catch3WithMain)
 add_test(
   NAME DuplicatedTestCases::DuplicatedTestCaseMethodsDifferentFixtures
   COMMAND $<TARGET_FILE:DuplicatedTestCases-DifferentFixtures> --no-history
@@ -308,7 +308,7 @@ set_tests_properties(DuplicatedTestCases::DuplicatedTestCaseMethodsDifferentFixt
 )
 
 add_executable(ReportingCrashWithJunitReporter ${TESTS_DIR}/X36-ReportingCrashWithJunitReporter.cpp)
-target_link_libraries(ReportingCrashWithJunitReporter PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(ReportingCrashWithJunitReporter PRIVATE Catch3::Catch3WithMain)
 add_test(
   NAME Runner::CrashIsReported
   COMMAND $<TARGET_FILE:ReportingCrashWithJunitReporter> --no-history --retries=off
@@ -321,7 +321,7 @@ set_tests_properties(Runner::CrashIsReported
 
 
 add_executable(ReportingInvalidTestCaseTags ${TESTS_DIR}/X37-ReportingInvalidTestCaseTags.cpp)
-target_link_libraries(ReportingInvalidTestCaseTags PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(ReportingInvalidTestCaseTags PRIVATE Catch3::Catch3WithMain)
 add_test(
   NAME Validation::TestCaseTags
   COMMAND $<TARGET_FILE:ReportingInvalidTestCaseTags> --no-history
@@ -342,7 +342,7 @@ set_tests_properties(Validation::TestCaseTags
 
 
 add_executable(QuickExitInTest ${TESTS_DIR}/X40-QuickExit.cpp)
-target_link_libraries(QuickExitInTest PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(QuickExitInTest PRIVATE Catch3::Catch3WithMain)
 # A test that ends its process early cannot pass: the exit of its worker is
 # reported as a crash of the test.
 add_test(
@@ -371,23 +371,15 @@ add_executable(AssertionStartingEventGoesBeforeAssertionIsEvaluated
   X20-AssertionStartingEventGoesBeforeAssertionIsEvaluated.cpp
 )
 target_link_libraries(AssertionStartingEventGoesBeforeAssertionIsEvaluated
-  PRIVATE Catch2::Catch2WithMain
+  PRIVATE Catch3::Catch3WithMain
 )
 add_test(
   NAME ReporterEvents::AssertionStartingHappensBeforeAssertionIsEvaluated
   COMMAND $<TARGET_FILE:AssertionStartingEventGoesBeforeAssertionIsEvaluated> --no-history
 )
 
-#add_executable(DebugBreakMacros ${TESTS_DIR}/X12-CustomDebugBreakMacro.cpp)
-#target_link_libraries(DebugBreakMacros Catch2)
-#add_test(NAME DebugBreakMacros COMMAND DebugBreakMacros --break)
-#set_tests_properties(DebugBreakMacros
-#  PROPERTIES
-#    PASS_REGULAR_EXPRESSION "Pretty please, break into debugger"
-#)
-
 add_executable(NoTests ${TESTS_DIR}/X92-NoTests.cpp)
-target_link_libraries(NoTests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(NoTests PRIVATE Catch3::Catch3WithMain)
 
 add_test(
   NAME TestSpecs::EmptySpecWithNoTestsFails
@@ -404,7 +396,7 @@ add_test(
 )
 
 add_executable(AllSkipped ${TESTS_DIR}/X93-AllSkipped.cpp)
-target_link_libraries(AllSkipped PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(AllSkipped PRIVATE Catch3::Catch3WithMain)
 
 add_test(
   NAME TestSpecs::SkippingAllTestsFails
@@ -416,7 +408,7 @@ set_tests_properties(TestSpecs::SkippingAllTestsFails
 )
 
 add_executable(FastCompileMacros ${TESTS_DIR}/X07-FastCompileMacros.cpp)
-target_link_libraries(FastCompileMacros PRIVATE Catch2_buildall_interface)
+target_link_libraries(FastCompileMacros PRIVATE Catch3_buildall_interface)
 target_compile_definitions(FastCompileMacros PRIVATE CATCH_CONFIG_FAST_COMPILE)
 
 add_test(
@@ -449,7 +441,7 @@ set_tests_properties(AmalgamatedFileTest
 add_executable(ThreadSafetyTests
   ${TESTS_DIR}/X94-ThreadSafetyTests.cpp
 )
-target_link_libraries(ThreadSafetyTests Catch2_buildall_interface)
+target_link_libraries(ThreadSafetyTests Catch3_buildall_interface)
 target_compile_definitions(ThreadSafetyTests PUBLIC CATCH_CONFIG_THREAD_SAFE_ASSERTIONS)
 
 add_test(NAME ThreadSafetyTests::ScopedMessagesAndAssertions
@@ -470,7 +462,7 @@ set_tests_properties(ThreadSafetyTests::UnscopedMessagesAndAssertions
 )
 
 add_executable(InfiniteGenerators ${TESTS_DIR}/X95-InfiniteGenerators.cpp)
-target_link_libraries(InfiniteGenerators PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(InfiniteGenerators PRIVATE Catch3::Catch3WithMain)
 
 add_test(
   NAME Warnings::InfiniteGenerators::NoFilterWarns

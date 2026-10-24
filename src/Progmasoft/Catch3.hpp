@@ -3,7 +3,7 @@
 #pragma once
 
 // Convenience include: prefer narrow headers when compile time matters.
-#include <catch2/catch_all.hpp>
+#include <Progmasoft/Catch3/All.hpp>
 
 #include <Progmasoft/Catch3/Assertions.hpp>
 #include <Progmasoft/Catch3/ForAll.hpp>

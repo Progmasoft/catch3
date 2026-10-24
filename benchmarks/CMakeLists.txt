@@ -13,9 +13,9 @@ add_executable(EmptyExecutable
   only_include.cpp
 )
 
-target_link_libraries(AssertionsFastPath PRIVATE Catch2::Catch2WithMain)
-target_link_libraries(AssertionsSlowPath PRIVATE Catch2::Catch2WithMain)
-target_link_libraries(EmptyExecutable PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(AssertionsFastPath PRIVATE Catch3::Catch3WithMain)
+target_link_libraries(AssertionsSlowPath PRIVATE Catch3::Catch3WithMain)
+target_link_libraries(EmptyExecutable PRIVATE Catch3::Catch3WithMain)
 
 list(APPEND CATCH_TEST_TARGETS AssertionsFastPath AssertionsSlowPath EmptyExecutable)
 set(CATCH_TEST_TARGETS ${CATCH_TEST_TARGETS} PARENT_SCOPE)

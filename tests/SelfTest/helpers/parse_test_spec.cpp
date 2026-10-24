@@ -8,8 +8,8 @@
 
 #include <helpers/parse_test_spec.hpp>
 
-#include <catch2/internal/catch_test_spec_parser.hpp>
-#include <catch2/interfaces/catch_interfaces_tag_alias_registry.hpp>
+#include <Progmasoft/Catch3/Internal/TestSpecParser.hpp>
+#include <Progmasoft/Catch3/Interfaces/ITagAliasRegistry.hpp>
 
 namespace Catch {
 

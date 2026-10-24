@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+> **Catch3 compatibility reference:** This page describes the test-writing API Catch3 shares with Catch2: the macros, such as `TEST_CASE` and `REQUIRE`, and the `Catch::` namespace keep Catch2's names. Headers and build names are Catch3's own (`<Progmasoft/Catch3/TestMacros.hpp>`, `find_package(Catch3)`, `Catch3::Catch3WithMain`). See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
 
 # Matchers
 
@@ -51,8 +51,8 @@ _both_ ends with the suffix "as a service" _and_ contains the string
 
 
 Both of the string matchers used in the examples above live in the
-`catch_matchers_string.hpp` header, so to compile the code above also
-requires `#include <catch2/matchers/catch_matchers_string.hpp>`.
+`Progmasoft/Catch3/Matchers/String.hpp` header, so to compile the code above also
+requires `#include <Progmasoft/Catch3/Matchers/String.hpp>`.
 
 ### Combining operators and lifetimes
 
@@ -130,7 +130,7 @@ the regex `"abc"` will not match input string `"abcd"`. To match
 The second argument sets whether the matching should be case-sensitive
 or not. By default, it is case-sensitive.
 
-> `std::string` matchers live in `catch2/matchers/catch_matchers_string.hpp`
+> `std::string` matchers live in `Progmasoft/Catch3/Matchers/String.hpp`
 
 
 ### Vector matchers
@@ -158,7 +158,7 @@ An example usage:
 This assertions will pass, because the elements given to the matchers
 are a permutation of the ones in `some_vec`.
 
-> vector matchers live in `catch2/matchers/catch_matchers_vector.hpp`
+> vector matchers live in `Progmasoft/Catch3/Matchers/Vector.hpp`
 
 
 ### Floating point matchers
@@ -206,7 +206,7 @@ REQUIRE_THAT("Hello olleH",
 );
 ```
 
-> the predicate matcher lives in `catch2/matchers/catch_matchers_predicate.hpp`
+> the predicate matcher lives in `Progmasoft/Catch3/Matchers/Predicate.hpp`
 
 
 The other miscellaneous matcher utility is exception matching.
@@ -227,7 +227,7 @@ and it checks that the `expr` throws an exception, that exception is derived
 from the `ExceptionType` type, and then `Matcher::match` is called on
 the caught exception.
 
-> `REQUIRE_THROWS_MATCHES` macro lives in `catch2/matchers/catch_matchers.hpp`
+> `REQUIRE_THROWS_MATCHES` macro lives in `Progmasoft/Catch3/Matchers/Matchers.hpp`
 
 For one-off checks you can use the `Predicate` matcher above, e.g.
 
@@ -261,7 +261,7 @@ REQUIRE_THROWS_MATCHES(throwsDerivedException(),  DerivedException,  Message("De
 REQUIRE_THROWS_MATCHES(throwsDerivedException(),  DerivedException,  MessageMatches(StartsWith("DerivedException")));
 ```
 
-> the exception message matchers live in `catch2/matchers/catch_matchers_exception.hpp`
+> the exception message matchers live in `Progmasoft/Catch3/Matchers/Exception.hpp`
 
 
 ### Generic range Matchers
@@ -357,8 +357,8 @@ a matcher that decides whether the provided argument is a number
 within certain range. We will call it `IsBetweenMatcher<T>`:
 
 ```c++
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Matchers/Matchers.hpp>
 // ...
 
 
@@ -404,7 +404,7 @@ written using the new style, combining old style matchers should
 generally compile faster. Also note that you can combine old and new
 style matchers arbitrarily.
 
-> `MatcherBase` lives in `catch2/matchers/catch_matchers.hpp`
+> `MatcherBase` lives in `Progmasoft/Catch3/Matchers/Matchers.hpp`
 
 
 ## Writing custom matchers (new style)
@@ -426,8 +426,8 @@ can compare one range-like (something that responds to `begin` and
 `end`) object to another, like in the following example:
 
 ```cpp
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_templated.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Matchers/Templated.hpp>
 // ...
 
 template<typename Range>
@@ -472,7 +472,7 @@ a new style matcher, combining new style matchers is more expensive
 in terms of compilation time. Also note that you can combine old style
 and new style matchers arbitrarily.
 
-> `MatcherGenericBase` lives in `catch2/matchers/catch_matchers_templated.hpp`
+> `MatcherGenericBase` lives in `Progmasoft/Catch3/Matchers/Templated.hpp`
 
 
 ## Constexpr matchers

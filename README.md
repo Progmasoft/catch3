@@ -76,20 +76,20 @@ The same suite is also available through the maintained CMake, Meson, Xmake,
 and Premake project files. Their setup details and toolchain requirements are
 in the [build guide](docs/progmasoft-catch3.md#build-quick-start).
 
-For a CMake consumer of the installed libraries:
+For a CMake consumer of the installed library:
 
 ```cmake
-find_package(Catch2 3.16 CONFIG REQUIRED)
-find_package(ProgmasoftCatch3 3.16 CONFIG REQUIRED)
+find_package(Catch3 0.3 CONFIG REQUIRED)
 
-target_link_libraries(MyTests PRIVATE
-    Progmasoft::Catch3
-    Catch2::Catch2WithMain)
+target_link_libraries(MyTests PRIVATE Catch3::Catch3WithMain)
 ```
 
-The Catch2 target supplies the Catch3 runner and `main`; link
-`Progmasoft::Catch3` for the compiled Catch3 additions. The two targets retain
-their separate language baselines and licensing boundaries.
+`Catch3::Catch3` is the library: the engine, the runner, property testing and
+snapshots; `Catch3::Catch3WithMain` adds the default `main`. Tests include
+`<Progmasoft/Catch3/TestMacros.hpp>` and the other `Progmasoft/Catch3/`
+headers. The library is built as C++20; code that includes only the engine's
+headers needs C++14. Catch3 and Catch2 can be installed side by side, as
+their package, target, header and pkg-config names differ.
 
 ## Documentation
 

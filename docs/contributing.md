@@ -37,7 +37,7 @@ CMake builds every test, including the extra tests that check compile-time
 configurations:
 
 ```
-cmake --preset basic-tests -GNinja -DCATCH_BUILD_EXTRA_TESTS=ON -DCATCH_BUILD_EXAMPLES=ON
+cmake --preset basic-tests -GNinja -DCATCH3_BUILD_EXTRA_TESTS=ON -DCATCH3_BUILD_EXAMPLES=ON
 cmake --build build
 ctest --test-dir build -j
 ```
