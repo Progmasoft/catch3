@@ -28,6 +28,7 @@
 using Catch::TestCaseInfo;
 using Catch::TestCaseStats;
 
+namespace {
 class PartialListener : public Catch::EventListenerBase {
 public:
     using EventListenerBase::EventListenerBase;
@@ -58,6 +59,7 @@ public:
 private:
     std::string m_events;
 };
+} // namespace
 
 CATCH_REGISTER_LISTENER(PartialListener)
 

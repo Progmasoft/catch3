@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch v3.16.1
-//  Generated: 2026-10-23 23:12:01.455813
+//  Generated: 2026-10-24 10:02:49.316745
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -846,18 +846,17 @@ namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 
-
-
 #include <chrono>
 #include <cstddef>
 #include <optional>
 #include <string>
 #include <vector>
 
+
 namespace Catch
 {
     class IConfig;
-}
+} // namespace Catch
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -906,6 +905,12 @@ namespace Progmasoft::Catch3::Runner
         /// timeout that is not a number, are errors.
         [[nodiscard]] static Expected<Catalog>
         Load();
+
+        /// A catalog of the given tests, without a registry behind it: the
+        /// tests cannot run, but they can be planned. Each entry's index
+        /// becomes its position, and an empty key becomes its name.
+        [[nodiscard]] static Catalog
+        FromEntries(std::vector<TestEntry> entries);
 
         [[nodiscard]] const std::vector<TestEntry> &
         Tests() const noexcept
@@ -9907,6 +9912,27 @@ namespace Progmasoft::Catch3::Runner
         return catalog;
     }
 
+    Catalog
+    Catalog::FromEntries(std::vector<TestEntry> entries)
+    {
+        Catalog catalog;
+        Sha256 identity;
+        for (std::size_t index = 0; index < entries.size(); ++index)
+        {
+            TestEntry &entry = entries[index];
+            entry.index = index;
+            if (entry.key.empty())
+            {
+                entry.key = entry.name;
+            }
+            identity.Update(entry.key);
+            identity.Update("\n");
+        }
+        catalog.tests_ = std::move(entries);
+        catalog.identity_ = identity.HexDigest();
+        return catalog;
+    }
+
     const TestEntry *
     Catalog::Find(const std::string &keyOrName) const
     {
@@ -18122,8 +18148,11 @@ namespace Progmasoft::Catch3::Runner
                             attempt.sections.push_back(section);
                         }
                     }
-                    else
+                    else if (!running.fatal)
                     {
+                        // After a fatal signal Catch2 closes the open
+                        // sections itself; they stay open here, because the
+                        // crash happened inside them.
                         const auto depth = message["depth"].AsUnsigned();
                         for (auto section = attempt.sections.rbegin();
                              section != attempt.sections.rend();

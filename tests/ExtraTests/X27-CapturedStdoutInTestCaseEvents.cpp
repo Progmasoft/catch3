@@ -27,6 +27,7 @@
 #include <iostream>
 #include <string>
 
+namespace {
 class TestListener : public Catch::EventListenerBase {
     std::string stdOutString( uint64_t iter ){
         return "stdout " + std::to_string( iter ) + '\n';
@@ -66,6 +67,7 @@ public:
         std::cerr << "X27 - listener saw " << m_errors << " error(s)\n";
     }
 };
+} // namespace
 
 CATCH_REGISTER_LISTENER( TestListener )
 

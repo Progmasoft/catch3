@@ -754,8 +754,11 @@ namespace Progmasoft::Catch3::Runner
                             attempt.sections.push_back(section);
                         }
                     }
-                    else
+                    else if (!running.fatal)
                     {
+                        // After a fatal signal Catch2 closes the open
+                        // sections itself; they stay open here, because the
+                        // crash happened inside them.
                         const auto depth = message["depth"].AsUnsigned();
                         for (auto section = attempt.sections.rbegin();
                              section != attempt.sections.rend();

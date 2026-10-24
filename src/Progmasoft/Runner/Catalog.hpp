@@ -2,20 +2,19 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #pragma once
 
-#include "Expected.hpp"
-
 #include <catch2/catch_test_case_info.hpp>
-
 #include <chrono>
 #include <cstddef>
 #include <optional>
 #include <string>
 #include <vector>
 
+#include "Expected.hpp"
+
 namespace Catch
 {
     class IConfig;
-}
+} // namespace Catch
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -64,6 +63,12 @@ namespace Progmasoft::Catch3::Runner
         /// timeout that is not a number, are errors.
         [[nodiscard]] static Expected<Catalog>
         Load();
+
+        /// A catalog of the given tests, without a registry behind it: the
+        /// tests cannot run, but they can be planned. Each entry's index
+        /// becomes its position, and an empty key becomes its name.
+        [[nodiscard]] static Catalog
+        FromEntries(std::vector<TestEntry> entries);
 
         [[nodiscard]] const std::vector<TestEntry> &
         Tests() const noexcept

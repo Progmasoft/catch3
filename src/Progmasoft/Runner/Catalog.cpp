@@ -209,6 +209,27 @@ namespace Progmasoft::Catch3::Runner
         return catalog;
     }
 
+    Catalog
+    Catalog::FromEntries(std::vector<TestEntry> entries)
+    {
+        Catalog catalog;
+        Sha256 identity;
+        for (std::size_t index = 0; index < entries.size(); ++index)
+        {
+            TestEntry &entry = entries[index];
+            entry.index = index;
+            if (entry.key.empty())
+            {
+                entry.key = entry.name;
+            }
+            identity.Update(entry.key);
+            identity.Update("\n");
+        }
+        catalog.tests_ = std::move(entries);
+        catalog.identity_ = identity.HexDigest();
+        return catalog;
+    }
+
     const TestEntry *
     Catalog::Find(const std::string &keyOrName) const
     {
