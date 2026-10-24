@@ -50,10 +50,6 @@ engine, not a claim that Catch3 is an official Catch2 release.
 * [Thread safety of the compatibility engine](thread-safety.md#top)
 
 **Other:**
-* [Why the Catch2 compatibility base?](why-catch.md#top)
-* [Migrating from v2 to v3](migrate-v2-to-v3.md#top)
-* [Historical Catch2 open-source users](opensource-users.md#top)
-* [Historical Catch2 commercial users](commercial-users.md#top)
-* [Upstream contribution guide (historical)](contributing.md#top)
-* [Upstream release notes (historical)](release-notes.md#top)
-* [Upstream deprecations (historical)](deprecations.md#top)
+* [Release notes](release-notes.md#top)
+* [Contributing](contributing.md#top)
+* [Migrating from Catch2 v2 to v3](migrate-v2-to-v3.md#top)

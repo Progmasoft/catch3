@@ -4,8 +4,8 @@ includedir=${prefix}/@include_dir@
 libdir=${prefix}/@lib_dir@
 
 Name: Catch2
-Description: A modern, C++-native, test framework for C++14 and above
-URL: https://github.com/catchorg/Catch2
+Description: Catch3, Catch2's test API with its own runner; headers need C++14 and above
+URL: https://github.com/Progmasoft/catch3
 Version: @Catch2_VERSION@
 Cflags: -I${includedir}
 Libs: -L${libdir} -l@lib_name@
