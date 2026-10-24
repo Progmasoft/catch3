@@ -17,7 +17,7 @@ def configure_and_build(source_path: str, project_path: str, options: List[Tuple
                           '-B{}'.format(project_path),
                           '-S{}'.format(source_path),
                           '-DCMAKE_BUILD_TYPE=Debug',
-                          '-DCATCH_DEVELOPMENT_BUILD=ON']
+                          '-DCATCH3_DEVELOPMENT_BUILD=ON']
     toolchain_file = os.environ.get('CMAKE_TOOLCHAIN_FILE')
     if toolchain_file:
         # CMake only reads this environment variable itself since 3.21.

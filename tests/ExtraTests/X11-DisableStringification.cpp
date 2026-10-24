@@ -14,7 +14,7 @@
  */
 
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 namespace {
     struct Hidden {};

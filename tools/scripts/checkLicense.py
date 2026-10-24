@@ -4,6 +4,8 @@ import sys
 import glob
 from pathlib import Path
 
+from scriptCommon import upstreamFiles
+
 correct_licence = """\
 
 //              Copyright Catch2 Authors
@@ -19,11 +21,15 @@ progmasoft_licence = """\
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 """
 
+upstream_files = upstreamFiles()
+
 def check_licence_in_file(filename: str) -> bool:
-    # Keep upstream files on BSL-1.0 while checking the fork's own source
-    # and tests against their separate MPL exception header.
-    expected = (progmasoft_licence if 'Progmasoft' in Path(filename).parts
-                else correct_licence)
+    # Files that come from Catch2 keep BSL-1.0; the fork's own source and
+    # tests carry the MPL header with Progmasoft's exception.
+    relative = filename.replace('\\', '/')
+    progmasoft = ('Progmasoft' in Path(filename).parts
+                  and relative not in upstream_files)
+    expected = progmasoft_licence if progmasoft else correct_licence
     with open(filename, 'r', encoding='utf-8') as f:
         file_preamble = f.read(len(expected))
 
@@ -44,7 +50,7 @@ def check_licences_in_path(path: str) -> int:
 def check_licences():
     failed = 0
     # Add 'extras' after the amalgamated files are regenerated with the new script (past 3.4.0)
-    roots = ['src/catch2', 'src/Progmasoft', 'tests', 'examples', 'fuzzing']
+    roots = ['src/Progmasoft', 'tests', 'examples', 'fuzzing']
     for root in roots:
         failed += check_licences_in_path(root)
     

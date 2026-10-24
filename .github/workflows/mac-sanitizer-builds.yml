@@ -40,7 +40,7 @@ jobs:
         cmake --preset ${{matrix.preset}} -GNinja \
               -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
               -DCMAKE_CXX_STANDARD=${{matrix.std}} \
-              -DCATCH_BUILD_EXTRA_TESTS=ON
+              -DCATCH3_BUILD_EXTRA_TESTS=ON
 
     - name: Build
       run: cmake --build build

@@ -6,8 +6,8 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/reporters/catch_reporter_event_listener.hpp>
-#include <catch2/reporters/catch_reporter_registrars.hpp>
+#include <Progmasoft/Catch3/Reporters/EventListener.hpp>
+#include <Progmasoft/Catch3/Reporters/Registrars.hpp>
 
 /**
  * Event listener that listens to all assertions, forcing assertion slow path

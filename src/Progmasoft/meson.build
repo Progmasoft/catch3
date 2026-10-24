@@ -1,27 +1,8 @@
 # Copyright (c) 2026 Progmasoft.
 # SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 
-# The property engine and the other Progmasoft test utilities; their headers
-# need C++20 in the code that includes them.
-progmasoft_catch3 = static_library(
-  'ProgmasoftCatch3',
-  [
-    'ChoiceShrinker.cpp',
-    'Context.cpp',
-    'PropertyEngine.cpp',
-    'Snapshot.cpp',
-  ],
-  include_directories: '..',
-  dependencies: catch2_dep,
-  override_options: ['cpp_std=c++20'],
-  install: get_option('install'),
-)
-progmasoft_catch3_dep = declare_dependency(
-  link_with: progmasoft_catch3,
-  dependencies: catch2_dep,
-  include_directories: include_directories('..'),
-)
-
+# The Progmasoft sources are built into the catch3 library in
+# Catch3/meson.build; this installs the headers that are not the engine's.
 if get_option('install')
   install_headers('Catch3.hpp', subdir: 'Progmasoft')
   install_headers('Catch3/Assertions.hpp', subdir: 'Progmasoft/Catch3')

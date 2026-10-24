@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+> **Catch3 compatibility reference:** This page describes the test-writing API Catch3 shares with Catch2: the macros, such as `TEST_CASE` and `REQUIRE`, and the `Catch::` namespace keep Catch2's names. Headers and build names are Catch3's own (`<Progmasoft/Catch3/TestMacros.hpp>`, `find_package(Catch3)`, `Catch3::Catch3WithMain`). See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
 
 # Migrating from v2 to v3
 
@@ -35,7 +35,7 @@ this option._
 To migrate to v3, there are two basic approaches to do so.
 
 1. Use `catch_amalgamated.hpp` and `catch_amalgamated.cpp`.
-2. Build Catch2 as a proper (static) library, and move to piecewise headers
+2. Build Catch3 as a proper (static) library, and move to piecewise headers
 
 Doing 1 means downloading the [amalgamated header](../extras/catch_amalgamated.hpp)
 and the [amalgamated sources](../extras/catch_amalgamated.cpp) from `extras`,
@@ -52,30 +52,31 @@ However, we recommend doing 2, and taking extra time to migrate to v3
 properly. This lets you reap the benefits of significantly improved
 compilation times in the v3 version. The basic steps to do so are:
 
-1. Change your CMakeLists.txt to link against `Catch2WithMain` target if
-you use Catch2's default main. (If you do not, keep linking against
-the `Catch2` target.). If you use pkg-config, change `pkg-config catch2` to
-`pkg-config catch2-with-main`.
+1. Change your CMakeLists.txt to `find_package(Catch3)` and link against
+the `Catch3::Catch3WithMain` target if you use the default main, or against
+`Catch3::Catch3` if you do not. If you use pkg-config, use
+`pkg-config catch3-with-main` or `pkg-config catch3`.
 2. Delete TU with `CATCH_CONFIG_RUNNER` or `CATCH_CONFIG_MAIN` defined,
 as it is no longer needed.
-3. Change `#include <catch2/catch.hpp>` to `#include <catch2/catch_all.hpp>`
+3. Change `#include <catch2/catch.hpp>` to `#include <Progmasoft/Catch3/All.hpp>`,
+or better, to the headers you need, such as `<Progmasoft/Catch3/TestMacros.hpp>`
 4. Check that everything compiles. You might have to modify namespaces,
 or perform some other changes (see the
 [Things that can break during porting](#things-that-can-break-during-porting)
 section for the most common things).
-5. Start migrating your test TUs from including `<catch2/catch_all.hpp>`
+5. Start migrating your test TUs from including `<Progmasoft/Catch3/All.hpp>`
 to piecemeal includes. You will likely want to start by including
-`<catch2/catch_test_macros.hpp>`, and then go from there. (see
+`<Progmasoft/Catch3/TestMacros.hpp>`, and then go from there. (see
 [other notes](#other-notes) for further ideas)
 
 ## Other notes
 
-* The main test include is now `<catch2/catch_test_macros.hpp>`
+* The main test include is now `<Progmasoft/Catch3/TestMacros.hpp>`
 
 * Big "subparts" like Matchers, or Generators, have their own folder, and
 also their own "big header", so if you just want to include all matchers,
-you can include `<catch2/matchers/catch_matchers_all.hpp>`,
-or `<catch2/generators/catch_generators_all.hpp>`
+you can include `<Progmasoft/Catch3/Matchers/All.hpp>`,
+or `<Progmasoft/Catch3/Generators/All.hpp>`
 
 
 ## Things that can break during porting

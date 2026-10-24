@@ -8,7 +8,7 @@
 #include <Progmasoft/Runner/Files.hpp>
 #include <Progmasoft/Runner/Json.hpp>
 #include <Progmasoft/Runner/Process.hpp>
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>

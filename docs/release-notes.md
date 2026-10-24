@@ -36,10 +36,25 @@ line and reporters with [a runner of its own](progmasoft-runner.md#top):
 
 ### Breaking changes
 
+* Catch3 has its own build and header names, so that it is never mistaken
+  for Catch2 and both can be used in one project:
+  * CMake: `find_package(Catch3)` with `Catch3::Catch3` and
+    `Catch3::Catch3WithMain`, options `CATCH3_*`, and the scripts
+    `Catch3.cmake` (`catch3_discover_tests`) and `Catch3ShardTests.cmake`
+    (`catch3_add_sharded_tests`). The `Progmasoft::Catch3` target is gone:
+    its code is part of `Catch3::Catch3`.
+  * Bazel `//:catch3` and `//:catch3_main`, Meson `catch3` and
+    `catch3-with-main`, pkg-config `catch3.pc` and `catch3-with-main.pc`.
+  * Headers moved from `catch2/` to `Progmasoft/Catch3/` with Progmasoft
+    names: `<catch2/catch_test_macros.hpp>` is
+    `<Progmasoft/Catch3/TestMacros.hpp>`, `<catch2/matchers/catch_matchers_string.hpp>`
+    is `<Progmasoft/Catch3/Matchers/String.hpp>`, and so on. Test bodies do
+    not change: the macros and the `Catch::` namespace keep their names.
+  * `ParseAndAddCatchTests.cmake`, deprecated upstream, was removed.
 * Catch2's command line, reporters, `CATCH_REGISTER_REPORTER` and listing
   were removed; see [the command line](command-line.md#top) and
   [reports](reporters.md#top). Listeners keep working.
-* The Catch2 library is compiled as C++20; code that includes only its
+* The library is compiled as C++20; code that includes only the engine's
   headers still needs C++14.
 * The results model in `Progmasoft/Catch3/Results.hpp` was rewritten around
   tests and attempts.

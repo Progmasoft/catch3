@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+> **Catch3 compatibility reference:** This page describes the test-writing API Catch3 shares with Catch2: the macros, such as `TEST_CASE` and `REQUIRE`, and the `Catch::` namespace keep Catch2's names. Headers and build names are Catch3's own (`<Progmasoft/Catch3/TestMacros.hpp>`, `find_package(Catch3)`, `Catch3::Catch3WithMain`). See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
 
 # Best practices for the Catch3 compatibility API
 
@@ -44,9 +44,9 @@ cover every test exactly once whatever the order or seed of each run. With
 `--shard-durations=FILE`, a JSON report or history of an earlier run, the
 shards are balanced by duration instead.
 
-If you use CMake and CTest, [`catch_discover_tests`](cmake-integration.md#automatic-test-registration)
+If you use CMake and CTest, [`catch3_discover_tests`](cmake-integration.md#automatic-test-registration)
 registers each `TEST_CASE` as a CTest test, and
-[`CatchShardTests.cmake`](cmake-integration.md#catchshardtestscmake)
+[`Catch3ShardTests.cmake`](cmake-integration.md#catchshardtestscmake)
 registers shards.
 
 

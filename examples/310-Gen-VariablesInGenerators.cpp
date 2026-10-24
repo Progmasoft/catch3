@@ -14,9 +14,9 @@
 // _WILL_ outlive the variables -- thus they should be either captured
 // by value directly, or copied by the generators during construction.
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators_adapters.hpp>
-#include <catch2/generators/catch_generators_random.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/Adapters.hpp>
+#include <Progmasoft/Catch3/Generators/Random.hpp>
 
 TEST_CASE("Generate random doubles across different ranges",
           "[generator][example][advanced]") {

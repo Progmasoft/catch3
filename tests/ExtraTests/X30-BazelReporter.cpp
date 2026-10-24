@@ -11,7 +11,7 @@
  * of dummy test cases.
  */
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 TEST_CASE( "Passing test case" ) { REQUIRE( 1 == 1 ); }
 TEST_CASE( "Failing test case" ) { REQUIRE( 2 == 1 ); }

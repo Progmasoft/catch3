@@ -29,8 +29,8 @@ jobs:
         cmake --preset basic-tests -GNinja \
               -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
               -DCMAKE_CXX_STANDARD=${{matrix.std}} \
-              -DCATCH_BUILD_EXAMPLES=ON \
-              -DCATCH_BUILD_EXTRA_TESTS=ON
+              -DCATCH3_BUILD_EXAMPLES=ON \
+              -DCATCH3_BUILD_EXTRA_TESTS=ON
 
     - name: Build
       run: cmake --build build

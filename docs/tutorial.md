@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+> **Catch3 compatibility reference:** This page describes the test-writing API Catch3 shares with Catch2: the macros, such as `TEST_CASE` and `REQUIRE`, and the `Catch::` namespace keep Catch2's names. Headers and build names are Catch3's own (`<Progmasoft/Catch3/TestMacros.hpp>`, `find_package(Catch3)`, `Catch3::Catch3WithMain`). See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
 
 # Tutorial
 
@@ -17,8 +17,9 @@
 
 Clone or consume [Progmasoft/catch3](https://github.com/Progmasoft/catch3),
 then use its [CMake integration](cmake-integration.md#top) or another supported
-build system. The examples in this tutorial exercise the bundled
-Catch2-compatible API, so their actual include paths remain `catch2/...`.
+build system. The examples in this tutorial use the Catch2-compatible API:
+its macros and the `Catch::` namespace, from headers such as
+`<Progmasoft/Catch3/TestMacros.hpp>`.
 For property tests, snapshots, and the result/XML writer, continue with the
 [Progmasoft extensions](progmasoft-catch3.md).
 
@@ -34,7 +35,7 @@ unsigned int Factorial( unsigned int number ) {
 ```
 
 ```c++
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 unsigned int Factorial( unsigned int number ) {
     return number <= 1 ? number : Factorial(number-1)*number;

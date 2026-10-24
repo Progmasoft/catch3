@@ -10,8 +10,8 @@
 #    pragma GCC diagnostic ignored "-Wfloat-equal"
 #endif
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_template_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/TemplateTestMacros.hpp>
 #include <array>
 
 namespace {

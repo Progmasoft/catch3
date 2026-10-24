@@ -6,10 +6,10 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/benchmark/catch_benchmark.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_predicate.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Benchmark/Benchmark.hpp>
+#include <Progmasoft/Catch3/Matchers/Matchers.hpp>
+#include <Progmasoft/Catch3/Matchers/Predicate.hpp>
 
 TEST_CASE("Tests that run") {
     // All of these should be run and be reported

@@ -3,8 +3,8 @@
 
 local repository_root = path.getabsolute(".")
 local generated_include = path.join(repository_root, "build", "premake", "generated")
-local configure_catch2 = dofile(path.join(repository_root, "buildsupport", "catch2_config.lua"))
-configure_catch2.generate(generated_include, repository_root)
+local configure_catch3 = dofile(path.join(repository_root, "buildsupport", "catch3_config.lua"))
+configure_catch3.generate(generated_include, repository_root)
 
 workspace "Catch3"
     location "build/premake"
@@ -28,27 +28,33 @@ workspace "Catch3"
         runtime "Release"
     filter {}
 
--- Catch2's engine with the Catch3 runner; the library is C++20, its headers
--- need only C++14 in the code that includes them.
-project "Catch2"
+-- The Catch2-compatible engine, the Catch3 runner, property testing and
+-- snapshots; the library is C++20, the engine's headers need only C++14 in
+-- the code that includes them.
+project "Catch3"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
     targetdir "build/premake/bin/%{cfg.buildcfg}"
-    objdir "build/premake/obj/Catch2/%{cfg.buildcfg}"
+    objdir "build/premake/obj/Catch3/%{cfg.buildcfg}"
     files {
-        "src/catch2/**.cpp",
-        "src/catch2/**.hpp",
+        "src/Progmasoft/Catch3/**.cpp",
         "src/Progmasoft/Runner/*.cpp",
         "src/Progmasoft/Runner/*.hpp",
         "src/Progmasoft/Results.cpp",
         "src/Progmasoft/XmlWriter.cpp",
-        path.join(generated_include, "catch2", "catch_user_config.hpp"),
+        "src/Progmasoft/ChoiceShrinker.cpp",
+        "src/Progmasoft/StrategyContext.cpp",
+        "src/Progmasoft/PropertyEngine.cpp",
+        "src/Progmasoft/Snapshot.cpp",
+        "src/Progmasoft/Catch3/**.hpp",
+        "src/Progmasoft/Catch3.hpp",
+        path.join(generated_include, "Progmasoft", "Catch3", "UserConfig.hpp"),
     }
-    removefiles { "src/catch2/internal/catch_main.cpp" }
+    removefiles { "src/Progmasoft/Catch3/Internal/Main.cpp" }
     includedirs { "src", generated_include }
 
-project "Catch2WithMain"
+project "Catch3WithMain"
     kind "StaticLib"
     language "C++"
     cppdialect "C++14"
@@ -56,27 +62,10 @@ project "Catch2WithMain"
     -- Catch2's wmain entry point instead of the normal console main.
     defines { "DO_NOT_USE_WMAIN" }
     targetdir "build/premake/bin/%{cfg.buildcfg}"
-    objdir "build/premake/obj/Catch2WithMain/%{cfg.buildcfg}"
-    files { "src/catch2/internal/catch_main.cpp" }
+    objdir "build/premake/obj/Catch3WithMain/%{cfg.buildcfg}"
+    files { "src/Progmasoft/Catch3/Internal/Main.cpp" }
     includedirs { "src", generated_include }
-    links { "Catch2" }
-
-project "ProgmasoftCatch3"
-    kind "StaticLib"
-    language "C++"
-    cppdialect "C++20"
-    targetdir "build/premake/bin/%{cfg.buildcfg}"
-    objdir "build/premake/obj/ProgmasoftCatch3/%{cfg.buildcfg}"
-    files {
-        "src/Progmasoft/ChoiceShrinker.cpp",
-        "src/Progmasoft/Context.cpp",
-        "src/Progmasoft/PropertyEngine.cpp",
-        "src/Progmasoft/Snapshot.cpp",
-        "src/Progmasoft/Catch3/**.hpp",
-        "src/Progmasoft/Catch3.hpp",
-    }
-    includedirs { "src", generated_include }
-    links { "Catch2" }
+    links { "Catch3" }
 
 project "ProgmasoftPropertyTests"
     kind "ConsoleApp"
@@ -101,4 +90,4 @@ project "ProgmasoftPropertyTests"
         "src/Progmasoft/**.hpp",
     }
     includedirs { "src", generated_include }
-    links { "ProgmasoftCatch3", "Catch2WithMain", "Catch2" }
+    links { "Catch3WithMain", "Catch3" }

@@ -1,18 +1,18 @@
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #include <atomic>
-#include <catch2/catch_assertion_result.hpp>
-#include <catch2/catch_config.hpp>
-#include <catch2/catch_test_case_info.hpp>
-#include <catch2/interfaces/catch_interfaces_registry_hub.hpp>
-#include <catch2/interfaces/catch_interfaces_reporter.hpp>
-#include <catch2/interfaces/catch_interfaces_reporter_factory.hpp>
-#include <catch2/internal/catch_context.hpp>
-#include <catch2/internal/catch_reporter_registry.hpp>
-#include <catch2/internal/catch_run_context.hpp>
-#include <catch2/internal/catch_stdstreams.hpp>
-#include <catch2/internal/catch_string_manip.hpp>
-#include <catch2/reporters/catch_reporter_multi.hpp>
+#include <Progmasoft/Catch3/AssertionResult.hpp>
+#include <Progmasoft/Catch3/Config.hpp>
+#include <Progmasoft/Catch3/TestCaseInfo.hpp>
+#include <Progmasoft/Catch3/Interfaces/IRegistryHub.hpp>
+#include <Progmasoft/Catch3/Interfaces/IEventListener.hpp>
+#include <Progmasoft/Catch3/Interfaces/EventListenerFactory.hpp>
+#include <Progmasoft/Catch3/Internal/Context.hpp>
+#include <Progmasoft/Catch3/Internal/ReporterRegistry.hpp>
+#include <Progmasoft/Catch3/Internal/RunContext.hpp>
+#include <Progmasoft/Catch3/Internal/StdStreams.hpp>
+#include <Progmasoft/Catch3/Internal/StringManip.hpp>
+#include <Progmasoft/Catch3/Reporters/Multi.hpp>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>

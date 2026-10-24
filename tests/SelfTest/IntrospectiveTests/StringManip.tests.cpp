@@ -6,9 +6,9 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_vector.hpp>
-#include <catch2/internal/catch_string_manip.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Matchers/Vector.hpp>
+#include <Progmasoft/Catch3/Internal/StringManip.hpp>
 
 static const char * const no_whitespace = "There is no extra whitespace here";
 static const char * const leading_whitespace = " \r \t\n There is no extra whitespace here";

@@ -6,8 +6,8 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/internal/catch_unique_ptr.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Internal/UniquePtr.hpp>
 
 #include <tuple>
 

@@ -6,8 +6,8 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/internal/catch_is_permutation.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Internal/IsPermutation.hpp>
 
 #include <helpers/range_test_helpers.hpp>
 

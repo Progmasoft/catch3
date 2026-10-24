@@ -4,11 +4,11 @@ import re
 from scriptCommon import catchPath
 
 versionParser = re.compile( r'(\s*static\sVersion\sversion)\s*\(\s*(.*)\s*,\s*(.*)\s*,\s*(.*)\s*,\s*\"(.*)\"\s*,\s*(.*)\s*\).*' )
-rootPath = os.path.join( catchPath, 'src/catch2' )
-versionPath = os.path.join( rootPath, "catch_version.cpp" )
+rootPath = os.path.join( catchPath, 'src/Progmasoft/Catch3' )
+versionPath = os.path.join( rootPath, "EngineVersion.cpp" )
 
 class Version:
-    """The version of the Catch2 compatibility engine, from catch_version.cpp."""
+    """The version of the Catch2 compatibility engine, from Progmasoft/Catch3/EngineVersion.cpp."""
     def __init__(self):
         f = open( versionPath, 'r' )
         for line in f:

@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+> **Catch3 compatibility reference:** This page describes the test-writing API Catch3 shares with Catch2: the macros, such as `TEST_CASE` and `REQUIRE`, and the `Catch::` namespace keep Catch2's names. Headers and build names are Catch3's own (`<Progmasoft/Catch3/TestMacros.hpp>`, `find_package(Catch3)`, `Catch3::Catch3WithMain`). See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
 
 # Data Generators
 
@@ -31,9 +31,9 @@ The "Generators" `TEST_CASE` will be entered 3 times, and the value of
 times at the same scope, in which case the result will be a cartesian
 product of all elements in the generators. This means that in the snippet
 below, the test case will be run 6 (2\*3) times. The `GENERATE` macro
-is defined in the `catch_generators.hpp` header, so compiling
+is defined in the `Progmasoft/Catch3/Generators/Generators.hpp` header, so compiling
 the code examples below also requires
-`#include <catch2/generators/catch_generators.hpp>`.
+`#include <Progmasoft/Catch3/Generators/Generators.hpp>`.
 
 ```cpp
 TEST_CASE("Generators") {
@@ -115,7 +115,7 @@ a test case,
 * 2 fundamental generators
   * `SingleValueGenerator<T>` -- contains only single element
   * `FixedValuesGenerator<T>` -- contains multiple elements
-* 6 generic generators that modify other generators (defined in `catch2/generators/catch_generators_adapters.hpp`)
+* 6 generic generators that modify other generators (defined in `Progmasoft/Catch3/Generators/Adapters.hpp`)
   * `FilterGenerator<T, Predicate>` -- filters out elements from a generator
   for which the predicate returns "false"
   * `TakeGenerator<T>` -- takes first `n` elements from a generator
@@ -124,10 +124,10 @@ a test case,
   on elements from a different generator
   * `ChunkGenerator<T>` -- returns chunks (inside `std::vector`) of n elements from a generator
   * `ConcatGenerator<T>` -- returns elements from multiple generators as if they were one
-* 2 random generators (defined in `catch2/generators/catch_generators_random.hpp`)
+* 2 random generators (defined in `Progmasoft/Catch3/Generators/Random.hpp`)
   * `RandomIntegerGenerator<Integral>` -- generates random Integrals from range
   * `RandomFloatGenerator<Float>` -- generates random Floats from range
-* 2 range generators (defined in `catch2/generators/catch_generators_range.hpp`)
+* 2 range generators (defined in `Progmasoft/Catch3/Generators/Range.hpp`)
   * `RangeGenerator<T>(first, last)` -- generates all values inside a `[first, last)` arithmetic range
   * `IteratorGenerator<T>` -- copies and returns values from an iterator range
 

@@ -6,10 +6,10 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_template_test_macros.hpp>
-#include <catch2/internal/catch_floating_point_helpers.hpp>
-#include <catch2/internal/catch_random_floating_point_helpers.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/TemplateTestMacros.hpp>
+#include <Progmasoft/Catch3/Internal/FloatingPointHelpers.hpp>
+#include <Progmasoft/Catch3/Internal/RandomFloatingPointHelpers.hpp>
 
 #include <limits>
 

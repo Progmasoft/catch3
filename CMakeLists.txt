@@ -10,35 +10,37 @@ endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-option(CATCH_INSTALL_DOCS "Install documentation alongside library" ON)
-option(CATCH_INSTALL_EXTRAS "Install extras (CMake scripts, debugger helpers) alongside library" ON)
-option(CATCH_DEVELOPMENT_BUILD "Build tests, enable warnings, enable Werror, etc" OFF)
-option(CATCH_ENABLE_REPRODUCIBLE_BUILD "Add compiler flags for improving build reproducibility" ON)
+option(CATCH3_INSTALL_DOCS "Install documentation alongside library" ON)
+option(CATCH3_INSTALL_EXTRAS "Install extras (CMake scripts, debugger helpers) alongside library" ON)
+option(CATCH3_DEVELOPMENT_BUILD "Build tests, enable warnings, enable Werror, etc" OFF)
+option(CATCH3_ENABLE_REPRODUCIBLE_BUILD "Add compiler flags for improving build reproducibility" ON)
 
 include(CMakeDependentOption)
-cmake_dependent_option(CATCH_BUILD_TESTING "Build the SelfTest project" ON "CATCH_DEVELOPMENT_BUILD" OFF)
-cmake_dependent_option(CATCH_BUILD_EXAMPLES "Build code examples" OFF "CATCH_DEVELOPMENT_BUILD" OFF)
-cmake_dependent_option(CATCH_BUILD_EXTRA_TESTS "Build extra tests" OFF "CATCH_DEVELOPMENT_BUILD" OFF)
-cmake_dependent_option(CATCH_BUILD_FUZZERS "Build fuzzers" OFF "CATCH_DEVELOPMENT_BUILD" OFF)
-cmake_dependent_option(CATCH_BUILD_BENCHMARKS "Build the benchmarks" OFF "CATCH_DEVELOPMENT_BUILD" OFF)
-cmake_dependent_option(CATCH_ENABLE_COVERAGE "Generate coverage for codecov.io" OFF "CATCH_DEVELOPMENT_BUILD" OFF)
-cmake_dependent_option(CATCH_ENABLE_WERROR "Enables Werror during build" ON "CATCH_DEVELOPMENT_BUILD" OFF)
-cmake_dependent_option(CATCH_BUILD_SURROGATES "Enable generating and building surrogate TUs for the main headers" OFF "CATCH_DEVELOPMENT_BUILD" OFF)
-cmake_dependent_option(CATCH_ENABLE_CONFIGURE_TESTS "Enable CMake configuration tests. WARNING: VERY EXPENSIVE" OFF "CATCH_DEVELOPMENT_BUILD" OFF)
-cmake_dependent_option(CATCH_ENABLE_CMAKE_HELPER_TESTS "Enable CMake helper tests. WARNING: VERY EXPENSIVE" OFF "CATCH_DEVELOPMENT_BUILD" OFF)
+cmake_dependent_option(CATCH3_BUILD_TESTING "Build the SelfTest project" ON "CATCH3_DEVELOPMENT_BUILD" OFF)
+cmake_dependent_option(CATCH3_BUILD_EXAMPLES "Build code examples" OFF "CATCH3_DEVELOPMENT_BUILD" OFF)
+cmake_dependent_option(CATCH3_BUILD_EXTRA_TESTS "Build extra tests" OFF "CATCH3_DEVELOPMENT_BUILD" OFF)
+cmake_dependent_option(CATCH3_BUILD_FUZZERS "Build fuzzers" OFF "CATCH3_DEVELOPMENT_BUILD" OFF)
+cmake_dependent_option(CATCH3_BUILD_BENCHMARKS "Build the benchmarks" OFF "CATCH3_DEVELOPMENT_BUILD" OFF)
+cmake_dependent_option(CATCH3_ENABLE_COVERAGE "Generate coverage for codecov.io" OFF "CATCH3_DEVELOPMENT_BUILD" OFF)
+cmake_dependent_option(CATCH3_ENABLE_WERROR "Enables Werror during build" ON "CATCH3_DEVELOPMENT_BUILD" OFF)
+cmake_dependent_option(CATCH3_BUILD_SURROGATES "Enable generating and building surrogate TUs for the main headers" OFF "CATCH3_DEVELOPMENT_BUILD" OFF)
+cmake_dependent_option(CATCH3_ENABLE_CONFIGURE_TESTS "Enable CMake configuration tests. WARNING: VERY EXPENSIVE" OFF "CATCH3_DEVELOPMENT_BUILD" OFF)
+cmake_dependent_option(CATCH3_ENABLE_CMAKE_HELPER_TESTS "Enable CMake helper tests. WARNING: VERY EXPENSIVE" OFF "CATCH3_DEVELOPMENT_BUILD" OFF)
 
-# Catch2's build breaks if done in-tree. You probably should not build
-# things in tree anyway, but we can allow projects that include Catch2
+# The build breaks if done in-tree. You probably should not build
+# things in tree anyway, but we can allow projects that include Catch3
 # as a subproject to build in-tree as long as it is not in our tree.
 if(CMAKE_BINARY_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   message(FATAL_ERROR "Building in-source is not supported! Create a build dir and remove ${CMAKE_SOURCE_DIR}/CMakeCache.txt")
 endif()
 
-project(Catch2
-  VERSION 3.16.1 # CML version placeholder, don't delete
+# The version is Catch3's; the Catch2 engine it is built on keeps its own in
+# CATCH_VERSION_MAJOR and the other macros of Progmasoft/Catch3/EngineVersionMacros.hpp.
+project(Catch3
+  VERSION 0.3.0
   LANGUAGES CXX
   HOMEPAGE_URL "https://github.com/Progmasoft/catch3"
-  DESCRIPTION "Catch2's test API with a parallel runner, property testing and snapshots."
+  DESCRIPTION "A C++ test framework with a Catch2-compatible API, a parallel runner, property testing and snapshots."
 )
 
 # Provide path for scripts. We first add path to the scripts we don't use,
@@ -54,37 +56,37 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake")
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CatchConfigOptions)
-if(CATCH_DEVELOPMENT_BUILD)
+if(CATCH3_DEVELOPMENT_BUILD)
   include(CTest)
 endif()
 
 # This variable is used in some subdirectories, so we need it here, rather
 # than later in the install block
-set(CATCH_CMAKE_CONFIG_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Catch2")
+set(CATCH3_CMAKE_CONFIG_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Catch3")
 
 # We have some Windows builds that test `wmain` entry point,
 # and we need this change to be present in all binaries that
 # are built during these tests, so this is required here, before
 # the subdirectories are added.
-if(CATCH_TEST_USE_WMAIN)
+if(CATCH3_TEST_USE_WMAIN)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:wmainCRTStartup")
 endif()
 
 # Basic paths
 set(CATCH_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(SOURCES_DIR ${CATCH_DIR}/src/catch2)
+set(SOURCES_DIR ${CATCH_DIR}/src/Progmasoft/Catch3)
 set(SELF_TEST_DIR ${CATCH_DIR}/tests/SelfTest)
 
 # We need to bring-in the variables defined there to this scope
 add_subdirectory(src)
 
-if (CATCH_BUILD_BENCHMARKS)
+if (CATCH3_BUILD_BENCHMARKS)
   set(CMAKE_FOLDER "benchmarks")
   add_subdirectory(benchmarks)
 endif()
 
 # Build tests only if requested
-if(BUILD_TESTING AND CATCH_BUILD_TESTING AND NOT_SUBPROJECT)
+if(BUILD_TESTING AND CATCH3_BUILD_TESTING AND NOT_SUBPROJECT)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
   if(NOT TARGET Python3::Interpreter)
     message(FATAL_ERROR "Python not found, but required for tests")
@@ -93,22 +95,22 @@ if(BUILD_TESTING AND CATCH_BUILD_TESTING AND NOT_SUBPROJECT)
   add_subdirectory(tests)
 endif()
 
-if(CATCH_BUILD_EXAMPLES)
+if(CATCH3_BUILD_EXAMPLES)
   set(CMAKE_FOLDER "Examples")
   add_subdirectory(examples)
 endif()
 
-if(CATCH_BUILD_EXTRA_TESTS)
+if(CATCH3_BUILD_EXTRA_TESTS)
   set(CMAKE_FOLDER "tests/ExtraTests")
   add_subdirectory(tests/ExtraTests)
 endif()
 
-if(CATCH_BUILD_FUZZERS)
+if(CATCH3_BUILD_FUZZERS)
   set(CMAKE_FOLDER "fuzzing")
   add_subdirectory(fuzzing)
 endif()
 
-if(CATCH_DEVELOPMENT_BUILD)
+if(CATCH3_DEVELOPMENT_BUILD)
   set(CATCH_ALL_TARGETS ${CATCH_IMPL_TARGETS} ${CATCH_TEST_TARGETS})
   add_warnings_to_targets("${CATCH_ALL_TARGETS}")
   # After we added the noreturn hint to FAIL and SKIP, Clang became
@@ -123,28 +125,28 @@ endif()
 # see https://github.com/catchorg/Catch2/issues/1373
 if(NOT_SUBPROJECT)
   configure_package_config_file(
-    ${CMAKE_CURRENT_LIST_DIR}/CMake/Catch2Config.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/Catch2Config.cmake
+    ${CMAKE_CURRENT_LIST_DIR}/CMake/Catch3Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/Catch3Config.cmake
     INSTALL_DESTINATION
-      ${CATCH_CMAKE_CONFIG_DESTINATION}
+      ${CATCH3_CMAKE_CONFIG_DESTINATION}
   )
 
   write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/Catch2ConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/Catch3ConfigVersion.cmake"
     COMPATIBILITY
-      SameMajorVersion
+      SameMinorVersion
   )
 
   install(
     FILES
-      "${CMAKE_CURRENT_BINARY_DIR}/Catch2Config.cmake"
-      "${CMAKE_CURRENT_BINARY_DIR}/Catch2ConfigVersion.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/Catch3Config.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/Catch3ConfigVersion.cmake"
     DESTINATION
-      ${CATCH_CMAKE_CONFIG_DESTINATION}
+      ${CATCH3_CMAKE_CONFIG_DESTINATION}
   )
 
   # Install documentation
-  if(CATCH_INSTALL_DOCS)
+  if(CATCH3_INSTALL_DOCS)
     install(
       DIRECTORY
         docs/
@@ -154,17 +156,17 @@ if(NOT_SUBPROJECT)
     )
   endif()
 
-  if(CATCH_INSTALL_EXTRAS)
+  if(CATCH3_INSTALL_EXTRAS)
     # Install CMake scripts
     install(
       FILES
         "extras/ParseAndAddCatchTests.cmake"
-        "extras/Catch.cmake"
-        "extras/CatchAddTests.cmake"
-        "extras/CatchShardTests.cmake"
-        "extras/CatchShardTestsImpl.cmake"
+        "extras/Catch3.cmake"
+        "extras/Catch3AddTests.cmake"
+        "extras/Catch3ShardTests.cmake"
+        "extras/Catch3ShardTestsImpl.cmake"
       DESTINATION
-        ${CATCH_CMAKE_CONFIG_DESTINATION}
+        ${CATCH3_CMAKE_CONFIG_DESTINATION}
     )
 
     # Install debugger helpers
@@ -173,14 +175,14 @@ if(NOT_SUBPROJECT)
         "extras/gdbinit"
         "extras/lldbinit"
       DESTINATION
-        ${CMAKE_INSTALL_DATAROOTDIR}/Catch2
+        ${CMAKE_INSTALL_DATAROOTDIR}/Catch3
     )
   endif()
 
   ## Provide some pkg-config integration
   set(PKGCONFIG_INSTALL_DIR
     "${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig"
-    CACHE PATH "Path where catch2.pc is installed"
+    CACHE PATH "Path where catch3.pc is installed"
   )
 
   # Generate the pkg-config files
@@ -195,9 +197,9 @@ if(NOT_SUBPROJECT)
     JOIN "\n"
       install_script
        "set(install_pkgconfdir \"${PKGCONFIG_INSTALL_DIR}\")"
-       "set(impl_pc_file \"${CMAKE_CURRENT_SOURCE_DIR}/CMake/catch2.pc.in\")"
-       "set(main_pc_file \"${CMAKE_CURRENT_SOURCE_DIR}/CMake/catch2-with-main.pc.in\")"
-       "set(Catch2_VERSION ${Catch2_VERSION})"
+       "set(impl_pc_file \"${CMAKE_CURRENT_SOURCE_DIR}/CMake/catch3.pc.in\")"
+       "set(main_pc_file \"${CMAKE_CURRENT_SOURCE_DIR}/CMake/catch3-with-main.pc.in\")"
+       "set(Catch3_VERSION ${Catch3_VERSION})"
        "set(include_dir \"${CMAKE_INSTALL_INCLUDEDIR}\")"
        "set(lib_dir \"${CMAKE_INSTALL_LIBDIR}\")"
        [[
@@ -207,24 +209,24 @@ if(NOT_SUBPROJECT)
            set(DESTDIR_PREFIX "$ENV{DESTDIR}")
          endif ()
          message(STATUS "PREFIX: ${DESTDIR_PREFIX}")
-         set(lib_name "$<TARGET_FILE_BASE_NAME:Catch2>")
+         set(lib_name "$<TARGET_FILE_BASE_NAME:Catch3>")
          configure_file(
            "${impl_pc_file}"
-           "${DESTDIR_PREFIX}${CMAKE_INSTALL_PREFIX}/${install_pkgconfdir}/catch2.pc"
+           "${DESTDIR_PREFIX}${CMAKE_INSTALL_PREFIX}/${install_pkgconfdir}/catch3.pc"
            @ONLY
          )
 
-         set(lib_name "$<TARGET_FILE_BASE_NAME:Catch2WithMain>")
+         set(lib_name "$<TARGET_FILE_BASE_NAME:Catch3WithMain>")
          configure_file(
            "${main_pc_file}"
-           "${DESTDIR_PREFIX}${CMAKE_INSTALL_PREFIX}/${install_pkgconfdir}/catch2-with-main.pc"
+           "${DESTDIR_PREFIX}${CMAKE_INSTALL_PREFIX}/${install_pkgconfdir}/catch3-with-main.pc"
            @ONLY
          )
        ]]
   )
   install(CODE "${install_script}")
 
-  set(CPACK_PACKAGE_CONTACT "https://github.com/catchorg/Catch2/")
+  set(CPACK_PACKAGE_CONTACT "support@progmasoft.com")
 
   include(CPack)
 endif()

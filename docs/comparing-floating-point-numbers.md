@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+> **Catch3 compatibility reference:** This page describes the test-writing API Catch3 shares with Catch2: the macros, such as `TEST_CASE` and `REQUIRE`, and the `Catch::` namespace keep Catch2's names. Headers and build names are Catch3's own (`<Progmasoft/Catch3/TestMacros.hpp>`, `find_package(Catch3)`, `Catch3::Catch3WithMain`). See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
 
 # Comparing floating point numbers with Catch3's compatibility API
 
@@ -19,7 +19,7 @@ this blog post](https://codingnest.com/the-little-things-comparing-floating-poin
 ## Floating point matchers
 
 ```
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <Progmasoft/Catch3/Matchers/FloatingPoint.hpp>
 ```
 
 [Matchers](matchers.md#top) are the preferred way of comparing floating
@@ -108,7 +108,7 @@ REQUIRE_THAT( -0.f, WithinULP( 0.f, 0 ) );
 ## `Approx`
 
 ```
-#include <catch2/catch_approx.hpp>
+#include <Progmasoft/Catch3/Approx.hpp>
 ```
 
 **We strongly recommend against using `Approx` when writing new code.**

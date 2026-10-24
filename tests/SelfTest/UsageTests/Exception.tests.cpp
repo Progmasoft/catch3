@@ -6,9 +6,9 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_translate_exception.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/TranslateException.hpp>
+#include <Progmasoft/Catch3/Matchers/String.hpp>
 
 #include <string>
 #include <stdexcept>

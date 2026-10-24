@@ -16,11 +16,11 @@ Catch2's runner with [its own](progmasoft-runner.md#top).
 | Area | Catch2 compatibility engine | Progmasoft Catch3 additions |
 | --- | --- | --- |
 | Test execution | Catch2's test registration, `RunContext` and listeners | The Catch3 runner: parallel worker processes, retries, flaky-test detection, quarantine, history, selection, sharding and its own command line and reports; `CATCH3_CHECK_FOR_ALL` and `CATCH3_CHECK_PROPERTY` report property outcomes through Catch2's assertion path |
-| Public include path | Existing `catch2/...` headers | `Progmasoft/Catch3.hpp` and focused `Progmasoft/Catch3/...` headers |
-| C++ baseline | Code that includes Catch2's headers needs C++14; the library, which holds the runner, is built as C++20 | The added property API requires C++20 |
+| Public include path | The engine's headers moved to `Progmasoft/Catch3/...` with Progmasoft names, such as `TestMacros.hpp` | `Progmasoft/Catch3.hpp` and the other `Progmasoft/Catch3/...` headers |
+| C++ baseline | Code that includes the engine's headers needs C++14; the library, which holds the runner, is built as C++20 | The added property API requires C++20 |
 | Randomness | Catch2's existing behavior is unchanged | A specified SplitMix64 sequence provides deterministic trial seeds and unbiased bounded integer sampling |
 | Generated values | No change to existing Catch2 generators | Strategies for numbers, text, collections and structures with `Map`, `Filter` and `FlatMap`; shrinking of recorded choices, so every combination shrinks; replay tokens and an example database; state machines, `Classify`/`Cover` statistics, targeted search, and differential and metamorphic oracles |
-| Build identity | Existing `Catch2` target and APIs remain available | Separate `Progmasoft::Catch3` CMake target and `//src/Progmasoft:catch3` Bazel target |
+| Build identity | One library: the `Catch3` CMake package with `Catch3::Catch3` and `Catch3::Catch3WithMain`, `//:catch3` in Bazel, `catch3` in Meson and pkg-config | The same library |
 | Source terms | Catch2-originated source retains its upstream BSL-1.0 terms | Progmasoft-authored additions state their own SPDX license in each file |
 
 Properties take any number of generated values. Shrinking is deterministic and
@@ -31,19 +31,18 @@ and test generation.
 
 ## Compatibility policy
 
-Catch2's `Catch` namespace, established headers, macros, matchers,
-generators, listeners and coding style remain the compatibility surface; the
-runner, its command line and its reports are Catch3's own and are not
-compatible with Catch2's. Progmasoft
-features should be added under `Progmasoft::Catch3` and must not require users
-to rename existing Catch2 tests. The first compatibility goal is source-level
+Catch2's macros and its `Catch` namespace, with matchers, generators and
+listeners, remain the compatibility surface. The runner, its command line,
+its reports, the header paths and the build names are Catch3's own; moving
+tests from Catch2 means changing their includes and their build files, not
+their bodies. Progmasoft features are added in `Progmasoft::Catch3` and must
+not require users to rewrite existing Catch2 test bodies. The first compatibility goal is source-level
 continuity with the included Catch2 3.16.1 base; this is not a promise that every
 future Catch2 upstream change will be adopted unchanged or that all downstream
 projects have already been validated.
 
-The split also applies to implementation and packaging: Catch2 remains the
-engine dependency, while Progmasoft's compiled C++20 library is a separate
-target. Template-based generators and call-site assertion macros remain in
+The engine, the runner and the Progmasoft additions are one compiled C++20
+library. Template-based generators and call-site assertion macros remain in
 headers; snapshot I/O, result aggregation, and XML serialization are compiled
 implementations.
 Keep tests for the two areas independently identifiable so additions do not
@@ -62,9 +61,9 @@ files can be submitted unchanged.
 
 Bazel is the primary build and validation path. CMake, Meson, Xmake, and Premake
 are supported alternate project-generation/build paths over the same local sources.
-The CMake project preserves the upstream `Catch2` targets and adds
-`Progmasoft::Catch3`; the other build descriptions compile the same Catch2
-engine and the Progmasoft property-test executable. See the repository build
+The CMake project exports `Catch3::Catch3` and `Catch3::Catch3WithMain`; the
+other build descriptions compile the same library and the Progmasoft
+property-test executable. See the repository build
 instructions and each build file for tool-specific commands.
 
 Registry publication is a separate release step. It requires a versioned

@@ -5,7 +5,7 @@
 // tests start it and check what the runner made of each misbehaviour.
 
 #include <Progmasoft/Catch3/Runner.hpp>
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>

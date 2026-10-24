@@ -18,11 +18,11 @@
  */
 
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
-#include <catch2/generators/catch_generators_range.hpp>
-#include <catch2/reporters/catch_reporter_event_listener.hpp>
-#include <catch2/reporters/catch_reporter_registrars.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/Generators.hpp>
+#include <Progmasoft/Catch3/Generators/Range.hpp>
+#include <Progmasoft/Catch3/Reporters/EventListener.hpp>
+#include <Progmasoft/Catch3/Reporters/Registrars.hpp>
 
 #include <iostream>
 #include <string>

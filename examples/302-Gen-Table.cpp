@@ -10,8 +10,8 @@
 // Shows how to use table to run a test many times with different inputs. Lifted from examples on
 // issue #850.
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/Generators.hpp>
 #include <string>
 
 struct TestSubject {

@@ -6,15 +6,15 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_config.hpp>
-#include <catch2/catch_approx.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
-#include <catch2/internal/catch_test_spec_parser.hpp>
-#include <catch2/catch_user_config.hpp>
-#include <catch2/catch_test_case_info.hpp>
-#include <catch2/generators/catch_generators.hpp>
-#include <catch2/internal/catch_compiler_capabilities.hpp>
+#include <Progmasoft/Catch3/Config.hpp>
+#include <Progmasoft/Catch3/Approx.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Matchers/String.hpp>
+#include <Progmasoft/Catch3/Internal/TestSpecParser.hpp>
+#include <Progmasoft/Catch3/UserConfig.hpp>
+#include <Progmasoft/Catch3/TestCaseInfo.hpp>
+#include <Progmasoft/Catch3/Generators/Generators.hpp>
+#include <Progmasoft/Catch3/Internal/CompilerCapabilities.hpp>
 
 #include <helpers/parse_test_spec.hpp>
 

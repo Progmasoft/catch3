@@ -8,7 +8,7 @@
 
 // 010-TestCase.cpp
 // And write tests in the same file:
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 static int Factorial( int number ) {
    return number <= 1 ? number : Factorial( number - 1 ) * number;  // fail

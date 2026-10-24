@@ -22,7 +22,7 @@ std::string fallbackStringifier(T const&) {
     return "{ !!! }";
 }
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 struct foo {
     explicit operator bool() const {

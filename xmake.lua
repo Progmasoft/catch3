@@ -2,7 +2,7 @@
 -- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 
 set_project("Catch3")
-set_version("3.16.1")
+set_version("0.3.0")
 set_languages("cxx14")
 set_warnings("all")
 
@@ -10,49 +10,40 @@ local repository_root = os.projectdir()
 local generated_include = path.join(repository_root, ".xmake", "generated")
 add_moduledirs(path.join(repository_root, "buildsupport"))
 
--- Catch2's engine with the Catch3 runner, which replaced Catch2's session,
--- command line and reporters. The library is C++20; Catch2's headers still
--- need only C++14 in the code that includes them.
-target("catch2")
+-- The Catch2-compatible engine, the Catch3 runner, which replaced Catch2's
+-- session, command line and reporters, property testing and snapshots. The
+-- library is C++20; the engine's headers still need only C++14 in the code
+-- that includes them.
+target("catch3")
     set_kind("static")
     set_languages("cxx20")
     on_load(function(target)
         -- File I/O is restricted to Xmake's script domain, so generate here
         -- rather than while the declarative project file is being evaluated.
-        local configure_catch2 = import("catch2_config")
-        configure_catch2.main(generated_include, repository_root)
+        local configure_catch3 = import("catch3_config")
+        configure_catch3.main(generated_include, repository_root)
         target:add("includedirs", generated_include, {public = true})
     end)
-    add_files("src/catch2/**.cpp")
-    remove_files("src/catch2/internal/catch_main.cpp")
+    add_files("src/Progmasoft/Catch3/**.cpp")
+    remove_files("src/Progmasoft/Catch3/Internal/Main.cpp")
     add_files(
         "src/Progmasoft/Runner/*.cpp",
         "src/Progmasoft/Results.cpp",
-        "src/Progmasoft/XmlWriter.cpp"
-    )
-    add_includedirs("src", {public = true})
-    add_headerfiles("src/catch2/**.hpp", {prefixdir = ""})
-
-target("catch2_main")
-    set_kind("static")
-    set_languages("cxx14")
-    add_files("src/catch2/internal/catch_main.cpp")
-    add_deps("catch2")
-    add_includedirs("src", generated_include, {public = true})
-
--- Compile Progmasoft's implementation separately from the compatibility engine.
-target("ProgmasoftCatch3")
-    set_kind("static")
-    set_languages("cxx20")
-    add_headerfiles("src/Progmasoft/**.hpp", {prefixdir = ""})
-    add_files(
+        "src/Progmasoft/XmlWriter.cpp",
         "src/Progmasoft/ChoiceShrinker.cpp",
-        "src/Progmasoft/Context.cpp",
+        "src/Progmasoft/StrategyContext.cpp",
         "src/Progmasoft/PropertyEngine.cpp",
         "src/Progmasoft/Snapshot.cpp"
     )
     add_includedirs("src", {public = true})
-    add_deps("catch2", {public = true})
+    add_headerfiles("src/(Progmasoft/**.hpp)")
+
+target("catch3_main")
+    set_kind("static")
+    set_languages("cxx14")
+    add_files("src/Progmasoft/Catch3/Internal/Main.cpp")
+    add_deps("catch3")
+    add_includedirs("src", generated_include, {public = true})
 
 target("ProgmasoftPropertyTests")
     set_kind("binary")
@@ -71,10 +62,10 @@ target("ProgmasoftPropertyTests")
         "tests/Progmasoft/Snapshot.tests.cpp",
         "tests/Progmasoft/Stateful.tests.cpp",
         "tests/Progmasoft/Strategy.tests.cpp",
-        "src/catch2/internal/catch_main.cpp"
+        "src/Progmasoft/Catch3/Internal/Main.cpp"
     )
     add_includedirs("src", generated_include)
     -- MSVC's linker does not discover an otherwise unreferenced main() in a
     -- static archive. Compile the compatibility entry point into this test
-    -- executable while retaining catch2_main for downstream consumers.
-    add_deps("ProgmasoftCatch3")
+    -- executable while retaining catch3_main for downstream consumers.
+    add_deps("catch3")

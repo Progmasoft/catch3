@@ -14,7 +14,7 @@
 // same `main`: what happens before `run` happens in every worker too, which
 // is where global set-up belongs.
 
-#include <catch2/catch_session.hpp>
+#include <Progmasoft/Catch3/Session.hpp>
 
 #include <cstdlib>
 #include <iostream>

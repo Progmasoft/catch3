@@ -16,9 +16,9 @@
  * the same, and thus if few work, all work.
  */
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/reporters/catch_reporter_event_listener.hpp>
-#include <catch2/reporters/catch_reporter_registrars.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Reporters/EventListener.hpp>
+#include <Progmasoft/Catch3/Reporters/Registrars.hpp>
 
 #include <iostream>
 

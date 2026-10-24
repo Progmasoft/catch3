@@ -34,9 +34,9 @@ static std::ostream& operator<<(std::ostream& out, foo::helper_1403 const&) {
 }
 ///////////////////////////////
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators_range.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/Range.hpp>
+#include <Progmasoft/Catch3/Matchers/String.hpp>
 
 #include <cstring>
 

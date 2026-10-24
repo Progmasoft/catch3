@@ -6,10 +6,10 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_template_test_macros.hpp>
-#include <catch2/internal/catch_config_wchar.hpp>
-#include <catch2/internal/catch_windows_h_proxy.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/TemplateTestMacros.hpp>
+#include <Progmasoft/Catch3/Internal/ConfigWchar.hpp>
+#include <Progmasoft/Catch3/Internal/WindowsHProxy.hpp>
 
 
 #include <iostream>

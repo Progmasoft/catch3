@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #pragma once
 
-#include <catch2/catch_test_case_info.hpp>
+#include <Progmasoft/Catch3/TestCaseInfo.hpp>
 #include <chrono>
 #include <cstddef>
 #include <optional>

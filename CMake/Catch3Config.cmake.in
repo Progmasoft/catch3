@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+
+# Avoid repeatedly including the targets
+if(NOT TARGET Catch3::Catch3)
+  # Provide path for scripts
+  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+
+  include(${CMAKE_CURRENT_LIST_DIR}/Catch3Targets.cmake)
+endif()

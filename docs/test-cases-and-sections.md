@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+> **Catch3 compatibility reference:** This page describes the test-writing API Catch3 shares with Catch2: the macros, such as `TEST_CASE` and `REQUIRE`, and the `Catch::` namespace keep Catch2's names. Headers and build names are Catch3's own (`<Progmasoft/Catch3/TestMacros.hpp>`, `find_package(Catch3)`, `Catch3::Catch3WithMain`). See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
 
 # Test cases and sections
 
@@ -175,9 +175,9 @@ Other than the additional prefixes and the formatting in the console reporter th
 In addition to `TEST_CASE`s, Catch2 also supports test cases parametrised
 by types, in the form of `TEMPLATE_TEST_CASE`,
 `TEMPLATE_PRODUCT_TEST_CASE` and `TEMPLATE_LIST_TEST_CASE`. These macros
-are defined in the `catch_template_test_macros.hpp` header, so compiling
+are defined in the `Progmasoft/Catch3/TemplateTestMacros.hpp` header, so compiling
 the code examples below also requires
-`#include <catch2/catch_template_test_macros.hpp>`.
+`#include <Progmasoft/Catch3/TemplateTestMacros.hpp>`.
 
 
 * **TEMPLATE_TEST_CASE(** _test name_ , _tags_,  _type1_, _type2_, ..., _typen_ **)**
@@ -301,8 +301,8 @@ In addition to [type parametrised test cases](#type-parametrised-test-cases) Cat
 signature base parametrised test cases, in form of `TEMPLATE_TEST_CASE_SIG` and `TEMPLATE_PRODUCT_TEST_CASE_SIG`.
 These test cases have similar syntax like [type parametrised test cases](#type-parametrised-test-cases), with one
 additional positional argument which specifies the signature. These macros are defined in the
-`catch_template_test_macros.hpp` header, so compiling the code examples below also requires
-`#include <catch2/catch_template_test_macros.hpp>`.
+`Progmasoft/Catch3/TemplateTestMacros.hpp` header, so compiling the code examples below also requires
+`#include <Progmasoft/Catch3/TemplateTestMacros.hpp>`.
 
 ### Signature
 Signature has some strict rules for these tests cases to work properly:

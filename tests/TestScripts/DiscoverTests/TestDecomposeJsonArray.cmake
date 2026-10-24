@@ -1,37 +1,37 @@
 # SPDX-License-Identifier: BSL-1.0
 
-# Unit tests for `split_json_array` helper in `extras/CatchAddTests.cmake`.
+# Unit tests for `catch3_split_json_array` helper in `extras/Catch3AddTests.cmake`.
 #
 # Yes, we are at the stage where the script helpers need unit tests.
 #
 # Run as
-#     cmake -DCATCH_ADD_TESTS_SCRIPT=/path/to/extras/CatchAddTests.cmake \
+#     cmake -DCATCH3_ADD_TESTS_SCRIPT=/path/to/extras/Catch3AddTests.cmake \
 #           -P TestDecomposeJsonArray.cmake
 
 
 cmake_minimum_required(VERSION 3.19)
 
-if(NOT DEFINED CATCH_ADD_TESTS_SCRIPT)
-  message(FATAL_ERROR "Missing argument `CATCH_ADD_TESTS_SCRIPT`")
+if(NOT DEFINED CATCH3_ADD_TESTS_SCRIPT)
+  message(FATAL_ERROR "Missing argument `CATCH3_ADD_TESTS_SCRIPT`")
 endif()
 
-if(NOT EXISTS "${CATCH_ADD_TESTS_SCRIPT}")
-  message(FATAL_ERROR "Cannot find CatchAddTests.cmake at '${CATCH_ADD_TESTS_SCRIPT}'")
+if(NOT EXISTS "${CATCH3_ADD_TESTS_SCRIPT}")
+  message(FATAL_ERROR "Cannot find Catch3AddTests.cmake at '${CATCH3_ADD_TESTS_SCRIPT}'")
 endif()
 
 # Pull in the helper functions. Without `TEST_EXECUTABLE` being defined,
-# `catch_discover_tests_impl` is not called.
-include("${CATCH_ADD_TESTS_SCRIPT}")
+# `catch3_discover_tests_impl` is not called.
+include("${CATCH3_ADD_TESTS_SCRIPT}")
 
 set(_failures 0)
 
 # Parses out test names from provided listings and returns them through `out_var`.
 # Semicolons in test names are escaped as `@SEMI@`.
 function(decomposed_names listing_var out_var)
-  split_json_array(${listing_var} elements)
+  catch3_split_json_array(${listing_var} elements)
   set(names "")
   foreach(element IN LISTS elements)
-    magic_unescape_chars(element)
+    catch3_magic_unescape_chars(element)
     string(JSON name ERROR_VARIABLE err GET "${element}" "name")
     if(NOT err STREQUAL "NOTFOUND")
       set(${out_var} "PARSE-ERROR" PARENT_SCOPE)
@@ -62,9 +62,9 @@ endfunction()
 # Assert that the tags in one decomposed element are preserved exactly.
 # Semicolons in expected tags have to be escaped as `@SEMI@`.
 function(expect_tags description listing_var element_index expected_tags)
-  split_json_array(${listing_var} elements)
+  catch3_split_json_array(${listing_var} elements)
   list(GET elements ${element_index} element)
-  magic_unescape_chars(element)
+  catch3_magic_unescape_chars(element)
 
   string(JSON tags ERROR_VARIABLE err GET "${element}" "tags")
   if(NOT err STREQUAL "NOTFOUND")
@@ -109,7 +109,7 @@ function(make_listing out_var)
   set(${out_var} "[\n${objects}]" PARENT_SCOPE)
 endfunction()
 
-message(STATUS "Running split_json_array correctness tests")
+message(STATUS "Running catch3_split_json_array correctness tests")
 
 # There are 2 main difficulties in the array decomposition that we need
 # to check for:
@@ -191,4 +191,4 @@ if(_failures GREATER 0)
   message(FATAL_ERROR "${_failures} decomposition test(s) failed")
 endif()
 
-message(STATUS "All split_json_array correctness tests passed")
+message(STATUS "All catch3_split_json_array correctness tests passed")
