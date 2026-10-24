@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #pragma once
 
-#include "Expected.hpp"
-#include "Json.hpp"
-
 #include <Progmasoft/Catch3/Results.hpp>
-
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <map>
 #include <optional>
 #include <string>
 #include <vector>
+
+#include "Expected.hpp"
+#include "Json.hpp"
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -121,7 +121,8 @@ namespace Progmasoft::Catch3::Runner
                const RunResult &run,
                const RunRecord &record,
                const std::map<std::string, std::string> &fingerprints,
-               const QuarantinePolicy &policy);
+               const QuarantinePolicy &policy,
+               std::chrono::milliseconds lockWait = std::chrono::seconds(10));
 
         [[nodiscard]] const TestHistory *
         Find(const std::string &key) const;

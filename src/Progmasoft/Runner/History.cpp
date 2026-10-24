@@ -1,12 +1,11 @@
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
-#include "History.hpp"
-
-#include "Files.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <system_error>
+
+#include "Files.hpp"
+#include "History.hpp"
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -21,16 +20,16 @@ namespace Progmasoft::Catch3::Runner
         bool
         HasDuration(Outcome outcome)
         {
-            return outcome == Outcome::kPassed || outcome == Outcome::kFailed ||
-                   outcome == Outcome::kFailedAsExpected ||
-                   outcome == Outcome::kSkipped;
+            return outcome == Outcome::kPassed || outcome == Outcome::kFailed
+                   || outcome == Outcome::kFailedAsExpected
+                   || outcome == Outcome::kSkipped;
         }
 
         bool
         Counts(Outcome outcome)
         {
-            return outcome != Outcome::kNotRun && outcome != Outcome::kBlocked &&
-                   outcome != Outcome::kUpToDate;
+            return outcome != Outcome::kNotRun && outcome != Outcome::kBlocked
+                   && outcome != Outcome::kUpToDate;
         }
 
         JsonValue
@@ -70,8 +69,8 @@ namespace Progmasoft::Catch3::Runner
             record.category = CategoryFromName(value["category"].AsString())
                                   .value_or(FailureCategory::kNone);
             record.durationMicroseconds = value["duration"].AsInteger();
-            record.attempts =
-                static_cast<std::size_t>(value["attempts"].AsUnsigned());
+            record.attempts
+                = static_cast<std::size_t>(value["attempts"].AsUnsigned());
             record.flaky = value["flaky"].AsBoolean();
             record.signature = value["signature"].AsString();
             record.fingerprint = value["fingerprint"].AsString();
@@ -82,8 +81,7 @@ namespace Progmasoft::Catch3::Runner
     const TestRecord *
     TestHistory::Last() const noexcept
     {
-        for (auto record = records.rbegin(); record != records.rend();
-             ++record)
+        for (auto record = records.rbegin(); record != records.rend(); ++record)
         {
             if (Counts(record->outcome))
             {
@@ -169,10 +167,10 @@ namespace Progmasoft::Catch3::Runner
             {
                 ++events;
             }
-            else if (newer != nullptr && !newer->flaky &&
-                     !record->fingerprint.empty() &&
-                     record->fingerprint == newer->fingerprint &&
-                     IsFailure(record->outcome) != IsFailure(newer->outcome))
+            else if (newer != nullptr && !newer->flaky
+                     && !record->fingerprint.empty()
+                     && record->fingerprint == newer->fingerprint
+                     && IsFailure(record->outcome) != IsFailure(newer->outcome))
             {
                 // The verdict changed while nothing the test depends on did.
                 ++events;
@@ -186,8 +184,7 @@ namespace Progmasoft::Catch3::Runner
     TestHistory::PassStreak() const
     {
         std::size_t streak = 0;
-        for (auto record = records.rbegin(); record != records.rend();
-             ++record)
+        for (auto record = records.rbegin(); record != records.rend(); ++record)
         {
             if (!Counts(record->outcome))
             {
@@ -209,11 +206,11 @@ namespace Progmasoft::Catch3::Runner
         std::string name;
         for (const char character : binaryName)
         {
-            const bool safe = (character >= 'a' && character <= 'z') ||
-                              (character >= 'A' && character <= 'Z') ||
-                              (character >= '0' && character <= '9') ||
-                              character == '-' || character == '_' ||
-                              character == '.';
+            const bool safe = (character >= 'a' && character <= 'z')
+                              || (character >= 'A' && character <= 'Z')
+                              || (character >= '0' && character <= '9')
+                              || character == '-' || character == '_'
+                              || character == '.';
             name.push_back(safe ? character : '_');
         }
         return directory / (name + ".history.json");
@@ -263,21 +260,29 @@ namespace Progmasoft::Catch3::Runner
                     const RunResult &run,
                     const RunRecord &record,
                     const std::map<std::string, std::string> &fingerprints,
-                    const QuarantinePolicy &policy)
+                    const QuarantinePolicy &policy,
+                    std::chrono::milliseconds lockWait)
     {
-        const FileLock lock{file, std::chrono::seconds(10)};
+        const FileLock lock{ file, lockWait };
+        if (!lock.Held())
+        {
+            // Writing without the lock could replace a run that another
+            // process is adding at the same time.
+            return Error{ "another run holds the lock of " + file.string() };
+        }
         auto history = Load(file);
         if (!history)
         {
             // A damaged file is set aside rather than lost.
             std::error_code error;
-            std::filesystem::rename(
-                file, file.string() + ".damaged-" + UniqueName(), error);
+            std::filesystem::rename(file,
+                                    file.string() + ".damaged-" + UniqueName(),
+                                    error);
             history = History{};
         }
         history->Apply(run, record, fingerprints, policy);
-        if (auto status = WriteFileAtomically(
-                file, history->ToJson().ToPrettyString());
+        if (auto status
+            = WriteFileAtomically(file, history->ToJson().ToPrettyString());
             !status)
         {
             return status.GetError();
@@ -295,10 +300,10 @@ namespace Progmasoft::Catch3::Runner
         runs_.push_back(record);
         if (runs_.size() > kRunsKept)
         {
-            runs_.erase(runs_.begin(),
-                        runs_.begin() +
-                            static_cast<std::ptrdiff_t>(runs_.size() -
-                                                        kRunsKept));
+            runs_.erase(
+                runs_.begin(),
+                runs_.begin()
+                    + static_cast<std::ptrdiff_t>(runs_.size() - kRunsKept));
         }
         for (const auto &test : run.tests)
         {
@@ -312,9 +317,10 @@ namespace Progmasoft::Catch3::Runner
             result.run = record.id;
             result.outcome = test.outcome;
             result.category = test.category;
-            result.durationMicroseconds =
-                test.attempts.empty() ? 0
-                                      : test.attempts.back().durationMicroseconds;
+            result.durationMicroseconds
+                = test.attempts.empty()
+                      ? 0
+                      : test.attempts.back().durationMicroseconds;
             result.attempts = test.attempts.size();
             result.flaky = test.flaky;
             result.signature = test.signature;
@@ -328,12 +334,14 @@ namespace Progmasoft::Catch3::Runner
             {
                 history.records.erase(history.records.begin());
             }
-            const auto failed = std::find_if(
-                test.attempts.begin(), test.attempts.end(), [](const Attempt &attempt) {
-                    return IsFailure(attempt.outcome);
-                });
-            if ((IsFailure(test.outcome) || test.flaky) &&
-                failed != test.attempts.end())
+            const auto failed
+                = std::find_if(test.attempts.begin(),
+                               test.attempts.end(),
+                               [](const Attempt &attempt) {
+                                   return IsFailure(attempt.outcome);
+                               });
+            if ((IsFailure(test.outcome) || test.flaky)
+                && failed != test.attempts.end())
             {
                 // The first failure, as it happened: a flaky failure is
                 // worth replaying too.
@@ -350,17 +358,19 @@ namespace Progmasoft::Catch3::Runner
             }
             // Quarantine: in after repeated flakiness, out after a streak of
             // clean passes.
-            if (!history.quarantine &&
-                history.FlakyEvents(policy.window) >= policy.flakyEventsToEnter)
+            if (!history.quarantine
+                && history.FlakyEvents(policy.window)
+                       >= policy.flakyEventsToEnter)
             {
                 history.quarantine = QuarantineRecord{
                     record.id,
-                    std::to_string(history.FlakyEvents(policy.window)) +
-                        " flaky results in the last " +
-                        std::to_string(policy.window) + " runs"};
+                    std::to_string(history.FlakyEvents(policy.window))
+                        + " flaky results in the last "
+                        + std::to_string(policy.window) + " runs"
+                };
             }
-            else if (history.quarantine &&
-                     history.PassStreak() >= policy.passesToLeave)
+            else if (history.quarantine
+                     && history.PassStreak() >= policy.passesToLeave)
             {
                 history.quarantine.reset();
             }
@@ -431,14 +441,15 @@ namespace Progmasoft::Catch3::Runner
     {
         if (value["format"].AsString() != "catch3-history")
         {
-            return Error{"not a Catch3 history"};
+            return Error{ "not a Catch3 history" };
         }
         if (value["version"].AsInteger() > kHistoryVersion)
         {
-            return Error{"the history was written by a newer Catch3"};
+            return Error{ "the history was written by a newer Catch3" };
         }
         History history;
-        history.nextRun_ = std::max<std::int64_t>(1, value["nextRun"].AsInteger());
+        history.nextRun_
+            = std::max<std::int64_t>(1, value["nextRun"].AsInteger());
         for (const auto &item : value["runs"].Items())
         {
             RunRecord run;
@@ -463,15 +474,16 @@ namespace Progmasoft::Catch3::Runner
             {
                 test.quarantine = QuarantineRecord{
                     item["quarantine"]["since"].AsInteger(),
-                    item["quarantine"]["reason"].AsString()};
+                    item["quarantine"]["reason"].AsString()
+                };
             }
             if (item["lastFailure"].IsObject())
             {
                 const JsonValue &failure = item["lastFailure"];
                 ReplayRecord replay;
                 replay.run = failure["run"].AsInteger();
-                replay.seed =
-                    static_cast<std::uint32_t>(failure["seed"].AsUnsigned());
+                replay.seed
+                    = static_cast<std::uint32_t>(failure["seed"].AsUnsigned());
                 for (const auto &name : failure["precededBy"].Items())
                 {
                     replay.precededBy.push_back(name.AsString());

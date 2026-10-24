@@ -15,6 +15,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <chrono>
 #include <filesystem>
 #include <set>
 #include <thread>
@@ -261,6 +262,32 @@ TEST_CASE("History quarantines flaky tests and releases them", "[progmasoft][run
     auto reloaded = Runner::History::Load(file);
     REQUIRE(reloaded);
     CHECK(reloaded->Find("Suite::test")->records.size() == 5);
+    std::filesystem::remove_all(directory, error);
+}
+
+TEST_CASE("A history held by another run is left alone",
+          "[progmasoft][runner][history]")
+{
+    std::error_code error;
+    const auto directory = std::filesystem::temp_directory_path(error) /
+                           ("catch3-history-" + Runner::UniqueName());
+    const auto file = Runner::HistoryFile(directory, "locked");
+    RunResult run;
+    TestResult test;
+    test.id = "test";
+    test.outcome = Outcome::kPassed;
+    run.tests.push_back(test);
+    {
+        const Runner::FileLock held{file, std::chrono::seconds(1)};
+        REQUIRE(held.Held());
+        auto blocked = Runner::History::Commit(
+            file, run, {}, {}, {}, std::chrono::milliseconds(50));
+        REQUIRE_FALSE(blocked);
+        CHECK_THAT(blocked.GetError().Message(),
+                   ContainsSubstring("holds the lock"));
+        CHECK_FALSE(std::filesystem::exists(file));
+    }
+    CHECK(Runner::History::Commit(file, run, {}, {}, {}));
     std::filesystem::remove_all(directory, error);
 }
 

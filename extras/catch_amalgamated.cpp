@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch v3.16.1
-//  Generated: 2026-10-24 14:20:15.030330
+//  Generated: 2026-10-24 17:43:09.597581
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -220,188 +220,6 @@ namespace Progmasoft::Catch3::Runner
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
-
-// Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
-
-
-#include <cstdint>
-#include <initializer_list>
-#include <memory>
-#include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
-
-namespace Progmasoft::Catch3::Runner
-{
-    class JsonValue;
-
-    /// The members of an object, in the order they were added or read.
-    using JsonMembers = std::vector<std::pair<std::string, JsonValue>>;
-
-    /// One JSON value: the messages between the runner and its workers, the
-    /// reports, the history and the coverage exports of LLVM are all JSON.
-    ///
-    /// Numbers are kept as `double`, which represents every integer the
-    /// runner writes (counts, microseconds, 32-bit seeds) exactly.
-    class JsonValue final
-    {
-    public:
-        enum class Kind : std::uint8_t
-        {
-            kNull,
-            kBoolean,
-            kNumber,
-            kString,
-            kArray,
-            kObject,
-        };
-
-        JsonValue() = default;
-        JsonValue(std::nullptr_t) {}
-        JsonValue(bool value);
-        JsonValue(double value);
-        JsonValue(int value);
-        JsonValue(unsigned value);
-        JsonValue(long value);
-        JsonValue(unsigned long value);
-        JsonValue(long long value);
-        JsonValue(unsigned long long value);
-        JsonValue(const char *value);
-        JsonValue(std::string value);
-        JsonValue(std::string_view value);
-
-        JsonValue(const JsonValue &other);
-        JsonValue(JsonValue &&other) noexcept;
-        JsonValue &
-        operator=(const JsonValue &other);
-        JsonValue &
-        operator=(JsonValue &&other) noexcept;
-        ~JsonValue();
-
-        [[nodiscard]] static JsonValue
-        Array(std::vector<JsonValue> items = {});
-
-        [[nodiscard]] static JsonValue
-        Object(JsonMembers members = {});
-
-        [[nodiscard]] Kind
-        GetKind() const noexcept
-        {
-            return kind_;
-        }
-
-        [[nodiscard]] bool
-        IsNull() const noexcept
-        {
-            return kind_ == Kind::kNull;
-        }
-
-        [[nodiscard]] bool
-        IsObject() const noexcept
-        {
-            return kind_ == Kind::kObject;
-        }
-
-        [[nodiscard]] bool
-        IsArray() const noexcept
-        {
-            return kind_ == Kind::kArray;
-        }
-
-        [[nodiscard]] bool
-        IsString() const noexcept
-        {
-            return kind_ == Kind::kString;
-        }
-
-        [[nodiscard]] bool
-        IsNumber() const noexcept
-        {
-            return kind_ == Kind::kNumber;
-        }
-
-        /// The value as a Boolean; anything else reads as `fallback`.
-        [[nodiscard]] bool
-        AsBoolean(bool fallback = false) const noexcept;
-
-        [[nodiscard]] double
-        AsNumber(double fallback = 0.0) const noexcept;
-
-        [[nodiscard]] std::int64_t
-        AsInteger(std::int64_t fallback = 0) const noexcept;
-
-        [[nodiscard]] std::uint64_t
-        AsUnsigned(std::uint64_t fallback = 0) const noexcept;
-
-        /// The text of a string; anything else reads as the empty string.
-        [[nodiscard]] const std::string &
-        AsString() const noexcept;
-
-        /// The items of an array; anything else has none.
-        [[nodiscard]] const std::vector<JsonValue> &
-        Items() const noexcept;
-
-        [[nodiscard]] std::vector<JsonValue> &
-        MutableItems();
-
-        /// The members of an object; anything else has none.
-        [[nodiscard]] const JsonMembers &
-        Members() const noexcept;
-
-        [[nodiscard]] JsonMembers &
-        MutableMembers();
-
-        /// The member named `key`, or null when there is none.
-        [[nodiscard]] const JsonValue &
-        operator[](std::string_view key) const noexcept;
-
-        /// The member named `key` of an object, added when missing.
-        JsonValue &
-        Set(std::string_view key, JsonValue value);
-
-        /// Appends to an array.
-        void
-        Append(JsonValue value);
-
-        /// The compact JSON text of the value, on one line.
-        [[nodiscard]] std::string
-        ToString() const;
-
-        /// The JSON text with two spaces of indentation per level.
-        [[nodiscard]] std::string
-        ToPrettyString() const;
-
-    private:
-        void
-        Write(std::string &output, int indent, int depth) const;
-
-        void
-        Destroy() noexcept;
-
-        void
-        CopyFrom(const JsonValue &other);
-
-        void
-        MoveFrom(JsonValue &&other) noexcept;
-
-        Kind kind_ = Kind::kNull;
-        bool boolean_ = false;
-        double number_ = 0.0;
-        std::string string_;
-        std::unique_ptr<std::vector<JsonValue>> items_;
-        std::unique_ptr<JsonMembers> members_;
-    };
-
-    /// Reads one JSON document; whitespace may surround it.
-    [[nodiscard]] Expected<JsonValue>
-    ParseJson(std::string_view text);
-
-    /// Appends `text` to `output` as a JSON string literal.
-    void
-    AppendJsonString(std::string &output, std::string_view text);
-} // namespace Progmasoft::Catch3::Runner
 
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
@@ -681,13 +499,195 @@ namespace Progmasoft::Catch3
     [[nodiscard]] bool
     IsFailure(Outcome outcome) noexcept;
 } // namespace Progmasoft::Catch3
-
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <map>
 #include <optional>
 #include <string>
 #include <vector>
+
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+
+#include <cstdint>
+#include <initializer_list>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+namespace Progmasoft::Catch3::Runner
+{
+    class JsonValue;
+
+    /// The members of an object, in the order they were added or read.
+    using JsonMembers = std::vector<std::pair<std::string, JsonValue>>;
+
+    /// One JSON value: the messages between the runner and its workers, the
+    /// reports, the history and the coverage exports of LLVM are all JSON.
+    ///
+    /// Numbers are kept as `double`, which represents every integer the
+    /// runner writes (counts, microseconds, 32-bit seeds) exactly.
+    class JsonValue final
+    {
+    public:
+        enum class Kind : std::uint8_t
+        {
+            kNull,
+            kBoolean,
+            kNumber,
+            kString,
+            kArray,
+            kObject,
+        };
+
+        JsonValue() = default;
+        JsonValue(std::nullptr_t) {}
+        JsonValue(bool value);
+        JsonValue(double value);
+        JsonValue(int value);
+        JsonValue(unsigned value);
+        JsonValue(long value);
+        JsonValue(unsigned long value);
+        JsonValue(long long value);
+        JsonValue(unsigned long long value);
+        JsonValue(const char *value);
+        JsonValue(std::string value);
+        JsonValue(std::string_view value);
+
+        JsonValue(const JsonValue &other);
+        JsonValue(JsonValue &&other) noexcept;
+        JsonValue &
+        operator=(const JsonValue &other);
+        JsonValue &
+        operator=(JsonValue &&other) noexcept;
+        ~JsonValue();
+
+        [[nodiscard]] static JsonValue
+        Array(std::vector<JsonValue> items = {});
+
+        [[nodiscard]] static JsonValue
+        Object(JsonMembers members = {});
+
+        [[nodiscard]] Kind
+        GetKind() const noexcept
+        {
+            return kind_;
+        }
+
+        [[nodiscard]] bool
+        IsNull() const noexcept
+        {
+            return kind_ == Kind::kNull;
+        }
+
+        [[nodiscard]] bool
+        IsObject() const noexcept
+        {
+            return kind_ == Kind::kObject;
+        }
+
+        [[nodiscard]] bool
+        IsArray() const noexcept
+        {
+            return kind_ == Kind::kArray;
+        }
+
+        [[nodiscard]] bool
+        IsString() const noexcept
+        {
+            return kind_ == Kind::kString;
+        }
+
+        [[nodiscard]] bool
+        IsNumber() const noexcept
+        {
+            return kind_ == Kind::kNumber;
+        }
+
+        /// The value as a Boolean; anything else reads as `fallback`.
+        [[nodiscard]] bool
+        AsBoolean(bool fallback = false) const noexcept;
+
+        [[nodiscard]] double
+        AsNumber(double fallback = 0.0) const noexcept;
+
+        [[nodiscard]] std::int64_t
+        AsInteger(std::int64_t fallback = 0) const noexcept;
+
+        [[nodiscard]] std::uint64_t
+        AsUnsigned(std::uint64_t fallback = 0) const noexcept;
+
+        /// The text of a string; anything else reads as the empty string.
+        [[nodiscard]] const std::string &
+        AsString() const noexcept;
+
+        /// The items of an array; anything else has none.
+        [[nodiscard]] const std::vector<JsonValue> &
+        Items() const noexcept;
+
+        [[nodiscard]] std::vector<JsonValue> &
+        MutableItems();
+
+        /// The members of an object; anything else has none.
+        [[nodiscard]] const JsonMembers &
+        Members() const noexcept;
+
+        [[nodiscard]] JsonMembers &
+        MutableMembers();
+
+        /// The member named `key`, or null when there is none.
+        [[nodiscard]] const JsonValue &
+        operator[](std::string_view key) const noexcept;
+
+        /// The member named `key` of an object, added when missing.
+        JsonValue &
+        Set(std::string_view key, JsonValue value);
+
+        /// Appends to an array.
+        void
+        Append(JsonValue value);
+
+        /// The compact JSON text of the value, on one line.
+        [[nodiscard]] std::string
+        ToString() const;
+
+        /// The JSON text with two spaces of indentation per level.
+        [[nodiscard]] std::string
+        ToPrettyString() const;
+
+    private:
+        void
+        Write(std::string &output, int indent, int depth) const;
+
+        void
+        Destroy() noexcept;
+
+        void
+        CopyFrom(const JsonValue &other);
+
+        void
+        MoveFrom(JsonValue &&other) noexcept;
+
+        Kind kind_ = Kind::kNull;
+        bool boolean_ = false;
+        double number_ = 0.0;
+        std::string string_;
+        std::unique_ptr<std::vector<JsonValue>> items_;
+        std::unique_ptr<JsonMembers> members_;
+    };
+
+    /// Reads one JSON document; whitespace may surround it.
+    [[nodiscard]] Expected<JsonValue>
+    ParseJson(std::string_view text);
+
+    /// Appends `text` to `output` as a JSON string literal.
+    void
+    AppendJsonString(std::string &output, std::string_view text);
+} // namespace Progmasoft::Catch3::Runner
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -796,7 +796,8 @@ namespace Progmasoft::Catch3::Runner
                const RunResult &run,
                const RunRecord &record,
                const std::map<std::string, std::string> &fingerprints,
-               const QuarantinePolicy &policy);
+               const QuarantinePolicy &policy,
+               std::chrono::milliseconds lockWait = std::chrono::seconds(10));
 
         [[nodiscard]] const TestHistory *
         Find(const std::string &key) const;
@@ -11685,11 +11686,10 @@ namespace Progmasoft::Catch3::Runner
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
-
-
 #include <algorithm>
 #include <cmath>
 #include <system_error>
+
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -11704,16 +11704,16 @@ namespace Progmasoft::Catch3::Runner
         bool
         HasDuration(Outcome outcome)
         {
-            return outcome == Outcome::kPassed || outcome == Outcome::kFailed ||
-                   outcome == Outcome::kFailedAsExpected ||
-                   outcome == Outcome::kSkipped;
+            return outcome == Outcome::kPassed || outcome == Outcome::kFailed
+                   || outcome == Outcome::kFailedAsExpected
+                   || outcome == Outcome::kSkipped;
         }
 
         bool
         Counts(Outcome outcome)
         {
-            return outcome != Outcome::kNotRun && outcome != Outcome::kBlocked &&
-                   outcome != Outcome::kUpToDate;
+            return outcome != Outcome::kNotRun && outcome != Outcome::kBlocked
+                   && outcome != Outcome::kUpToDate;
         }
 
         JsonValue
@@ -11753,8 +11753,8 @@ namespace Progmasoft::Catch3::Runner
             record.category = CategoryFromName(value["category"].AsString())
                                   .value_or(FailureCategory::kNone);
             record.durationMicroseconds = value["duration"].AsInteger();
-            record.attempts =
-                static_cast<std::size_t>(value["attempts"].AsUnsigned());
+            record.attempts
+                = static_cast<std::size_t>(value["attempts"].AsUnsigned());
             record.flaky = value["flaky"].AsBoolean();
             record.signature = value["signature"].AsString();
             record.fingerprint = value["fingerprint"].AsString();
@@ -11765,8 +11765,7 @@ namespace Progmasoft::Catch3::Runner
     const TestRecord *
     TestHistory::Last() const noexcept
     {
-        for (auto record = records.rbegin(); record != records.rend();
-             ++record)
+        for (auto record = records.rbegin(); record != records.rend(); ++record)
         {
             if (Counts(record->outcome))
             {
@@ -11852,10 +11851,10 @@ namespace Progmasoft::Catch3::Runner
             {
                 ++events;
             }
-            else if (newer != nullptr && !newer->flaky &&
-                     !record->fingerprint.empty() &&
-                     record->fingerprint == newer->fingerprint &&
-                     IsFailure(record->outcome) != IsFailure(newer->outcome))
+            else if (newer != nullptr && !newer->flaky
+                     && !record->fingerprint.empty()
+                     && record->fingerprint == newer->fingerprint
+                     && IsFailure(record->outcome) != IsFailure(newer->outcome))
             {
                 // The verdict changed while nothing the test depends on did.
                 ++events;
@@ -11869,8 +11868,7 @@ namespace Progmasoft::Catch3::Runner
     TestHistory::PassStreak() const
     {
         std::size_t streak = 0;
-        for (auto record = records.rbegin(); record != records.rend();
-             ++record)
+        for (auto record = records.rbegin(); record != records.rend(); ++record)
         {
             if (!Counts(record->outcome))
             {
@@ -11892,11 +11890,11 @@ namespace Progmasoft::Catch3::Runner
         std::string name;
         for (const char character : binaryName)
         {
-            const bool safe = (character >= 'a' && character <= 'z') ||
-                              (character >= 'A' && character <= 'Z') ||
-                              (character >= '0' && character <= '9') ||
-                              character == '-' || character == '_' ||
-                              character == '.';
+            const bool safe = (character >= 'a' && character <= 'z')
+                              || (character >= 'A' && character <= 'Z')
+                              || (character >= '0' && character <= '9')
+                              || character == '-' || character == '_'
+                              || character == '.';
             name.push_back(safe ? character : '_');
         }
         return directory / (name + ".history.json");
@@ -11946,21 +11944,29 @@ namespace Progmasoft::Catch3::Runner
                     const RunResult &run,
                     const RunRecord &record,
                     const std::map<std::string, std::string> &fingerprints,
-                    const QuarantinePolicy &policy)
+                    const QuarantinePolicy &policy,
+                    std::chrono::milliseconds lockWait)
     {
-        const FileLock lock{file, std::chrono::seconds(10)};
+        const FileLock lock{ file, lockWait };
+        if (!lock.Held())
+        {
+            // Writing without the lock could replace a run that another
+            // process is adding at the same time.
+            return Error{ "another run holds the lock of " + file.string() };
+        }
         auto history = Load(file);
         if (!history)
         {
             // A damaged file is set aside rather than lost.
             std::error_code error;
-            std::filesystem::rename(
-                file, file.string() + ".damaged-" + UniqueName(), error);
+            std::filesystem::rename(file,
+                                    file.string() + ".damaged-" + UniqueName(),
+                                    error);
             history = History{};
         }
         history->Apply(run, record, fingerprints, policy);
-        if (auto status = WriteFileAtomically(
-                file, history->ToJson().ToPrettyString());
+        if (auto status
+            = WriteFileAtomically(file, history->ToJson().ToPrettyString());
             !status)
         {
             return status.GetError();
@@ -11978,10 +11984,10 @@ namespace Progmasoft::Catch3::Runner
         runs_.push_back(record);
         if (runs_.size() > kRunsKept)
         {
-            runs_.erase(runs_.begin(),
-                        runs_.begin() +
-                            static_cast<std::ptrdiff_t>(runs_.size() -
-                                                        kRunsKept));
+            runs_.erase(
+                runs_.begin(),
+                runs_.begin()
+                    + static_cast<std::ptrdiff_t>(runs_.size() - kRunsKept));
         }
         for (const auto &test : run.tests)
         {
@@ -11995,9 +12001,10 @@ namespace Progmasoft::Catch3::Runner
             result.run = record.id;
             result.outcome = test.outcome;
             result.category = test.category;
-            result.durationMicroseconds =
-                test.attempts.empty() ? 0
-                                      : test.attempts.back().durationMicroseconds;
+            result.durationMicroseconds
+                = test.attempts.empty()
+                      ? 0
+                      : test.attempts.back().durationMicroseconds;
             result.attempts = test.attempts.size();
             result.flaky = test.flaky;
             result.signature = test.signature;
@@ -12011,12 +12018,14 @@ namespace Progmasoft::Catch3::Runner
             {
                 history.records.erase(history.records.begin());
             }
-            const auto failed = std::find_if(
-                test.attempts.begin(), test.attempts.end(), [](const Attempt &attempt) {
-                    return IsFailure(attempt.outcome);
-                });
-            if ((IsFailure(test.outcome) || test.flaky) &&
-                failed != test.attempts.end())
+            const auto failed
+                = std::find_if(test.attempts.begin(),
+                               test.attempts.end(),
+                               [](const Attempt &attempt) {
+                                   return IsFailure(attempt.outcome);
+                               });
+            if ((IsFailure(test.outcome) || test.flaky)
+                && failed != test.attempts.end())
             {
                 // The first failure, as it happened: a flaky failure is
                 // worth replaying too.
@@ -12033,17 +12042,19 @@ namespace Progmasoft::Catch3::Runner
             }
             // Quarantine: in after repeated flakiness, out after a streak of
             // clean passes.
-            if (!history.quarantine &&
-                history.FlakyEvents(policy.window) >= policy.flakyEventsToEnter)
+            if (!history.quarantine
+                && history.FlakyEvents(policy.window)
+                       >= policy.flakyEventsToEnter)
             {
                 history.quarantine = QuarantineRecord{
                     record.id,
-                    std::to_string(history.FlakyEvents(policy.window)) +
-                        " flaky results in the last " +
-                        std::to_string(policy.window) + " runs"};
+                    std::to_string(history.FlakyEvents(policy.window))
+                        + " flaky results in the last "
+                        + std::to_string(policy.window) + " runs"
+                };
             }
-            else if (history.quarantine &&
-                     history.PassStreak() >= policy.passesToLeave)
+            else if (history.quarantine
+                     && history.PassStreak() >= policy.passesToLeave)
             {
                 history.quarantine.reset();
             }
@@ -12114,14 +12125,15 @@ namespace Progmasoft::Catch3::Runner
     {
         if (value["format"].AsString() != "catch3-history")
         {
-            return Error{"not a Catch3 history"};
+            return Error{ "not a Catch3 history" };
         }
         if (value["version"].AsInteger() > kHistoryVersion)
         {
-            return Error{"the history was written by a newer Catch3"};
+            return Error{ "the history was written by a newer Catch3" };
         }
         History history;
-        history.nextRun_ = std::max<std::int64_t>(1, value["nextRun"].AsInteger());
+        history.nextRun_
+            = std::max<std::int64_t>(1, value["nextRun"].AsInteger());
         for (const auto &item : value["runs"].Items())
         {
             RunRecord run;
@@ -12146,15 +12158,16 @@ namespace Progmasoft::Catch3::Runner
             {
                 test.quarantine = QuarantineRecord{
                     item["quarantine"]["since"].AsInteger(),
-                    item["quarantine"]["reason"].AsString()};
+                    item["quarantine"]["reason"].AsString()
+                };
             }
             if (item["lastFailure"].IsObject())
             {
                 const JsonValue &failure = item["lastFailure"];
                 ReplayRecord replay;
                 replay.run = failure["run"].AsInteger();
-                replay.seed =
-                    static_cast<std::uint32_t>(failure["seed"].AsUnsigned());
+                replay.seed
+                    = static_cast<std::uint32_t>(failure["seed"].AsUnsigned());
                 for (const auto &name : failure["precededBy"].Items())
                 {
                     replay.precededBy.push_back(name.AsString());
