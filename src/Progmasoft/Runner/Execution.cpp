@@ -507,7 +507,7 @@ namespace Progmasoft::Catch3::Runner
             {
                 return;
             }
-            const std::string output = state->context->capturedOutput();
+            const std::string output = state->context->endCapture();
             std::fflush(stdout);
             std::fflush(stderr);
             WriteStandardError(output);

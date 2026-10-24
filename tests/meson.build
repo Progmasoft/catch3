@@ -82,6 +82,7 @@ progmasoft_property_tests = executable(
     'Progmasoft/RunnerPlanner.tests.cpp',
     'Progmasoft/RunnerOptions.tests.cpp',
     'Progmasoft/RunnerAnalysis.tests.cpp',
+    'Progmasoft/RunnerOutput.tests.cpp',
     'Progmasoft/Snapshot.tests.cpp',
     'Progmasoft/Stateful.tests.cpp',
     'Progmasoft/Strategy.tests.cpp',

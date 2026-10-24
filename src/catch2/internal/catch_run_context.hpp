@@ -106,9 +106,12 @@ namespace Catch {
         // !TBD We need to do this another way!
         bool aborting() const;
 
-        //! What the running test printed so far and was captured; for a
-        //! process that ends inside a test, whose end is never reported.
-        std::string capturedOutput();
+        //! Ends the capture of the running test's output and returns what
+        //! it captured; for a process that ends inside a test, whose end is
+        //! never reported. The standard streams are their own again, so
+        //! flushing them at exit no longer reaches the capture buffers,
+        //! which may be gone by then.
+        std::string endCapture();
 
     private:
         void assertionPassedFastPath( SourceLineInfo lineInfo );

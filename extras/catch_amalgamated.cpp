@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch v3.16.1
-//  Generated: 2026-10-24 10:02:49.316745
+//  Generated: 2026-10-24 12:33:30.890575
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -6499,11 +6499,11 @@ namespace Catch {
         return m_atomicAssertionCount.failed >= m_abortAfterXFailedAssertions;
     }
 
-    std::string RunContext::capturedOutput() {
+    std::string RunContext::endCapture() {
         if ( !m_outputRedirect->isActive() ) {
             return {};
         }
-        auto _ = scopedDeactivate( *m_outputRedirect );
+        m_outputRedirect->deactivate();
         return m_outputRedirect->getStdout() + m_outputRedirect->getStderr();
     }
 
@@ -11003,7 +11003,7 @@ namespace Progmasoft::Catch3::Runner
             {
                 return;
             }
-            const std::string output = state->context->capturedOutput();
+            const std::string output = state->context->endCapture();
             std::fflush(stdout);
             std::fflush(stderr);
             WriteStandardError(output);
@@ -16581,15 +16581,13 @@ namespace Progmasoft::Catch3::Runner
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
-
-
-
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <exception>
 #include <map>
 #include <random>
+
 
 namespace Progmasoft::Catch3
 {
@@ -16658,19 +16656,22 @@ namespace Progmasoft::Catch3
             {
                 options.junitPath = xml;
             }
-            const std::string filter =
-                Runner::ReadEnvironment("TESTBRIDGE_TEST_ONLY");
+            const std::string filter
+                = Runner::ReadEnvironment("TESTBRIDGE_TEST_ONLY");
             if (!filter.empty())
             {
-                options.testSpecs = {filter};
+                options.testSpecs = { filter };
             }
-            const std::string index = Runner::ReadEnvironment("TEST_SHARD_INDEX");
-            const std::string total = Runner::ReadEnvironment("TEST_TOTAL_SHARDS");
-            const std::string status =
-                Runner::ReadEnvironment("TEST_SHARD_STATUS_FILE");
+            const std::string index
+                = Runner::ReadEnvironment("TEST_SHARD_INDEX");
+            const std::string total
+                = Runner::ReadEnvironment("TEST_TOTAL_SHARDS");
+            const std::string status
+                = Runner::ReadEnvironment("TEST_SHARD_STATUS_FILE");
             if (!index.empty() && !total.empty())
             {
-                auto parsed = Runner::ParseOptions({"--shard=" + index + "/" + total});
+                auto parsed = Runner::ParseOptions(
+                    { "--shard=" + index + "/" + total });
                 if (parsed)
                 {
                     options.shard = parsed->shard;
@@ -16683,29 +16684,32 @@ namespace Progmasoft::Catch3
                 }
                 else
                 {
-                    notes.push_back("ignoring Bazel's shard " + index + "/" +
-                                    total + ": " + parsed.GetError().Message());
+                    notes.push_back("ignoring Bazel's shard " + index + "/"
+                                    + total + ": "
+                                    + parsed.GetError().Message());
                 }
             }
-            const std::string seed = Runner::ReadEnvironment("TEST_RANDOM_SEED");
+            const std::string seed
+                = Runner::ReadEnvironment("TEST_RANDOM_SEED");
             if (!seed.empty())
             {
-                auto parsed = Runner::ParseOptions({"--seed=" + seed});
+                auto parsed = Runner::ParseOptions({ "--seed=" + seed });
                 if (parsed)
                 {
                     options.seed = parsed->seed;
                     options.seedGiven = true;
                 }
             }
-            const std::string outputs =
-                Runner::ReadEnvironment("TEST_UNDECLARED_OUTPUTS_DIR");
+            const std::string outputs
+                = Runner::ReadEnvironment("TEST_UNDECLARED_OUTPUTS_DIR");
             if (!outputs.empty() && options.jsonPath.empty())
             {
-                options.jsonPath =
-                    (std::filesystem::path{outputs} / "catch3.json").string();
+                options.jsonPath
+                    = (std::filesystem::path{ outputs } / "catch3.json")
+                          .string();
             }
-            if (options.historyDirectory.empty() &&
-                !Runner::HasEnvironment("CATCH3_HISTORY"))
+            if (options.historyDirectory.empty()
+                && !Runner::HasEnvironment("CATCH3_HISTORY"))
             {
                 // A sandboxed test has nowhere lasting to keep history.
                 options.historyEnabled = false;
@@ -16720,8 +16724,8 @@ namespace Progmasoft::Catch3
             {
                 return options.historyDirectory;
             }
-            const std::string fromEnvironment =
-                Runner::ReadEnvironment("CATCH3_HISTORY");
+            const std::string fromEnvironment
+                = Runner::ReadEnvironment("CATCH3_HISTORY");
             if (!fromEnvironment.empty())
             {
                 return fromEnvironment;
@@ -16772,7 +16776,8 @@ namespace Progmasoft::Catch3
                 if (entry.timeout)
                 {
                     test.Set("timeoutSeconds",
-                             static_cast<double>(entry.timeout->count()) / 1000.0);
+                             static_cast<double>(entry.timeout->count())
+                                 / 1000.0);
                 }
                 if (entry.retries)
                 {
@@ -16816,7 +16821,8 @@ namespace Progmasoft::Catch3
                 case Runner::ListFormat::kNames:
                     for (const std::size_t index : matched)
                     {
-                        std::printf("%s\n", catalog.Tests()[index].name.c_str());
+                        std::printf("%s\n",
+                                    catalog.Tests()[index].name.c_str());
                     }
                     break;
                 case Runner::ListFormat::kText:
@@ -16895,15 +16901,15 @@ namespace Progmasoft::Catch3
                 const auto median = [](std::vector<std::int64_t> values) {
                     if (values.empty())
                     {
-                        return std::int64_t{0};
+                        return std::int64_t{ 0 };
                     }
                     std::sort(values.begin(), values.end());
                     return values[values.size() / 2];
                 };
                 row.failureRate = row.runs == 0
                                       ? 0.0
-                                      : static_cast<double>(failures) /
-                                            static_cast<double>(row.runs);
+                                      : static_cast<double>(failures)
+                                            / static_cast<double>(row.runs);
                 row.flakyEvents = test.FlakyEvents(20);
                 row.median = test.DurationPercentile(0.5).value_or(0);
                 row.recentMedian = median(recent);
@@ -16928,17 +16934,26 @@ namespace Progmasoft::Catch3
                 ordered.resize(std::min(count, ordered.size()));
                 return ordered;
             };
-            const auto flaky =
-                top([](const Row &row) { return static_cast<double>(row.flakyEvents); }, 10);
-            const auto failing =
-                top([](const Row &row) { return row.failureRate; }, 10);
-            const auto slowest =
-                top([](const Row &row) { return static_cast<double>(row.median); }, 10);
+            const auto flaky = top(
+                [](const Row &row) {
+                    return static_cast<double>(row.flakyEvents);
+                },
+                10);
+            const auto failing = top(
+                [](const Row &row) {
+                    return row.failureRate;
+                },
+                10);
+            const auto slowest = top(
+                [](const Row &row) {
+                    return static_cast<double>(row.median);
+                },
+                10);
             const auto slower = top(
                 [](const Row &row) {
                     return row.olderMedian > 0
-                               ? static_cast<double>(row.recentMedian) /
-                                     static_cast<double>(row.olderMedian)
+                               ? static_cast<double>(row.recentMedian)
+                                     / static_cast<double>(row.olderMedian)
                                : 0.0;
                 },
                 10);
@@ -16980,7 +16995,9 @@ namespace Progmasoft::Catch3
             {
                 if (row->flakyEvents > 0)
                 {
-                    std::printf("  %3zu  %s\n", row->flakyEvents, row->key.c_str());
+                    std::printf("  %3zu  %s\n",
+                                row->flakyEvents,
+                                row->key.c_str());
                 }
             }
             std::printf("\nin quarantine:\n");
@@ -16988,7 +17005,9 @@ namespace Progmasoft::Catch3
             {
                 if (!row.quarantine.empty())
                 {
-                    std::printf("  %s: %s\n", row.key.c_str(), row.quarantine.c_str());
+                    std::printf("  %s: %s\n",
+                                row.key.c_str(),
+                                row.quarantine.c_str());
                 }
             }
             std::printf("\nfailing most often:\n");
@@ -17008,11 +17027,12 @@ namespace Progmasoft::Catch3
                             FormatMicroseconds(row->median).c_str(),
                             row->key.c_str());
             }
-            std::printf("\ngetting slower (last 5 runs against the 15 before):\n");
+            std::printf(
+                "\ngetting slower (last 5 runs against the 15 before):\n");
             for (const Row *row : slower)
             {
-                if (row->olderMedian > 0 &&
-                    row->recentMedian > row->olderMedian * 3 / 2)
+                if (row->olderMedian > 0
+                    && row->recentMedian > row->olderMedian * 3 / 2)
                 {
                     std::printf("  %10s -> %-10s  %s\n",
                                 FormatMicroseconds(row->olderMedian).c_str(),
@@ -17028,7 +17048,7 @@ namespace Progmasoft::Catch3
         {
             for (const auto &entry : catalog.Tests())
             {
-                const std::filesystem::path file{entry.file};
+                const std::filesystem::path file{ entry.file };
                 if (file.is_absolute())
                 {
                     return file.parent_path();
@@ -17051,8 +17071,8 @@ namespace Progmasoft::Catch3
         {
             const std::filesystem::path program = Runner::CurrentExecutable(
                 arguments.empty() ? nullptr : arguments.front().c_str());
-            const std::string programName =
-                program.empty() ? "tests" : program.stem().string();
+            const std::string programName
+                = program.empty() ? "tests" : program.stem().string();
             std::vector<std::string> rest;
             if (arguments.size() > 1)
             {
@@ -17109,7 +17129,8 @@ namespace Progmasoft::Catch3
                 PrintError(catalog.GetError().Message());
                 return Catch::UnspecifiedErrorExitCode;
             }
-            const Catch::Config config{Runner::ToConfigData(options, programName)};
+            const Catch::Config config{ Runner::ToConfigData(options,
+                                                             programName) };
             const auto &invalid = config.testSpec().getInvalidSpecs();
             if (!invalid.empty())
             {
@@ -17121,8 +17142,8 @@ namespace Progmasoft::Catch3
             }
             std::vector<std::string> unmatched;
             auto matched = catalog->Match(config, unmatched);
-            if (options.mode == Runner::Mode::kListTests ||
-                options.mode == Runner::Mode::kListTags)
+            if (options.mode == Runner::Mode::kListTests
+                || options.mode == Runner::Mode::kListTags)
             {
                 if (options.shard.count > 1)
                 {
@@ -17149,10 +17170,12 @@ namespace Progmasoft::Catch3
                 return List(options, *catalog, matched, programName);
             }
 
-            const std::filesystem::path historyFile = Runner::HistoryFile(
-                HistoryDirectory(options, program), programName);
+            const std::filesystem::path historyFile
+                = Runner::HistoryFile(HistoryDirectory(options, program),
+                                      programName);
             Runner::History history;
-            if (options.historyEnabled || options.mode == Runner::Mode::kAnalytics)
+            if (options.historyEnabled
+                || options.mode == Runner::Mode::kAnalytics)
             {
                 auto loaded = Runner::History::Load(historyFile);
                 if (loaded)
@@ -17161,8 +17184,8 @@ namespace Progmasoft::Catch3
                 }
                 else
                 {
-                    notes.push_back("the history could not be read: " +
-                                    loaded.GetError().Message());
+                    notes.push_back("the history could not be read: "
+                                    + loaded.GetError().Message());
                 }
             }
             if (options.mode == Runner::Mode::kAnalytics)
@@ -17189,14 +17212,14 @@ namespace Progmasoft::Catch3
                 {
                     changes = std::move(*read);
                 }
-                else if (options.selection == Runner::Selection::kChanged ||
-                         options.selection == Runner::Selection::kSmart)
+                else if (options.selection == Runner::Selection::kChanged
+                         || options.selection == Runner::Selection::kSmart)
                 {
                     notes.push_back(read.GetError().Message());
                 }
             };
-            if (options.selection == Runner::Selection::kChanged ||
-                options.selection == Runner::Selection::kSmart)
+            if (options.selection == Runner::Selection::kChanged
+                || options.selection == Runner::Selection::kSmart)
             {
                 readChanges();
             }
@@ -17216,17 +17239,20 @@ namespace Progmasoft::Catch3
             }
             notes.insert(notes.end(), plan->notes.begin(), plan->notes.end());
 
-            Runner::ConsoleReport console{options, stdout};
-            const std::size_t workers =
-                options.inProcess
-                    ? 1
-                    : std::max<std::size_t>(
-                          1,
-                          std::min<std::size_t>(
-                              options.jobs == 0 ? Runner::HardwareThreads()
-                                                : options.jobs,
-                              plan->tests.size()));
-            console.RunStarting(plan->tests.size(), workers, options.seed, notes);
+            Runner::ConsoleReport console{ options, stdout };
+            const std::size_t workers
+                = options.inProcess
+                      ? 1
+                      : std::max<std::size_t>(
+                            1,
+                            std::min<std::size_t>(
+                                options.jobs == 0 ? Runner::HardwareThreads()
+                                                  : options.jobs,
+                                plan->tests.size()));
+            console.RunStarting(plan->tests.size(),
+                                workers,
+                                options.seed,
+                                notes);
 
             std::string guard = options.exitGuardPath;
             if (BazelTest() && guard.empty())
@@ -17237,8 +17263,8 @@ namespace Progmasoft::Catch3
             {
                 if (auto status = Runner::CreatePrivateFile(guard); !status)
                 {
-                    PrintError("the exit guard file: " +
-                               status.GetError().Message());
+                    PrintError("the exit guard file: "
+                               + status.GetError().Message());
                     return Catch::UnspecifiedErrorExitCode;
                 }
             }
@@ -17256,14 +17282,20 @@ namespace Progmasoft::Catch3
             events.testFinished = [&](const TestResult &test) {
                 console.TestFinished(test);
             };
-            events.retrying = [&](const TestResult &test, const Attempt &attempt) {
-                console.Retrying(test, attempt);
-            };
-            auto outcome = Runner::RunPlan(
-                options, *plan, *catalog, program.string(), programName, events);
-            run.wallMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(
-                                       std::chrono::steady_clock::now() - started)
-                                       .count();
+            events.retrying
+                = [&](const TestResult &test, const Attempt &attempt) {
+                      console.Retrying(test, attempt);
+                  };
+            auto outcome = Runner::RunPlan(options,
+                                           *plan,
+                                           *catalog,
+                                           program.string(),
+                                           programName,
+                                           events);
+            run.wallMicroseconds
+                = std::chrono::duration_cast<std::chrono::microseconds>(
+                      std::chrono::steady_clock::now() - started)
+                      .count();
             run.workers = outcome.workers;
             run.tests = std::move(outcome.tests);
             for (auto &kept : plan->kept)
@@ -17272,10 +17304,12 @@ namespace Progmasoft::Catch3
             }
             run.notes = std::move(outcome.notes);
 
-            const bool anyFailure = std::any_of(
-                run.tests.begin(), run.tests.end(), [](const TestResult &test) {
-                    return IsFailure(test.outcome) || test.flaky;
-                });
+            const bool anyFailure
+                = std::any_of(run.tests.begin(),
+                              run.tests.end(),
+                              [](const TestResult &test) {
+                                  return IsFailure(test.outcome) || test.flaky;
+                              });
             if (anyFailure)
             {
                 readChanges();
@@ -17289,31 +17323,40 @@ namespace Progmasoft::Catch3
             Runner::Analyze(run, analysis);
             console.RunEnded(run);
 
+            // A report that was asked for and is missing would let a build
+            // server miss the run, so it fails the run.
+            bool reportMissing = false;
             if (!options.junitPath.empty())
             {
                 if (auto status = Runner::WriteFileAtomically(
-                        options.junitPath, JUnitXmlWriter::ToString(run));
+                        options.junitPath,
+                        JUnitXmlWriter::ToString(run));
                     !status)
                 {
                     PrintError(status.GetError().Message());
+                    reportMissing = true;
                 }
             }
             if (!options.jsonPath.empty())
             {
                 if (auto status = Runner::WriteFileAtomically(
-                        options.jsonPath, Runner::ToJson(run).ToPrettyString());
+                        options.jsonPath,
+                        Runner::ToJson(run).ToPrettyString());
                     !status)
                 {
                     PrintError(status.GetError().Message());
+                    reportMissing = true;
                 }
             }
             if (!options.tracePath.empty())
             {
-                if (auto status = Runner::WriteFileAtomically(
-                        options.tracePath, Runner::TraceJson(run));
+                if (auto status
+                    = Runner::WriteFileAtomically(options.tracePath,
+                                                  Runner::TraceJson(run));
                     !status)
                 {
                     PrintError(status.GetError().Message());
+                    reportMissing = true;
                 }
             }
             if (options.historyEnabled && !run.tests.empty())
@@ -17355,8 +17398,8 @@ namespace Progmasoft::Catch3
             {
                 return Catch::UnmatchedTestSpecExitCode;
             }
-            const bool quarantineCounts =
-                options.quarantine == Runner::QuarantineMode::kReport;
+            const bool quarantineCounts
+                = options.quarantine == Runner::QuarantineMode::kReport;
             bool failed = false;
             std::size_t ran = 0;
             std::size_t skipped = 0;
@@ -17367,13 +17410,17 @@ namespace Progmasoft::Catch3
                     ++ran;
                 }
                 skipped += test.outcome == Outcome::kSkipped ? 1 : 0;
-                failed = failed || test.FailsRun() ||
-                         (quarantineCounts && test.quarantined &&
-                          IsFailure(test.outcome));
+                failed = failed || test.FailsRun()
+                         || (quarantineCounts && test.quarantined
+                             && IsFailure(test.outcome));
             }
             if (failed)
             {
                 return Catch::TestFailureExitCode;
+            }
+            if (reportMissing)
+            {
+                return Catch::UnspecifiedErrorExitCode;
             }
             if (run.tests.empty() && !options.allowNoTests)
             {

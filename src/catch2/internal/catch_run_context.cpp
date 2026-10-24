@@ -748,11 +748,11 @@ namespace Catch {
         return m_atomicAssertionCount.failed >= m_abortAfterXFailedAssertions;
     }
 
-    std::string RunContext::capturedOutput() {
+    std::string RunContext::endCapture() {
         if ( !m_outputRedirect->isActive() ) {
             return {};
         }
-        auto _ = scopedDeactivate( *m_outputRedirect );
+        m_outputRedirect->deactivate();
         return m_outputRedirect->getStdout() + m_outputRedirect->getStderr();
     }
 

@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch v3.16.1
-//  Generated: 2026-10-24 10:02:48.985091
+//  Generated: 2026-10-24 12:33:30.737192
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -9896,9 +9896,12 @@ namespace Catch {
         // !TBD We need to do this another way!
         bool aborting() const;
 
-        //! What the running test printed so far and was captured; for a
-        //! process that ends inside a test, whose end is never reported.
-        std::string capturedOutput();
+        //! Ends the capture of the running test's output and returns what
+        //! it captured; for a process that ends inside a test, whose end is
+        //! never reported. The standard streams are their own again, so
+        //! flushing them at exit no longer reaches the capture buffers,
+        //! which may be gone by then.
+        std::string endCapture();
 
     private:
         void assertionPassedFastPath( SourceLineInfo lineInfo );
