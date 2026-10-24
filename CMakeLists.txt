@@ -38,7 +38,7 @@ project(Catch2
   VERSION 3.16.1 # CML version placeholder, don't delete
   LANGUAGES CXX
   HOMEPAGE_URL "https://github.com/Progmasoft/catch3"
-  DESCRIPTION "Catch2's test API with a parallel runner, property testing and snapshots."
+  DESCRIPTION "A C++ test framework with a Catch2-compatible API, a parallel runner, property testing and snapshots."
 )
 
 # Provide path for scripts. We first add path to the scripts we don't use,
