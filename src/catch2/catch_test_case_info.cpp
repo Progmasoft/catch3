@@ -48,6 +48,17 @@ namespace Catch {
             return tcp != TestCaseProperties::None;
         }
 
+        bool isRunnerTagWithValue( StringRef tag ) {
+            for ( StringRef prefix : { "!resource:"_sr, "!depends:"_sr,
+                                       "!timeout:"_sr, "!retries:"_sr } ) {
+                if ( tag.size() >= prefix.size() &&
+                     tag.substr( 0, prefix.size() ) == prefix ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         TestCaseProperties propertiesFromTag( StringRef tag, SourceLineInfo const& _lineInfo ) {
             if ( tag.empty() ) { return TestCaseProperties::None; }
             // All tags starting with alphanumeric characters are normal.
@@ -62,6 +73,16 @@ namespace Catch {
             else if ( tag == "!benchmark"_sr ) {
                 return TestCaseProperties::Benchmark |
                        TestCaseProperties::IsHidden;
+            }
+            // Read by the Catch3 runner: scheduling, limits and quarantine.
+            else if ( tag == "!serial"_sr || tag == "!isolated"_sr ||
+                      tag == "!quarantine"_sr ) {
+                return TestCaseProperties::None;
+            } else if ( isRunnerTagWithValue( tag ) ) {
+                CATCH_ENFORCE( tag[tag.size() - 1] != ':',
+                               "Tag name: [" << tag << "] needs a value after ':'\n"
+                                             << _lineInfo );
+                return TestCaseProperties::None;
             } else {
                 CATCH_RUNTIME_ERROR(
                     "Tag name: [" << tag << "] is not allowed.\n"

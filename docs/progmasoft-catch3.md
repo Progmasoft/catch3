@@ -1,10 +1,13 @@
 # Progmasoft Catch3 additions
 
-Progmasoft Catch3 is a compatibility-preserving extension of Catch2, not a
-replacement runner. The upstream `Catch2` API, command-line behavior, include
-paths, and BSL-1.0 files remain the compatibility foundation. Progmasoft-owned
-headers use the `Progmasoft/Catch3` include tree and `Progmasoft::Catch3`
-namespace.
+Progmasoft Catch3 keeps Catch2's API for writing tests and replaces Catch2's
+runner with its own. Tests, `catch2/` include paths, `Catch2::` CMake targets
+and the BSL-1.0 files of the engine stay as they are; the
+[Catch3 runner](progmasoft-runner.md#top) runs them in parallel worker
+processes and adds retries, flaky-test detection, quarantine, history,
+predictive ordering, test selection, sharding, time limits and failure
+analysis. Progmasoft-owned headers use the `Progmasoft/Catch3` include tree
+and `Progmasoft::Catch3` namespace.
 
 ## Property testing
 
@@ -146,24 +149,29 @@ CATCH3_CHECK_SNAPSHOT("rendered-report", RenderReport(), options);
 
 ## Structured results and XML
 
-`<Progmasoft/Catch3/Results.hpp>` defines a runner-neutral hierarchy of
-`TestRunResult`, `TestSuiteResult`, and `TestCaseResult`. `SummarizeTestRun`
-validates finite, non-negative durations and computes pass/failure/error/skip
-counts. `<Progmasoft/Catch3/XmlWriter.hpp>` serializes that model as deterministic
-JUnit-style XML through `JUnitXmlWriter::Write` or `ToString`. It escapes XML
-markup, replaces malformed UTF-8 and XML-forbidden control characters, and
-omits timestamps so identical results produce identical output. Catch2's own
-`--reporter xml` and `--reporter junit` remain the direct reporters for results
-produced by its runner; this writer is for Progmasoft's explicit result model.
+`<Progmasoft/Catch3/Results.hpp>` defines the model the runner's reports are
+written from: a `RunResult` holds a `TestResult` per test, with its verdict,
+failure category, history classification, flakiness, quarantine, failure
+signature, analysis and replay command, and every `Attempt` with its
+assertions, sections, benchmarks, captured output and the tests that ran
+before it in the same process. `Summarize` counts the verdicts, and
+`DescribeFailure` writes a failed attempt as text.
+`<Progmasoft/Catch3/XmlWriter.hpp>` writes a run as deterministic JUnit XML
+through `JUnitXmlWriter::Write` or `ToString`, with `<rerunFailure>` and
+`<flakyFailure>` for retries. It escapes XML markup, replaces malformed UTF-8
+and XML-forbidden control characters, and omits timestamps so identical
+results produce identical output.
 
-The snapshot and result/XML APIs have compiled C++ implementations in the
-`Progmasoft::Catch3` library target. Generator templates and convenience macros
+The results, the JUnit writer and the runner are compiled into the
+`Catch2::Catch2` library; the snapshot API is compiled into the
+`Progmasoft::Catch3` target. Generator templates and convenience macros
 remain in headers where their types or call-site expansion require it.
 
 ## Build and integration
 
 The CMake build exposes `Progmasoft::Catch3`, a compiled C++20 library linked to
-`Catch2::Catch2`. The existing Catch2 target retains its C++14 baseline. After
+`Catch2::Catch2`. `Catch2::Catch2`, which holds the runner, is built as C++20;
+code that includes only Catch2's headers still needs only C++14. After
 installation, consumers can use:
 
 ```cmake

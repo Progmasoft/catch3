@@ -4,14 +4,19 @@
 
 # Event Listeners
 
-An event listener is a bit like a reporter, in that it responds to various
-reporter events in Catch2, but it is not expected to write any output.
-Instead, an event listener performs actions within the test process, such
-as performing global initialization (e.g. of a C library), or cleaning out
-in-memory logs if they are not needed (the test case passed).
+An event listener responds to the events of a test run, but it is not
+expected to write the run's output; that is the job of the
+[reports](reporters.md#top). Instead, an event listener performs actions
+within the test process, such as performing global initialization (e.g. of
+a C library), or cleaning out in-memory logs if they are not needed (the
+test case passed).
 
-Unlike reporters, each registered event listener is always active. Event
-listeners are always notified before reporter(s).
+Every registered event listener is always active. The
+[Catch3 runner](progmasoft-runner.md#top) runs tests in worker processes,
+and each worker is a test run of its own for its listeners: they are created
+in every worker, and see `testRunStarting` when it starts and `testRunEnded`
+when it ends. What a listener prints outside a test reaches the runner's
+standard error.
 
 To write your own event listener, you should derive from `Catch::EventListenerBase`,
 as it provides empty stubs for all reporter events, allowing you to

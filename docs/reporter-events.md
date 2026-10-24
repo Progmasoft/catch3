@@ -7,20 +7,20 @@
 **Contents**<br>
 [Test running events](#test-running-events)<br>
 [Benchmarking events](#benchmarking-events)<br>
-[Listings events](#listings-events)<br>
 [Miscellaneous events](#miscellaneous-events)<br>
 
 Reporter events are one of the customization points for user code. They
-are used by [reporters](reporters.md#top) to customize Catch2's output,
-and by [event listeners](event-listeners.md#top) to perform in-process
-actions under some conditions.
+are used by [event listeners](event-listeners.md#top) to perform in-process
+actions under some conditions. The reporters of Catch2 that also received
+them were replaced by the [reports](reporters.md#top) of the Catch3 runner.
 
-There are currently 21 reporter events in Catch2, split between 4 distinct
-event groups:
+There are 17 events, split between 3 event groups:
 * test running events (10 events)
 * benchmarking (4 events)
-* listings (3 events)
-* miscellaneous (4 events)
+* miscellaneous (3 events)
+
+Each worker process of the [Catch3 runner](progmasoft-runner.md#top) is a
+test run of its own: its listeners see the events of the tests it runs.
 
 ## Test running events
 
@@ -41,9 +41,9 @@ void testRunStarting( TestRunInfo const& testRunInfo );
 void testRunEnded( TestRunStats const& testRunStats );
 ```
 
-The `testRun` events bookend the entire test run. `testRunStarting` is
-emitted before the first test case is executed, and `testRunEnded` is
-emitted after all the test cases have been executed.
+The `testRun` events bookend the test run of one process. `testRunStarting`
+is emitted before the first test case the process executes, and
+`testRunEnded` after the last.
 
 ### `testCase` events
 
@@ -136,23 +136,6 @@ and contains the benchmarking results.
 benchmarking itself fails.
 
 
-## Listings events
-
-> Introduced in Catch2 3.0.1.
-
-Listings events are events that correspond to the test binary being
-invoked with `--list-foo` flag.
-
-There are currently 3 listing events, one for reporters, one for tests,
-and one for tags. Note that they are not exclusive to each other.
-
-```cpp
-void listReporters( std::vector<ReporterDescription> const& descriptions );
-void listTests( std::vector<TestCaseHandle> const& tests );
-void listTags( std::vector<TagInfo> const& tagInfos );
-```
-
-
 ## Miscellaneous events
 
 ```cpp
@@ -163,15 +146,14 @@ void noMatchingTestCases( StringRef unmatchedSpec );
 
 These are one-off events that do not neatly fit into other categories.
 
-`reportInvalidTestSpec` is sent for each [test specification command line
-argument](command-line.md#specifying-which-tests-to-run) that wasn't
-parsed into a valid spec.
+`reportInvalidTestSpec` and `noMatchingTestCases` remain for listeners
+written against Catch2. The runner reports invalid and unmatched [test
+specs](command-line.md#test-specs) itself, before any worker starts, so
+listeners do not receive these two.
 
 `fatalErrorEncountered` is sent when Catch2's POSIX signal handling
 or Windows SE handler is called into with a fatal signal/exception.
 
-`noMatchingTestCases` is sent for each user provided test specification
-that did not match any registered tests.
 
 ---
 

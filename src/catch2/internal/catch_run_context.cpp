@@ -748,6 +748,14 @@ namespace Catch {
         return m_atomicAssertionCount.failed >= m_abortAfterXFailedAssertions;
     }
 
+    std::string RunContext::endCapture() {
+        if ( !m_outputRedirect->isActive() ) {
+            return {};
+        }
+        m_outputRedirect->deactivate();
+        return m_outputRedirect->getStdout() + m_outputRedirect->getStderr();
+    }
+
     void RunContext::runCurrentTest() {
         auto const& testCaseInfo = m_activeTestCase->getTestCaseInfo();
         SectionInfo testCaseSection(testCaseInfo.lineInfo, testCaseInfo.name);

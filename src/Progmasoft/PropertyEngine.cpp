@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #include <Progmasoft/Catch3/Strategy/Engine.hpp>
 
+#include <Progmasoft/Runner/Files.hpp>
+
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -10,6 +15,7 @@
 #include <sstream>
 #include <string>
 #include <system_error>
+#include <thread>
 #include <utility>
 
 namespace Progmasoft::Catch3::Detail
@@ -75,24 +81,53 @@ namespace Progmasoft::Catch3::Detail
                 return tokens;
             }
 
+            /// Changes the stored tokens under a lock: the file is read
+            /// again, `change` edits what it holds, and the result replaces
+            /// the file in one rename. Workers of a parallel run, retries and
+            /// repeats of one property may write at the same time; none of
+            /// them loses what another stored.
+            template<typename Change>
             void
-            Save(const std::vector<std::string> &tokens) const
+            Update(Change change) const
             {
                 if (file_.empty())
                 {
                     return;
                 }
                 std::error_code error;
+                std::filesystem::create_directories(file_.parent_path(), error);
+                const Runner::FileLock lock(file_, std::chrono::seconds(2),
+                                            std::chrono::seconds(10));
+                auto tokens = Load();
+                change(tokens);
                 if (tokens.empty())
                 {
                     std::filesystem::remove(file_, error);
                     return;
                 }
-                std::filesystem::create_directories(file_.parent_path(), error);
-                std::ofstream output(file_, std::ios::trunc);
-                for (const auto &token : tokens)
+                const auto temporary = std::filesystem::path(
+                    file_.string() + "." + Runner::UniqueName() + ".tmp");
                 {
-                    output << token << '\n';
+                    std::ofstream output(temporary,
+                                         std::ios::binary | std::ios::trunc);
+                    for (const auto &token : tokens)
+                    {
+                        output << token << '\n';
+                    }
+                    if (!output)
+                    {
+                        output.close();
+                        std::filesystem::remove(temporary, error);
+                        return;
+                    }
+                }
+                // rename replaces the target atomically on every platform
+                // the library supports, so a reader sees the old or the new
+                // file, never a half-written one.
+                std::filesystem::rename(temporary, file_, error);
+                if (error)
+                {
+                    std::filesystem::remove(temporary, error);
                 }
             }
 
@@ -243,8 +278,7 @@ namespace Progmasoft::Catch3::Detail
             std::optional<PropertyResult>
             ReplayDatabase()
             {
-                auto tokens = database_.Load();
-                std::vector<std::string> kept;
+                const auto tokens = database_.Load();
                 for (const auto &token : tokens)
                 {
                     const auto decoded = DecodeChoices(token);
@@ -265,7 +299,14 @@ namespace Progmasoft::Catch3::Detail
                 }
                 if (!tokens.empty())
                 {
-                    database_.Save(kept);
+                    // Only the examples checked here are dropped; another
+                    // process may have stored new ones meanwhile.
+                    database_.Update([&](std::vector<std::string> &stored) {
+                        std::erase_if(stored, [&](const std::string &token) {
+                            return std::find(tokens.begin(), tokens.end(), token)
+                                   != tokens.end();
+                        });
+                    });
                 }
                 return std::nullopt;
             }
@@ -474,13 +515,13 @@ namespace Progmasoft::Catch3::Detail
                 failure.Replay = EncodeChoices(size, failing.Choices);
                 failure.Notes = std::move(failing.Outcome.Record.Notes);
 
-                auto stored = database_.Load();
-                if (std::find(stored.begin(), stored.end(), failure.Replay)
-                    == stored.end())
-                {
-                    stored.insert(stored.begin(), failure.Replay);
-                    database_.Save(stored);
-                }
+                database_.Update([&](std::vector<std::string> &stored) {
+                    if (std::find(stored.begin(), stored.end(), failure.Replay)
+                        == stored.end())
+                    {
+                        stored.insert(stored.begin(), failure.Replay);
+                    }
+                });
 
                 PropertyResult result;
                 result.Status = PropertyStatus::kFailed;

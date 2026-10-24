@@ -44,7 +44,8 @@ same as the Catch name; see also ``TEST_PREFIX`` and ``TEST_SUFFIX``.
 
   ``catch_discover_tests`` sets up a post-build command on the test executable
   that generates the list of tests by parsing the output from running the test
-  with the ``--list-tests --reporter json`` argument.  This ensures that the full
+  with the ``--list=json`` argument, the discovery protocol of the Catch3 runner
+  (``"format": "catch3-tests"``, version 1).  This ensures that the full
   list of tests is obtained.  Since test discovery occurs at build time, it is
   not necessary to re-run CMake when the list of tests changes.
   However, it requires that :prop_tgt:`CROSSCOMPILING_EMULATOR` is properly set
@@ -103,25 +104,24 @@ same as the Catch name; see also ``TEST_PREFIX`` and ``TEST_SUFFIX``.
     Note that this variable is only available in CTest.
 
   ``REPORTER reporter``
-    Use the specified reporter when running the test case. The reporter will
-    be passed to the Catch executable as ``--reporter reporter``.
+    Write a report of each test: ``junit`` passes ``--junit=<file>`` and
+    ``json`` passes ``--json=<file>`` to the test executable; ``console``
+    writes no file. ``junit`` and ``json`` need ``OUTPUT_DIR``.
 
   ``OUTPUT_DIR dir``
-    If specified, the parameter is passed along as
-    ``--out dir/<test_name>`` to Catch executable. The actual file name is the
-    same as the test name. This should be used instead of
-    ``EXTRA_ARGS --out foo`` to avoid race conditions writing the result output
-    when using parallel test execution.
+    The directory the reports of ``REPORTER`` go to, one file per test,
+    named after the test. Use it instead of ``EXTRA_ARGS --junit=foo`` so that
+    tests that run at the same time do not write the same file.
 
   ``OUTPUT_PREFIX prefix``
     May be used in conjunction with ``OUTPUT_DIR``.
     If specified, ``prefix`` is added to each output file name, like so
-    ``--out dir/prefix<test_name>``.
+    ``dir/prefix<test_name>``.
 
   ``OUTPUT_SUFFIX suffix``
     May be used in conjunction with ``OUTPUT_DIR``.
     If specified, ``suffix`` is added to each output file name, like so
-    ``--out dir/<test_name>suffix``. This can be used to add a file extension to
+    ``dir/<test_name>suffix``. This can be used to add a file extension to
     the output e.g. ".xml".
 
   ``DL_PATHS path...``

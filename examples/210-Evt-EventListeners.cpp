@@ -334,14 +334,6 @@ struct MyListener : Catch::EventListenerBase {
         print( std::cout, 1, "- testRunStats", testRunStats );
     }
 
-    // A test is being skipped (because it is "hidden")
-    void skipTest( Catch::TestCaseInfo const& testInfo ) override {
-        std::cout
-            << dashed_line
-            << "\nEvent: skipTest:\n";
-        print( std::cout, 1, "- testInfo", testInfo );
-    }
-
     // Test cases starting
     void testCaseStarting( Catch::TestCaseInfo const& testInfo ) override {
         std::cout

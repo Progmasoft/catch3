@@ -98,7 +98,7 @@ case the test is handled as _failed_ instead).
 
 Note that if all test cases in a run are skipped, Catch2 returns a non-zero
 exit code, same as it does if no test cases have run. This behaviour can
-be overridden using the [--allow-running-no-tests](command-line.md#no-tests-override)
+be overridden using the [--allow-no-tests](command-line.md#how-tests-behave)
 flag.
 
 ### `SKIP` inside generators

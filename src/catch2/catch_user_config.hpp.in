@@ -235,8 +235,6 @@
 // "Variable" defines, these have actual values
 // ------
 
-#define CATCH_CONFIG_DEFAULT_REPORTER "@CATCH_CONFIG_DEFAULT_REPORTER@"
-#define CATCH_CONFIG_CONSOLE_WIDTH @CATCH_CONFIG_CONSOLE_WIDTH@
 
 // Unlike the macros above, CATCH_CONFIG_FALLBACK_STRINGIFIER does not
 // have a good default value, so we cannot always define it, and cannot

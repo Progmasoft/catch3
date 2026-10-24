@@ -74,7 +74,7 @@ function(magic_unescape_chars var)
 endfunction()
 
 
-# Abuses knowledge of Catch2's JSON reporter output for listing tests to
+# Abuses knowledge of the runner's JSON listing (`--list=json`) to
 # split JSON array of the test listings into a CMake list of strings,
 # with each element being the JSON string of one array entry.
 #
@@ -286,19 +286,10 @@ function(catch_discover_tests_impl)
     set(ENV{DYLD_FRAMEWORK_PATH} "${paths}")
   endif()
 
-  make_temp_file_path(listing_output_path "${_TEST_WORKING_DIR}")
-
-  set(_Verbosity "quiet")
-  if (add_tags)
-    set(_Verbosity "normal")
-  endif()
-
+  # The discovery protocol of the Catch3 runner: `--list=json` prints one
+  # JSON document, "format": "catch3-tests", in registration order.
   execute_process(
-    COMMAND ${_TEST_EXECUTOR} "${_TEST_EXECUTABLE}" ${spec}
-      --list-tests
-      --reporter "json::verbosity=${_Verbosity}"
-      --out "${listing_output_path}"
-      --order lex # Make sure the output order, and thus test registration order, is consistent across runs.
+    COMMAND ${_TEST_EXECUTOR} "${_TEST_EXECUTABLE}" ${spec} --list=json
     OUTPUT_VARIABLE listing_output
     RESULT_VARIABLE result
     WORKING_DIRECTORY "${_TEST_WORKING_DIR}"
@@ -310,34 +301,29 @@ function(catch_discover_tests_impl)
       "  Output: ${listing_output}\n"
     )
   endif()
-
-  # Read the JSON output back from the output file and validate it.
-  file(READ ${listing_output_path} listing_output)
-  file(REMOVE ${listing_output_path})
+  # Whatever the binary printed before the document is not part of it.
+  string(FIND "${listing_output}" "{" listing_start)
+  if(listing_start GREATER 0)
+    string(SUBSTRING "${listing_output}" ${listing_start} -1 listing_output)
+  endif()
   validate_input_noescapes(listing_output)
 
-  # Prepare reporter
+  # The runner writes reports itself: REPORTER chooses which, OUTPUT_DIR where.
+  set(report_option "")
   if(reporter)
-    set(reporter_arg "--reporter ${reporter}")
-
-    # Run test executable to check whether reporter is available
-    # note that the use of --list-reporters is not the important part,
-    # we only want to check whether the execution succeeds with ${reporter_arg}
-    execute_process(
-      COMMAND ${_TEST_EXECUTOR} "${_TEST_EXECUTABLE}" ${spec} ${reporter_arg} --list-reporters
-      OUTPUT_VARIABLE reporter_check_output
-      RESULT_VARIABLE reporter_check_result
-      WORKING_DIRECTORY "${_TEST_WORKING_DIR}"
-    )
-    if(${reporter_check_result} EQUAL 255)
+    string(TOLOWER "${reporter}" reporter_lower)
+    if(reporter_lower STREQUAL "junit")
+      set(report_option "--junit=")
+    elseif(reporter_lower STREQUAL "json")
+      set(report_option "--json=")
+    elseif(NOT reporter_lower STREQUAL "console")
       message(FATAL_ERROR
-        "\"${reporter}\" is not a valid reporter!\n"
+        "\"${reporter}\" is not a report of the Catch3 runner; use junit, json or console\n"
       )
-    elseif(NOT ${reporter_check_result} EQUAL 0)
+    endif()
+    if(report_option AND NOT output_dir)
       message(FATAL_ERROR
-        "Error checking for reporter in test executable '${_TEST_EXECUTABLE}':\n"
-        "  Result: ${reporter_check_result}\n"
-        "  Output: ${reporter_check_output}\n"
+        "REPORTER ${reporter} writes a file and needs OUTPUT_DIR\n"
       )
     endif()
   endif()
@@ -365,14 +351,15 @@ function(catch_discover_tests_impl)
   endif()
 
   # Parse JSON output for list of tests/class names/tags
+  string(JSON format GET "${listing_output}" "format")
   string(JSON version GET "${listing_output}" "version")
-  if(NOT version STREQUAL "2")
-    message(FATAL_ERROR "Unsupported catch output version: '${version}'")
+  if(NOT format STREQUAL "catch3-tests" OR NOT version STREQUAL "1")
+    message(FATAL_ERROR "Unsupported test listing: '${format}' version '${version}'")
   endif()
 
   # Extract just the JSON array with tests and then split them into
   # individual objects.
-  string(JSON test_listing GET "${listing_output}" "listings" "tests")
+  string(JSON test_listing GET "${listing_output}" "tests")
   split_json_array(test_listing tests)
 
   # Exit early if no tests are detected
@@ -405,8 +392,6 @@ function(catch_discover_tests_impl)
   )
   prepare_command_fragment(_args_reporter_fragment
     "${extra_args}"
-    "${reporter_arg}"
-    "--order decl"
   )
 
   # `set_tests_properties` calls are
@@ -459,7 +444,9 @@ function(catch_discover_tests_impl)
     # ...add output dir
     if(output_dir)
       string(REGEX REPLACE "[^A-Za-z0-9_]" "_" escaped_name_clean "${escaped_name}")
-      set(output_dir_arg "--out ${output_dir}/${output_prefix}${escaped_name_clean}${output_suffix}")
+      if(report_option)
+        set(output_dir_arg "${report_option}${output_dir}/${output_prefix}${escaped_name_clean}${output_suffix}")
+      endif()
     endif()
 
     set(full_name "${prefix}${plain_name}${suffix}")

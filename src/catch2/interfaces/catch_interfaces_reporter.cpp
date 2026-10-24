@@ -9,38 +9,10 @@
 #include <catch2/interfaces/catch_interfaces_config.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/internal/catch_move_and_forward.hpp>
-#include <catch2/internal/catch_istream.hpp>
 
 #include <cassert>
 
 namespace Catch {
-
-    ReporterConfig::ReporterConfig(
-        IConfig const* _fullConfig,
-        Detail::unique_ptr<IStream> _stream,
-        ColourMode colourMode,
-        Verbosity verbosity,
-        std::map<std::string, std::string> customOptions ):
-        m_stream( CATCH_MOVE(_stream) ),
-        m_fullConfig( _fullConfig ),
-        m_colourMode( colourMode ),
-        m_verbosity( verbosity ),
-        m_customOptions( CATCH_MOVE( customOptions ) ) {}
-
-    Detail::unique_ptr<IStream> ReporterConfig::takeStream() && {
-        assert( m_stream );
-        return CATCH_MOVE( m_stream );
-    }
-    IConfig const * ReporterConfig::fullConfig() const { return m_fullConfig; }
-    ColourMode ReporterConfig::colourMode() const { return m_colourMode; }
-    Verbosity ReporterConfig::verbosity() const { return m_verbosity; }
-
-    std::map<std::string, std::string> const&
-    ReporterConfig::customOptions() const {
-        return m_customOptions;
-    }
-
-    ReporterConfig::~ReporterConfig() = default;
 
     AssertionStats::AssertionStats( AssertionResult const& _assertionResult,
                                     std::vector<MessageInfo> const& _infoMessages,

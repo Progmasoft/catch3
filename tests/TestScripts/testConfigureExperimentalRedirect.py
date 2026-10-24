@@ -9,6 +9,7 @@
 
 from ConfigureTestsCommon import configure_and_build, run_and_return_output
 
+import json
 import os
 import re
 import sys
@@ -32,18 +33,17 @@ configure_and_build(catch2_source_path,
                     build_dir_path,
                     [("CATCH_CONFIG_EXPERIMENTAL_REDIRECT", "ON")])
 
-stdout, _ = run_and_return_output(os.path.join(build_dir_path, 'tests'),
-                                  'SelfTest',
-                                  ['-r', 'xml', '"has printf"'])
+report_path = os.path.join(build_dir_path, 'has-printf.json')
+run_and_return_output(os.path.join(build_dir_path, 'tests'),
+                      'SelfTest',
+                      ['--no-history', '--json=' + report_path, 'has printf'])
 
-
-# The print from printf must be within the XML's reporter stdout tag.
-required_output = '''\
-      <StdOut>
-loose text artifact
-      </StdOut>
-'''
-if not required_output in stdout:
-    print("Could not find '{}' in the stdout".format(required_output))
-    print('stdout: "{}"'.format(stdout))
+# The text printf writes must be captured as the test's standard output.
+with open(report_path, encoding='utf-8') as report_file:
+    report = json.load(report_file)
+outputs = [attempt.get('standardOutput', '')
+           for test in report['tests']
+           for attempt in test['attempts']]
+if outputs != ['loose text artifact\n']:
+    print('Unexpected captured output: {}'.format(outputs))
     exit(2)

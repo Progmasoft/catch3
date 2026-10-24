@@ -10,10 +10,12 @@ local repository_root = os.projectdir()
 local generated_include = path.join(repository_root, ".xmake", "generated")
 add_moduledirs(path.join(repository_root, "buildsupport"))
 
--- Keep upstream Catch2's compilation baseline and project identity intact.
+-- Catch2's engine with the Catch3 runner, which replaced Catch2's session,
+-- command line and reporters. The library is C++20; Catch2's headers still
+-- need only C++14 in the code that includes them.
 target("catch2")
     set_kind("static")
-    set_languages("cxx14")
+    set_languages("cxx20")
     on_load(function(target)
         -- File I/O is restricted to Xmake's script domain, so generate here
         -- rather than while the declarative project file is being evaluated.
@@ -23,6 +25,11 @@ target("catch2")
     end)
     add_files("src/catch2/**.cpp")
     remove_files("src/catch2/internal/catch_main.cpp")
+    add_files(
+        "src/Progmasoft/Runner/*.cpp",
+        "src/Progmasoft/Results.cpp",
+        "src/Progmasoft/XmlWriter.cpp"
+    )
     add_includedirs("src", {public = true})
     add_headerfiles("src/catch2/**.hpp", {prefixdir = ""})
 
@@ -42,9 +49,7 @@ target("ProgmasoftCatch3")
         "src/Progmasoft/ChoiceShrinker.cpp",
         "src/Progmasoft/Context.cpp",
         "src/Progmasoft/PropertyEngine.cpp",
-        "src/Progmasoft/Results.cpp",
-        "src/Progmasoft/Snapshot.cpp",
-        "src/Progmasoft/XmlWriter.cpp"
+        "src/Progmasoft/Snapshot.cpp"
     )
     add_includedirs("src", {public = true})
     add_deps("catch2", {public = true})
@@ -57,6 +62,12 @@ target("ProgmasoftPropertyTests")
         "tests/Progmasoft/Property.tests.cpp",
         "tests/Progmasoft/ForAll.tests.cpp",
         "tests/Progmasoft/Results.tests.cpp",
+        "tests/Progmasoft/Runner.tests.cpp",
+        "tests/Progmasoft/RunnerUnits.tests.cpp",
+        "tests/Progmasoft/RunnerPlanner.tests.cpp",
+        "tests/Progmasoft/RunnerOptions.tests.cpp",
+        "tests/Progmasoft/RunnerAnalysis.tests.cpp",
+        "tests/Progmasoft/RunnerOutput.tests.cpp",
         "tests/Progmasoft/Snapshot.tests.cpp",
         "tests/Progmasoft/Stateful.tests.cpp",
         "tests/Progmasoft/Strategy.tests.cpp",

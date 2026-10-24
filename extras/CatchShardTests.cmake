@@ -8,7 +8,7 @@
 
 # Supported optional args:
 #  * SHARD_COUNT - number of shards to split target's tests into
-#  * REPORTER    - reporter spec to use for tests
+#  * REPORTER    - report options for the shards, such as --junit=FILE
 #  * TEST_SPEC   - test spec used for filtering tests
 function(catch_add_sharded_tests TARGET)
   if(${CMAKE_VERSION} VERSION_LESS "3.10.0")

@@ -15,7 +15,8 @@
 #  * TARGET_NAME - name of the target to shard (used for test names)
 #  * SHARD_COUNT - number of shards to split the binary into
 # Optional args:
-#  * REPORTER_SPEC - reporter specs to be passed down to the binary
+#  * REPORTER_SPEC - report options passed to the binary as they are, such
+#                    as --junit=FILE
 #  * TEST_SPEC     - test spec to pass down to the test binary
 
 if(NOT EXISTS "${TEST_BINARY}")
@@ -29,22 +30,24 @@ if(TEST_SPEC)
   set(other_args "${other_args} ${TEST_SPEC}")
 endif()
 if(REPORTER_SPEC)
-  set(other_args "${other_args} --reporter ${REPORTER_SPEC}")
+  set(other_args "${other_args} ${REPORTER_SPEC}")
 endif()
 
 # foreach RANGE in cmake is inclusive of the end, so we have to adjust it
 math(EXPR adjusted_shard_count "${SHARD_COUNT} - 1")
 
+# The runner assigns tests to shards by a stable hash of their names, so the
+# shards cover every test once whatever the seed; the shared seed keeps their
+# random numbers the same.
 file(WRITE "${CTEST_FILE}"
-  "string(RANDOM LENGTH 8 ALPHABET \"0123456789abcdef\" rng_seed)\n"
+  "string(RANDOM LENGTH 9 ALPHABET \"0123456789\" rng_seed)\n"
   "\n"
   "foreach(shard_idx RANGE ${adjusted_shard_count})\n"
   "  add_test(${TARGET_NAME}-shard-" [[${shard_idx}]] "/${adjusted_shard_count}\n"
   "    ${TEST_BINARY}"
-  " --shard-index " [[${shard_idx}]]
-  " --shard-count ${SHARD_COUNT}"
-  " --rng-seed " [[0x${rng_seed}]]
-  " --order rand"
+  " --shard=" [[${shard_idx}]] "/${SHARD_COUNT}"
+  " --seed=" [[${rng_seed}]]
+  " --order=random"
   "${other_args}"
   "\n"
   "  )\n"

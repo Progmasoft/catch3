@@ -8,9 +8,9 @@
 # SPDX-License-Identifier: BSL-1.0
 
 """
-This test script verifies that the testCasePartial{Starting,Ended} reporter
+This test script verifies that the testCasePartial{Starting,Ended} listener
 events fire properly. This is done by calling a test binary compiled with
-reporter that reports specifically testCase* events, and verifying the
+a listener that records specifically testCase* events, and verifying the
 outputs match what we expect.
 """
 
@@ -46,21 +46,20 @@ TestCaseEnded: generator
 
 from typing import List
 
-def get_test_output(test_exe: str, sections: bool) -> List[str]:
-    cmd = [test_exe, '--reporter', 'partial']
-    if sections:
-        cmd.append('section')
-    else:
-        cmd.append('generator')
-
+def get_test_output(test_exe: str, sections: bool) -> str:
+    cmd = [test_exe, '--no-history', 'section' if sections else 'generator']
     ret = subprocess.run(cmd,
                          stdout = subprocess.PIPE,
                          stderr = subprocess.PIPE,
-                         timeout = 10,
+                         timeout = 30,
                          check = True,
                          universal_newlines = True)
-
-    return ret.stdout
+    # The listener prints the events when the run ends, outside any test;
+    # the runner passes that output on.
+    output = ret.stdout + ret.stderr
+    start = output.index('BEGIN EVENTS\n') + len('BEGIN EVENTS\n')
+    end = output.index('END EVENTS', start)
+    return output[start:end].replace('\r\n', '\n')
 
 def main():
     test_exe, = sys.argv[1:]

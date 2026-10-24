@@ -1,165 +1,239 @@
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
-#include <Progmasoft/Catch3.hpp>
+#include <Progmasoft/Catch3/Results.hpp>
+#include <Progmasoft/Catch3/XmlWriter.hpp>
 
-#include <cmath>
-#include <ios>
-#include <limits>
+#include <catch2/catch_test_macros.hpp>
+
 #include <sstream>
-#include <stdexcept>
 #include <string>
-#include <utility>
 
-namespace {
+namespace
+{
+    using namespace Progmasoft::Catch3;
 
-    Progmasoft::Catch3::TestCaseResult
-    MakeCase( std::string name,
-              Progmasoft::Catch3::TestCaseStatus status,
-              double duration ) {
-        Progmasoft::Catch3::TestCaseResult testCase;
-        testCase.Name = std::move( name );
-        testCase.Status = status;
-        testCase.DurationSeconds = duration;
-        return testCase;
+    Attempt
+    MakeAttempt(Outcome outcome,
+                std::int64_t microseconds,
+                std::size_t number = 1)
+    {
+        Attempt attempt;
+        attempt.outcome = outcome;
+        attempt.number = number;
+        attempt.durationMicroseconds = microseconds;
+        if (IsFailure(outcome))
+        {
+            attempt.category = outcome == Outcome::kCrashed
+                                   ? FailureCategory::kCrash
+                               : outcome == Outcome::kTimedOut
+                                   ? FailureCategory::kTimeout
+                                   : FailureCategory::kAssertion;
+        }
+        return attempt;
     }
 
+    TestResult
+    MakeTest(const std::string &name, Outcome outcome, std::int64_t microseconds)
+    {
+        TestResult test;
+        test.id = name;
+        test.name = name;
+        test.file = "tests/parser.cpp";
+        test.line = 12;
+        test.outcome = outcome;
+        test.attempts.push_back(MakeAttempt(outcome, microseconds));
+        test.category = test.attempts.back().category;
+        return test;
+    }
 } // namespace
 
-TEST_CASE( "Test result summaries count outcomes and duration",
-           "[progmasoft][results]" ) {
-    using namespace Progmasoft::Catch3;
+TEST_CASE("A run summary counts every verdict once",
+          "[progmasoft][results]")
+{
+    RunResult run;
+    run.binary = "parser-tests";
+    run.wallMicroseconds = 2000000;
+    run.tests.push_back(MakeTest("parses", Outcome::kPassed, 125000));
+    run.tests.push_back(MakeTest("reports", Outcome::kFailed, 250000));
+    run.tests.push_back(MakeTest("loads", Outcome::kCrashed, 500000));
+    run.tests.push_back(MakeTest("waits", Outcome::kTimedOut, 1000000));
+    auto flaky = MakeTest("retries", Outcome::kPassed, 0);
+    flaky.flaky = true;
+    flaky.attempts.insert(flaky.attempts.begin(),
+                          MakeAttempt(Outcome::kFailed, 10000));
+    run.tests.push_back(flaky);
+    auto quarantined = MakeTest("quarantined", Outcome::kFailed, 1);
+    quarantined.quarantined = true;
+    run.tests.push_back(quarantined);
 
-    TestSuiteResult suite;
-    suite.Name = "Parser";
-    suite.TestCases = {
-        MakeCase( "accepts input", TestCaseStatus::kPassed, 0.125 ),
-        MakeCase( "rejects malformed input", TestCaseStatus::kFailed, 0.250 ),
-        MakeCase( "handles I/O", TestCaseStatus::kErrored, 0.500 ),
-        MakeCase( "optional backend", TestCaseStatus::kSkipped, 0.0 ),
-    };
-    const TestRunResult run{ "Compiler", { suite } };
+    const RunSummary summary = Summarize(run);
+    CHECK(summary.tests == 6);
+    CHECK(summary.passed == 2);
+    CHECK(summary.failed == 2);
+    CHECK(summary.crashed == 1);
+    CHECK(summary.timedOut == 1);
+    CHECK(summary.flaky == 1);
+    CHECK(summary.quarantined == 1);
+    CHECK(summary.attempts == 7);
+    CHECK(summary.testMicroseconds == 1885001);
 
-    const TestRunSummary summary = SummarizeTestRun( run );
-    CHECK( summary.Tests == 4 );
-    CHECK( summary.Passed() == 1 );
-    CHECK( summary.Failures == 1 );
-    CHECK( summary.Errors == 1 );
-    CHECK( summary.Skipped == 1 );
-    CHECK( summary.DurationSeconds == 0.875 );
+    CHECK(run.tests[1].FailsRun());
+    CHECK_FALSE(run.tests[4].FailsRun());
+    CHECK_FALSE(run.tests[5].FailsRun()); // In quarantine.
 }
 
-TEST_CASE( "JUnit XML writer serializes counts, details, and escaped text",
-           "[progmasoft][results][xml]" ) {
-    using namespace Progmasoft::Catch3;
-
-    TestSuiteResult suite;
-    suite.Name = "Parser & resolver";
-
-    auto failed =
-        MakeCase( "rejects <input>", TestCaseStatus::kFailed, 0.0125 );
-    failed.ClassName = "CompilerTests";
-    failed.SourceFile = "tests/parser.cpp";
-    failed.Message = "assertion: \"expected\" & actual";
-    failed.Details = "expected <node> but got &lt;none>";
-    failed.StandardOutput = "trace <start>&finish";
-    suite.TestCases.push_back( std::move( failed ) );
-
-    auto errored = MakeCase( "throws", TestCaseStatus::kErrored, 0.25 );
-    errored.Message = "runtime error";
-    errored.Details = "first line\nsecond line";
-    errored.StandardError = "failure detail";
-    suite.TestCases.push_back( std::move( errored ) );
-
-    auto skipped = MakeCase( "platform-only", TestCaseStatus::kSkipped, 0.0 );
-    skipped.Message = "not available";
-    suite.TestCases.push_back( std::move( skipped ) );
-
-    suite.TestCases.push_back(
-        MakeCase( "passes", TestCaseStatus::kPassed, 0.001 ) );
-    const TestRunResult run{ "Compiler run", { std::move( suite ) } };
-
-    const std::string xml = JUnitXmlWriter::ToString( run );
-    CHECK( xml.starts_with( "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" ) );
-    CHECK( xml.find( "<testsuites name=\"Compiler run\" tests=\"4\" " ) !=
-           std::string::npos );
-    CHECK( xml.find( "failures=\"1\" errors=\"1\" skipped=\"1\"" ) !=
-           std::string::npos );
-    CHECK( xml.find( "name=\"Parser &amp; resolver\"" ) != std::string::npos );
-    CHECK( xml.find( "name=\"rejects &lt;input&gt;\"" ) != std::string::npos );
-    CHECK( xml.find(
-               "message=\"assertion: &quot;expected&quot; &amp; actual\"" ) !=
-           std::string::npos );
-    CHECK( xml.find( "expected &lt;node&gt; but got &amp;lt;none&gt;" ) !=
-           std::string::npos );
-    CHECK(
-        xml.find( "<system-out>trace &lt;start&gt;&amp;finish</system-out>" ) !=
-        std::string::npos );
-    CHECK( xml.find( "<error message=\"runtime error\" type=\"TestError\">" ) !=
-           std::string::npos );
-    CHECK( xml.find( "<skipped message=\"not available\"/>" ) !=
-           std::string::npos );
-    CHECK( xml.find( "classname=\"CompilerTests\"" ) != std::string::npos );
-    CHECK( xml.find( "file=\"tests/parser.cpp\"" ) != std::string::npos );
-    CHECK( xml.find( "time=\"0.263500\"" ) != std::string::npos );
-    CHECK( xml.ends_with( "</testsuites>\n" ) );
+TEST_CASE("Outcome and category names read back", "[progmasoft][results]")
+{
+    for (const Outcome outcome : {Outcome::kPassed,
+                                  Outcome::kFailed,
+                                  Outcome::kFailedAsExpected,
+                                  Outcome::kSkipped,
+                                  Outcome::kCrashed,
+                                  Outcome::kTimedOut,
+                                  Outcome::kBlocked,
+                                  Outcome::kNotRun,
+                                  Outcome::kUpToDate})
+    {
+        CHECK(OutcomeFromName(OutcomeName(outcome)) == outcome);
+    }
+    CHECK(CategoryFromName(CategoryName(FailureCategory::kTimeout)) ==
+          FailureCategory::kTimeout);
+    CHECK_FALSE(OutcomeFromName("exploded").has_value());
 }
 
-TEST_CASE( "JUnit XML replaces malformed UTF-8 and forbidden XML controls",
-           "[progmasoft][results][xml]" ) {
-    using namespace Progmasoft::Catch3;
+TEST_CASE("A failure is described with its expansion, messages and sections",
+          "[progmasoft][results]")
+{
+    Attempt attempt = MakeAttempt(Outcome::kFailed, 1000);
+    AssertionRecord assertion;
+    assertion.file = "parser.cpp";
+    assertion.line = 40;
+    assertion.macro = "REQUIRE";
+    assertion.expression = "tokens.size() == 3";
+    assertion.expansion = "2 == 3";
+    assertion.message = "the comma was lost";
+    assertion.context = {"input := a,b"};
+    assertion.sections = {"lists", "with commas"};
+    attempt.assertions.push_back(assertion);
 
-    auto testCase = MakeCase( "valid", TestCaseStatus::kPassed, 0.0 );
-    testCase.Name = std::string( "bad\x01utf8\xF0\x28\x8C\x28", 12 );
-    const TestRunResult run{ std::string( "suite\0name", 10 ),
-                             { { "suite", { testCase } } } };
-
-    const std::string xml = JUnitXmlWriter::ToString( run );
-    CHECK( xml.find( "name=\"bad&#xFFFD;utf8&#xFFFD;(&#xFFFD;(\"" ) !=
-           std::string::npos );
-    CHECK( xml.find( "name=\"suite&#xFFFD;name\"" ) != std::string::npos );
+    const std::string text = DescribeFailure(attempt);
+    CHECK(text.find("parser.cpp:40: FAILED:") != std::string::npos);
+    CHECK(text.find("REQUIRE( tokens.size() == 3 )") != std::string::npos);
+    CHECK(text.find("with expansion:\n  2 == 3") != std::string::npos);
+    CHECK(text.find("with message:\n  the comma was lost") != std::string::npos);
+    CHECK(text.find("with context:\n  input := a,b") != std::string::npos);
+    CHECK(text.find("in section lists / with commas") != std::string::npos);
+    CHECK(SummarizeFailure(attempt) == "parser.cpp:40: FAILED:");
 }
 
-TEST_CASE( "Result summaries reject invalid durations and statuses",
-           "[progmasoft][results]" ) {
-    using namespace Progmasoft::Catch3;
+TEST_CASE("A crash and a timeout say where they stopped",
+          "[progmasoft][results]")
+{
+    Attempt crash = MakeAttempt(Outcome::kCrashed, 1000);
+    crash.exitDescription = "signal 11 (SIGSEGV)";
+    crash.fatalMessage = "SIGSEGV - Segmentation violation signal";
+    crash.lastLocation = "parser.cpp:51";
+    SectionRecord open;
+    open.name = "deep input";
+    open.durationMicroseconds = -1;
+    crash.sections.push_back(open);
+    const std::string crashText = DescribeFailure(crash);
+    CHECK(crashText.find("crashed with signal 11 (SIGSEGV)") !=
+          std::string::npos);
+    CHECK(crashText.find("Segmentation violation") != std::string::npos);
+    CHECK(crashText.find("last assertion started at parser.cpp:51") !=
+          std::string::npos);
+    CHECK(crashText.find("in section deep input") != std::string::npos);
 
-    TestCaseResult invalidDuration =
-        MakeCase( "invalid", TestCaseStatus::kPassed, -1.0 );
-    CHECK_THROWS_AS(
-        SummarizeTestRun( { "run", { { "suite", { invalidDuration } } } } ),
-        std::invalid_argument );
-
-    invalidDuration.DurationSeconds = std::numeric_limits<double>::infinity();
-    CHECK_THROWS_AS(
-        SummarizeTestRun( { "run", { { "suite", { invalidDuration } } } } ),
-        std::invalid_argument );
-
-    invalidDuration.DurationSeconds = 0.0;
-    invalidDuration.Status = static_cast<TestCaseStatus>( 255 );
-    CHECK_THROWS_AS(
-        SummarizeTestRun( { "run", { { "suite", { invalidDuration } } } } ),
-        std::invalid_argument );
+    const Attempt timeout = MakeAttempt(Outcome::kTimedOut, 2500000);
+    CHECK(DescribeFailure(timeout).find("timed out after 2.5 s") !=
+          std::string::npos);
 }
 
-TEST_CASE( "JUnit XML writer validates results and output stream state",
-           "[progmasoft][results][xml]" ) {
-    using namespace Progmasoft::Catch3;
+TEST_CASE("JUnit XML keeps every attempt and marks flaky tests",
+          "[progmasoft][results][xml]")
+{
+    RunResult run;
+    run.binary = "parser-tests";
+    run.seed = 42;
+    run.workers = 4;
+    run.wallMicroseconds = 263500;
 
-    const TestRunResult emptyRun{ "empty", {} };
-    const std::string emptyXml = JUnitXmlWriter::ToString( emptyRun );
-    CHECK( emptyXml.find( "tests=\"0\" failures=\"0\" errors=\"0\" " ) !=
-           std::string::npos );
+    auto failed = MakeTest("reports <errors>", Outcome::kFailed, 263500);
+    failed.className = "ParserTests";
+    failed.attempts.back().standardOutput = "trace <start>&finish";
+    AssertionRecord assertion;
+    assertion.file = "parser.cpp";
+    assertion.line = 7;
+    assertion.expression = "ok";
+    failed.attempts.back().assertions.push_back(assertion);
+    failed.analysis.push_back("new failure after 3 passing run(s)");
+    failed.replayCommand = "parser-tests \"reports <errors>\" --seed=42";
+    run.tests.push_back(failed);
 
-    auto invalidCase = MakeCase( "bad", TestCaseStatus::kPassed, 0.0 );
-    invalidCase.DurationSeconds = std::numeric_limits<double>::quiet_NaN();
-    const TestRunResult invalidRun{ "invalid",
-                                    { { "suite", { invalidCase } } } };
+    auto crashed = MakeTest("loads", Outcome::kCrashed, 1);
+    crashed.attempts.back().exitDescription = "signal 6 (SIGABRT)";
+    run.tests.push_back(crashed);
+
+    auto flaky = MakeTest("retries", Outcome::kPassed, 10);
+    flaky.flaky = true;
+    flaky.attempts.insert(flaky.attempts.begin(),
+                          MakeAttempt(Outcome::kTimedOut, 5000000));
+    run.tests.push_back(flaky);
+
+    auto blocked = MakeTest("needs the parser", Outcome::kBlocked, 0);
+    blocked.attempts.clear();
+    blocked.analysis.push_back("depends on 'reports <errors>', which failed");
+    run.tests.push_back(blocked);
+
+    const std::string xml = JUnitXmlWriter::ToString(run);
+    CHECK(xml.rfind("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", 0) == 0);
+    CHECK(xml.find("tests=\"4\" failures=\"1\" errors=\"1\" skipped=\"1\"") !=
+          std::string::npos);
+    CHECK(xml.find("name=\"reports &lt;errors&gt;\"") != std::string::npos);
+    CHECK(xml.find("classname=\"ParserTests\"") != std::string::npos);
+    CHECK(xml.find("<failure message=\"parser.cpp:7: FAILED:\" "
+                   "type=\"assertion\">") != std::string::npos);
+    CHECK(xml.find("analysis: new failure after 3 passing run(s)") !=
+          std::string::npos);
+    CHECK(xml.find("<system-out>trace &lt;start&gt;&amp;finish</system-out>") !=
+          std::string::npos);
+    CHECK(xml.find("<error message=\"crashed with signal 6 (SIGABRT)\" "
+                   "type=\"crash\">") != std::string::npos);
+    CHECK(xml.find("<flakyFailure message=\"timed out after 5.0 s\" "
+                   "type=\"timeout\">") != std::string::npos);
+    CHECK(xml.find("<skipped message=\"depends on &apos;reports &lt;errors&gt;"
+                   "&apos;, which failed\"/>") != std::string::npos);
+    CHECK(xml.find("<property name=\"random-seed\" value=\"42\"/>") !=
+          std::string::npos);
+    CHECK(xml.find("time=\"0.263500\"") != std::string::npos);
+    CHECK(xml.ends_with("</testsuites>\n"));
+}
+
+TEST_CASE("JUnit XML replaces malformed UTF-8 and forbidden XML controls",
+          "[progmasoft][results][xml]")
+{
+    RunResult run;
+    run.binary = std::string("suite\0name", 10);
+    auto test = MakeTest("valid", Outcome::kPassed, 0);
+    test.name = std::string("bad\x01utf8\xF0\x28\x8C\x28", 12);
+    run.tests.push_back(test);
+
+    const std::string xml = JUnitXmlWriter::ToString(run);
+    CHECK(xml.find("name=\"bad&#xFFFD;utf8&#xFFFD;(&#xFFFD;(\"") !=
+          std::string::npos);
+    CHECK(xml.find("name=\"suite&#xFFFD;name\"") != std::string::npos);
+}
+
+TEST_CASE("The JUnit writer reports a failed stream", "[progmasoft][results][xml]")
+{
+    const RunResult empty;
     std::ostringstream output;
-    CHECK_THROWS_AS( JUnitXmlWriter::Write( invalidRun, output ),
-                     std::invalid_argument );
+    CHECK(JUnitXmlWriter::Write(empty, output));
+    CHECK(output.str().find("tests=\"0\" failures=\"0\" errors=\"0\" ") !=
+          std::string::npos);
 
-    std::ostringstream failedOutput;
-    failedOutput.setstate( std::ios::badbit );
-    CHECK_THROWS_AS( JUnitXmlWriter::Write( emptyRun, failedOutput ),
-                     std::ios_base::failure );
+    std::ostringstream failed;
+    failed.setstate(std::ios::badbit);
+    CHECK_FALSE(JUnitXmlWriter::Write(empty, failed));
 }

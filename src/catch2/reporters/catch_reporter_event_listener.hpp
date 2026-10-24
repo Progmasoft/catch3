@@ -34,12 +34,6 @@ namespace Catch {
         void assertionStarting( AssertionInfo const& assertionInfo ) override;
         void assertionEnded( AssertionStats const& assertionStats ) override;
 
-        void listReporters(
-            std::vector<ReporterDescription> const& descriptions ) override;
-        void listListeners(
-            std::vector<ListenerDescription> const& descriptions ) override;
-        void listTests( std::vector<TestCaseHandle> const& tests ) override;
-        void listTags( std::vector<TagInfo> const& tagInfos ) override;
 
         void noMatchingTestCases( StringRef unmatchedSpec ) override;
         void testRunStarting( TestRunInfo const& testRunInfo ) override;
@@ -52,7 +46,6 @@ namespace Catch {
                                    uint64_t partNumber ) override;
         void testCaseEnded( TestCaseStats const& testCaseStats ) override;
         void testRunEnded( TestRunStats const& testRunStats ) override;
-        void skipTest( TestCaseInfo const& testInfo ) override;
     };
 
 } // end namespace Catch

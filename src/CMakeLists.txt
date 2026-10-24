@@ -69,8 +69,6 @@ set(IMPL_HEADERS
   ${SOURCES_DIR}/catch_version_macros.hpp
   ${SOURCES_DIR}/internal/catch_assertion_handler.hpp
   ${SOURCES_DIR}/internal/catch_case_insensitive_comparisons.hpp
-  ${SOURCES_DIR}/internal/catch_clara.hpp
-  ${SOURCES_DIR}/internal/catch_commandline.hpp
   ${SOURCES_DIR}/internal/catch_compare_traits.hpp
   ${SOURCES_DIR}/internal/catch_compiler_capabilities.hpp
   ${SOURCES_DIR}/internal/catch_config_android_logwrite.hpp
@@ -79,11 +77,8 @@ set(IMPL_HEADERS
   ${SOURCES_DIR}/internal/catch_config_static_analysis_support.hpp
   ${SOURCES_DIR}/internal/catch_config_uncaught_exceptions.hpp
   ${SOURCES_DIR}/internal/catch_config_wchar.hpp
-  ${SOURCES_DIR}/internal/catch_console_colour.hpp
-  ${SOURCES_DIR}/internal/catch_console_width.hpp
   ${SOURCES_DIR}/internal/catch_container_nonmembers.hpp
   ${SOURCES_DIR}/internal/catch_context.hpp
-  ${SOURCES_DIR}/internal/catch_debug_console.hpp
   ${SOURCES_DIR}/internal/catch_debugger.hpp
   ${SOURCES_DIR}/internal/catch_decomposer.hpp
   ${SOURCES_DIR}/internal/catch_deprecation_macro.hpp
@@ -94,13 +89,10 @@ set(IMPL_HEADERS
   ${SOURCES_DIR}/internal/catch_fatal_condition_handler.hpp
   ${SOURCES_DIR}/internal/catch_floating_point_helpers.hpp
   ${SOURCES_DIR}/internal/catch_getenv.hpp
-  ${SOURCES_DIR}/internal/catch_istream.hpp
   ${SOURCES_DIR}/internal/catch_is_permutation.hpp
-  ${SOURCES_DIR}/internal/catch_jsonwriter.hpp
   ${SOURCES_DIR}/internal/catch_lazy_expr.hpp
   ${SOURCES_DIR}/internal/catch_leak_detector.hpp
   ${SOURCES_DIR}/internal/catch_lifetimebound.hpp
-  ${SOURCES_DIR}/internal/catch_list.hpp
   ${SOURCES_DIR}/internal/catch_logical_traits.hpp
   ${SOURCES_DIR}/internal/catch_message_info.hpp
   ${SOURCES_DIR}/internal/catch_meta.hpp
@@ -119,12 +111,10 @@ set(IMPL_HEADERS
   ${SOURCES_DIR}/internal/catch_random_number_generator.hpp
   ${SOURCES_DIR}/internal/catch_random_seed_generation.hpp
   ${SOURCES_DIR}/internal/catch_reporter_registry.hpp
-  ${SOURCES_DIR}/internal/catch_reporter_spec_parser.hpp
   ${SOURCES_DIR}/internal/catch_result_type.hpp
   ${SOURCES_DIR}/internal/catch_reusable_string_stream.hpp
   ${SOURCES_DIR}/internal/catch_run_context.hpp
   ${SOURCES_DIR}/internal/catch_section.hpp
-  ${SOURCES_DIR}/internal/catch_sharding.hpp
   ${SOURCES_DIR}/internal/catch_singletons.hpp
   ${SOURCES_DIR}/internal/catch_source_line_info.hpp
   ${SOURCES_DIR}/internal/catch_startup_exception_registry.hpp
@@ -141,7 +131,6 @@ set(IMPL_HEADERS
   ${SOURCES_DIR}/internal/catch_test_macro_impl.hpp
   ${SOURCES_DIR}/internal/catch_test_registry.hpp
   ${SOURCES_DIR}/internal/catch_test_spec_parser.hpp
-  ${SOURCES_DIR}/internal/catch_textflow.hpp
   ${SOURCES_DIR}/internal/catch_thread_local.hpp
   ${SOURCES_DIR}/internal/catch_thread_support.hpp
   ${SOURCES_DIR}/internal/catch_to_string.hpp
@@ -154,7 +143,6 @@ set(IMPL_HEADERS
   ${SOURCES_DIR}/internal/catch_void_type.hpp
   ${SOURCES_DIR}/internal/catch_wildcard_pattern.hpp
   ${SOURCES_DIR}/internal/catch_windows_h_proxy.hpp
-  ${SOURCES_DIR}/internal/catch_xmlwriter.hpp
 )
 set(IMPL_SOURCES
   ${SOURCES_DIR}/catch_approx.cpp
@@ -174,11 +162,7 @@ set(IMPL_SOURCES
   ${SOURCES_DIR}/catch_version.cpp
   ${SOURCES_DIR}/internal/catch_assertion_handler.cpp
   ${SOURCES_DIR}/internal/catch_case_insensitive_comparisons.cpp
-  ${SOURCES_DIR}/internal/catch_clara.cpp
-  ${SOURCES_DIR}/internal/catch_commandline.cpp
-  ${SOURCES_DIR}/internal/catch_console_colour.cpp
   ${SOURCES_DIR}/internal/catch_context.cpp
-  ${SOURCES_DIR}/internal/catch_debug_console.cpp
   ${SOURCES_DIR}/internal/catch_debugger.cpp
   ${SOURCES_DIR}/internal/catch_decomposer.cpp
   ${SOURCES_DIR}/internal/catch_enforce.cpp
@@ -188,11 +172,8 @@ set(IMPL_SOURCES
   ${SOURCES_DIR}/internal/catch_fatal_condition_handler.cpp
   ${SOURCES_DIR}/internal/catch_floating_point_helpers.cpp
   ${SOURCES_DIR}/internal/catch_getenv.cpp
-  ${SOURCES_DIR}/internal/catch_istream.cpp
-  ${SOURCES_DIR}/internal/catch_jsonwriter.cpp
   ${SOURCES_DIR}/internal/catch_lazy_expr.cpp
   ${SOURCES_DIR}/internal/catch_leak_detector.cpp
-  ${SOURCES_DIR}/internal/catch_list.cpp
   ${SOURCES_DIR}/internal/catch_message_info.cpp
   ${SOURCES_DIR}/internal/catch_output_redirect.cpp
   ${SOURCES_DIR}/internal/catch_parse_numbers.cpp
@@ -200,7 +181,6 @@ set(IMPL_SOURCES
   ${SOURCES_DIR}/internal/catch_random_number_generator.cpp
   ${SOURCES_DIR}/internal/catch_random_seed_generation.cpp
   ${SOURCES_DIR}/internal/catch_reporter_registry.cpp
-  ${SOURCES_DIR}/internal/catch_reporter_spec_parser.cpp
   ${SOURCES_DIR}/internal/catch_reusable_string_stream.cpp
   ${SOURCES_DIR}/internal/catch_run_context.cpp
   ${SOURCES_DIR}/internal/catch_section.cpp
@@ -217,10 +197,8 @@ set(IMPL_SOURCES
   ${SOURCES_DIR}/internal/catch_test_failure_exception.cpp
   ${SOURCES_DIR}/internal/catch_test_registry.cpp
   ${SOURCES_DIR}/internal/catch_test_spec_parser.cpp
-  ${SOURCES_DIR}/internal/catch_textflow.cpp
   ${SOURCES_DIR}/internal/catch_uncaught_exceptions.cpp
   ${SOURCES_DIR}/internal/catch_wildcard_pattern.cpp
-  ${SOURCES_DIR}/internal/catch_xmlwriter.cpp
 )
 set(INTERNAL_FILES ${IMPL_SOURCES} ${IMPL_HEADERS})
 
@@ -295,43 +273,63 @@ set(MATCHER_SOURCES
 set(MATCHER_FILES ${MATCHER_HEADERS} ${MATCHER_SOURCES})
 
 set(REPORTER_HEADERS
-  ${SOURCES_DIR}/reporters/catch_reporter_automake.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_common_base.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_compact.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_console.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_cumulative_base.hpp
   ${SOURCES_DIR}/reporters/catch_reporter_event_listener.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_helpers.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_json.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_junit.hpp
   ${SOURCES_DIR}/reporters/catch_reporter_multi.hpp
   ${SOURCES_DIR}/reporters/catch_reporter_registrars.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_sonarqube.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_streaming_base.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_tap.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_teamcity.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_xml.hpp
   ${SOURCES_DIR}/reporters/catch_reporters_all.hpp
 )
 set(REPORTER_SOURCES
-  ${SOURCES_DIR}/reporters/catch_reporter_automake.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_common_base.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_compact.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_console.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_cumulative_base.cpp
   ${SOURCES_DIR}/reporters/catch_reporter_event_listener.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_helpers.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_json.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_junit.cpp
   ${SOURCES_DIR}/reporters/catch_reporter_multi.cpp
   ${SOURCES_DIR}/reporters/catch_reporter_registrars.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_sonarqube.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_streaming_base.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_tap.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_teamcity.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_xml.cpp
 )
 set(REPORTER_FILES ${REPORTER_HEADERS} ${REPORTER_SOURCES})
+
+# The Catch3 runner, which replaced Catch2's session, command line and
+# reporters. It is built into Catch2 so that Catch::Session reaches it.
+set(PROGMASOFT_RUNNER_FILES
+  "${CATCH_DIR}/src/Progmasoft/Catch3/Results.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Catch3/Runner.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Catch3/Version.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Catch3/XmlWriter.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Results.cpp"
+  "${CATCH_DIR}/src/Progmasoft/XmlWriter.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Analysis.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Catalog.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Console.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Execution.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Expected.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Files.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Git.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Hash.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/History.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Json.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Options.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Planner.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Process.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Protocol.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/ResultsJson.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Scheduler.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/SchedulerModel.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/TemporaryDirectory.hpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Analysis.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Catalog.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Console.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Execution.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Files.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Git.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Hash.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/History.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Json.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Options.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Planner.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Process.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Protocol.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/ResultsJson.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Runner.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Scheduler.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/TemporaryDirectory.cpp"
+)
 
 set(ALL_FILES
   ${BENCHMARK_FILES}
@@ -340,14 +338,21 @@ set(ALL_FILES
   ${INTERFACE_FILES}
   ${INTERNAL_FILES}
   ${MATCHER_FILES}
+  ${PROGMASOFT_RUNNER_FILES}
 )
 
 set(FILTERED_FILES ${ALL_FILES})
 list(REMOVE_ITEM FILTERED_FILES "${PROJECT_BINARY_DIR}/generated-includes/catch2/catch_user_config.hpp")
+list(REMOVE_ITEM FILTERED_FILES ${PROGMASOFT_RUNNER_FILES})
 source_group(
   TREE ${SOURCES_DIR}
   PREFIX sources
   FILES ${FILTERED_FILES}
+)
+source_group(
+  TREE "${CATCH_DIR}/src/Progmasoft"
+  PREFIX runner
+  FILES ${PROGMASOFT_RUNNER_FILES}
 )
 source_group("generated headers"
   FILES
@@ -360,15 +365,13 @@ if(CATCH_ENABLE_REPRODUCIBLE_BUILD)
 endif()
 add_library(Catch2::Catch2 ALIAS Catch2)
 
-# Progmasoft's compiled C++20 utilities are separate from Catch2's
-# compatibility engine, which retains its existing C++14 baseline.
+# The property engine and the other Progmasoft test utilities. Their headers
+# need C++20 in the code that includes them.
 add_library(ProgmasoftCatch3 STATIC
   "${CATCH_DIR}/src/Progmasoft/ChoiceShrinker.cpp"
   "${CATCH_DIR}/src/Progmasoft/Context.cpp"
   "${CATCH_DIR}/src/Progmasoft/PropertyEngine.cpp"
-  "${CATCH_DIR}/src/Progmasoft/Results.cpp"
   "${CATCH_DIR}/src/Progmasoft/Snapshot.cpp"
-  "${CATCH_DIR}/src/Progmasoft/XmlWriter.cpp"
 )
 add_library(Progmasoft::Catch3 ALIAS ProgmasoftCatch3)
 set_target_properties(ProgmasoftCatch3 PROPERTIES EXPORT_NAME Catch3)
@@ -390,8 +393,10 @@ set_target_properties(Catch2 PROPERTIES
   SOVERSION ${PROJECT_VERSION}
 )
 
-# require C++14
+# Code that includes Catch2's headers needs C++14; the library itself, with
+# the Catch3 runner, is built as C++20.
 target_compile_features(Catch2 PUBLIC cxx_std_14)
+set_target_properties(Catch2 PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 
 configure_file(
   "${SOURCES_DIR}/catch_user_config.hpp.in"
@@ -505,7 +510,9 @@ if(CATCH_BUILD_EXAMPLES OR CATCH_BUILD_EXTRA_TESTS)
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   )
   target_compile_definitions(Catch2_buildall_interface INTERFACE CATCH_CONFIG_STATIC)
-  target_compile_features(Catch2_buildall_interface INTERFACE cxx_std_14)
+  # These targets compile the library's sources themselves, the runner's
+  # among them, which need C++20.
+  target_compile_features(Catch2_buildall_interface INTERFACE cxx_std_20)
 endif()
 
 list(APPEND CATCH_IMPL_TARGETS Catch2 Catch2WithMain)

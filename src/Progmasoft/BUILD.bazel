@@ -4,15 +4,37 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
+# The Catch3 runner, built into //:catch2. It is C++20; Catch2's headers
+# still need only C++14 in the code that includes them.
+cc_library(
+    name = "runner",
+    srcs = glob(["Runner/*.cpp"]) + [
+        "Results.cpp",
+        "XmlWriter.cpp",
+        "//:src/catch2/catch_session.cpp",
+    ],
+    hdrs = glob(["Runner/*.hpp"]) + [
+        "Catch3/Results.hpp",
+        "Catch3/Runner.hpp",
+        "Catch3/Version.hpp",
+        "Catch3/XmlWriter.hpp",
+    ],
+    copts = select({
+        "@platforms//os:windows": ["/std:c++20"],
+        "//conditions:default": ["-std=c++20"],
+    }),
+    linkstatic = True,
+    strip_include_prefix = "/src",
+    deps = ["//:catch2_core"],
+)
+
 cc_library(
     name = "catch3",
     srcs = [
         "ChoiceShrinker.cpp",
         "Context.cpp",
         "PropertyEngine.cpp",
-        "Results.cpp",
         "Snapshot.cpp",
-        "XmlWriter.cpp",
     ],
     hdrs = [
         "Catch3.hpp",
@@ -30,7 +52,6 @@ cc_library(
         "Catch3/Property.hpp",
         "Catch3/Random.hpp",
         "Catch3/Relations.hpp",
-        "Catch3/Results.hpp",
         "Catch3/Snapshot.hpp",
         "Catch3/Stateful.hpp",
         "Catch3/Strategy/ChoiceSource.hpp",
@@ -39,12 +60,13 @@ cc_library(
         "Catch3/Strategy/Engine.hpp",
         "Catch3/Strategy/Numeric.hpp",
         "Catch3/Strategy/Strategy.hpp",
-        "Catch3/XmlWriter.hpp",
     ],
     copts = select({
         "@platforms//os:windows": ["/std:c++20"],
         "//conditions:default": ["-std=c++20"],
     }),
     strip_include_prefix = "/src",
-    deps = ["//:catch2"],
+    deps = [
+        "//:catch2",
+    ],
 )

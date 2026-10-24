@@ -8,31 +8,33 @@ namespace, build-target, and licensing boundary.
 The name does **not** mean that this is an official Catch2 v3 release, a new
 upstream version, or a project endorsed by Catch2's maintainers. The current
 compatibility engine is based on Catch2's 3.16.1 development line. The project
-is still early-stage and does not yet replace or independently reimplement the
-Catch2 runner.
+is still early-stage. It keeps Catch2's API for writing tests and replaced
+Catch2's runner with [its own](progmasoft-runner.md#top).
 
 ## What is different today?
 
 | Area | Catch2 compatibility engine | Progmasoft Catch3 additions |
 | --- | --- | --- |
-| Test execution | Catch2's existing runner, reporters, command-line interface, and test registration | `CATCH3_CHECK_FOR_ALL` and `CATCH3_CHECK_PROPERTY` report property outcomes through Catch2's assertion path |
+| Test execution | Catch2's test registration, `RunContext` and listeners | The Catch3 runner: parallel worker processes, retries, flaky-test detection, quarantine, history, selection, sharding and its own command line and reports; `CATCH3_CHECK_FOR_ALL` and `CATCH3_CHECK_PROPERTY` report property outcomes through Catch2's assertion path |
 | Public include path | Existing `catch2/...` headers | `Progmasoft/Catch3.hpp` and focused `Progmasoft/Catch3/...` headers |
-| C++ baseline | Existing Catch2 target remains at C++14 | The added property API requires C++20 |
+| C++ baseline | Code that includes Catch2's headers needs C++14; the library, which holds the runner, is built as C++20 | The added property API requires C++20 |
 | Randomness | Catch2's existing behavior is unchanged | A specified SplitMix64 sequence provides deterministic trial seeds and unbiased bounded integer sampling |
 | Generated values | No change to existing Catch2 generators | Strategies for numbers, text, collections and structures with `Map`, `Filter` and `FlatMap`; shrinking of recorded choices, so every combination shrinks; replay tokens and an example database; state machines, `Classify`/`Cover` statistics, targeted search, and differential and metamorphic oracles |
 | Build identity | Existing `Catch2` target and APIs remain available | Separate `Progmasoft::Catch3` CMake target and `//src/Progmasoft:catch3` Bazel target |
 | Source terms | Catch2-originated source retains its upstream BSL-1.0 terms | Progmasoft-authored additions state their own SPDX license in each file |
 
 Properties take any number of generated values. Shrinking is deterministic and
-bounded, but local rather than globally minimal. Parallel trials and a
-standalone Catch3 runner do not exist yet; [the roadmap](progmasoft-roadmap.md#top)
+bounded, but local rather than globally minimal. Parallel trials do not
+exist yet; [the roadmap](progmasoft-roadmap.md#top)
 orders them with mocking, per-test coverage, test selection, mutation testing
 and test generation.
 
 ## Compatibility policy
 
-Catch2's `Catch` namespace, established headers, macros, command-line behavior,
-reporters, and coding style remain the compatibility surface. Progmasoft
+Catch2's `Catch` namespace, established headers, macros, matchers,
+generators, listeners and coding style remain the compatibility surface; the
+runner, its command line and its reports are Catch3's own and are not
+compatible with Catch2's. Progmasoft
 features should be added under `Progmasoft::Catch3` and must not require users
 to rename existing Catch2 tests. The first compatibility goal is source-level
 continuity with the included Catch2 3.16.1 base; this is not a promise that every

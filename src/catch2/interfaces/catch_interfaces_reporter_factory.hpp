@@ -15,21 +15,9 @@
 
 namespace Catch {
 
-    struct ReporterConfig;
     class IConfig;
     class IEventListener;
     using IEventListenerPtr = Detail::unique_ptr<IEventListener>;
-
-
-    class IReporterFactory {
-    public:
-        virtual ~IReporterFactory(); // = default
-
-        virtual IEventListenerPtr
-        create( ReporterConfig&& config ) const = 0;
-        virtual std::string getDescription() const = 0;
-    };
-    using IReporterFactoryPtr = Detail::unique_ptr<IReporterFactory>;
 
     class EventListenerFactory {
     public:

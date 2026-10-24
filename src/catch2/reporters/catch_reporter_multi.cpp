@@ -165,35 +165,4 @@ namespace Catch {
     }
 
 
-    void MultiReporter::skipTest( TestCaseInfo const& testInfo ) {
-        for ( auto& reporterish : m_reporterLikes ) {
-            reporterish->skipTest( testInfo );
-        }
-    }
-
-    void MultiReporter::listReporters(std::vector<ReporterDescription> const& descriptions) {
-        for (auto& reporterish : m_reporterLikes) {
-            reporterish->listReporters(descriptions);
-        }
-    }
-
-    void MultiReporter::listListeners(
-        std::vector<ListenerDescription> const& descriptions ) {
-        for ( auto& reporterish : m_reporterLikes ) {
-            reporterish->listListeners( descriptions );
-        }
-    }
-
-    void MultiReporter::listTests(std::vector<TestCaseHandle> const& tests) {
-        for (auto& reporterish : m_reporterLikes) {
-            reporterish->listTests(tests);
-        }
-    }
-
-    void MultiReporter::listTags(std::vector<TagInfo> const& tags) {
-        for (auto& reporterish : m_reporterLikes) {
-            reporterish->listTags(tags);
-        }
-    }
-
 } // end namespace Catch

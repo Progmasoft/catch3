@@ -78,24 +78,19 @@ def get_test_names(build_path: str) -> List[TestInfo]:
     config_path = "Debug" if os.name == 'nt' else ""
     full_path = os.path.join(build_path, config_path, 'tests')
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        fname = f'{tmpdir}/listing-output.json'
-        cmd = [full_path,
-          '--list-tests',
-          '--reporter', 'json',
-          '--out', fname
-        ]
-        result = subprocess.run(cmd,
-                                capture_output = False,
-                                check = True,
-                                text = True)
-        with open(fname, mode='r', encoding='utf-8') as file:
-            test_listing = json.load(file)
+    cmd = [full_path, '--list=json']
+    result = subprocess.run(cmd,
+                            capture_output = True,
+                            check = True,
+                            text = True,
+                            encoding = 'utf-8')
+    test_listing = json.loads(result.stdout[result.stdout.index('{'):])
 
-    assert test_listing['version'] == 2, test_listing['version']
+    assert test_listing['format'] == 'catch3-tests', test_listing['format']
+    assert test_listing['version'] == 1, test_listing['version']
 
     tests = []
-    for test in test_listing['listings']['tests']:
+    for test in test_listing['tests']:
         test_name = test['name']
         tags = test['tags']
         tests.append(TestInfo(test_name, tags))
@@ -129,11 +124,10 @@ def extract_tests_from_ctest(ctest_output) -> List[TestInfo]:
     test_infos = []
     for test in tests:
         test_command = test['command']
-        # First part of the command is the binary, second is the filter,
-        # third is the `--order decl` arg for faster startup.
+        # First part of the command is the binary, second is the filter.
         # If there are less, registration has failed. If there are more,
         # registration has changed and the script needs updating.
-        assert len(test_command) == 3, test_command
+        assert len(test_command) == 2, test_command
         test_name = test_command[1]
         labels = []
         for prop in test['properties']:

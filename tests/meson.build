@@ -10,10 +10,6 @@
 self_test_sources = files(
   'SelfTest/helpers/parse_test_spec.cpp',
   'SelfTest/IntrospectiveTests/Algorithms.tests.cpp',
-  'SelfTest/IntrospectiveTests/Clara.tests.cpp',
-  'SelfTest/IntrospectiveTests/CmdLine.tests.cpp',
-  'SelfTest/IntrospectiveTests/CmdLineHelpers.tests.cpp',
-  'SelfTest/IntrospectiveTests/ColourImpl.tests.cpp',
   'SelfTest/IntrospectiveTests/Details.tests.cpp',
   'SelfTest/IntrospectiveTests/FloatingPoint.tests.cpp',
   'SelfTest/IntrospectiveTests/GeneratorsImpl.tests.cpp',
@@ -22,20 +18,15 @@ self_test_sources = files(
   'SelfTest/IntrospectiveTests/Parse.tests.cpp',
   'SelfTest/IntrospectiveTests/PartTracker.tests.cpp',
   'SelfTest/IntrospectiveTests/RandomNumberGeneration.tests.cpp',
-  'SelfTest/IntrospectiveTests/Reporters.tests.cpp',
-  'SelfTest/IntrospectiveTests/Sharding.tests.cpp',
-  'SelfTest/IntrospectiveTests/Stream.tests.cpp',
   'SelfTest/IntrospectiveTests/String.tests.cpp',
   'SelfTest/IntrospectiveTests/StringManip.tests.cpp',
   'SelfTest/IntrospectiveTests/Tag.tests.cpp',
   'SelfTest/IntrospectiveTests/TestCaseInfoHasher.tests.cpp',
   'SelfTest/IntrospectiveTests/TestSpec.tests.cpp',
   'SelfTest/IntrospectiveTests/TestSpecParser.tests.cpp',
-  'SelfTest/IntrospectiveTests/TextFlow.tests.cpp',
   'SelfTest/IntrospectiveTests/ToString.tests.cpp',
   'SelfTest/IntrospectiveTests/Traits.tests.cpp',
   'SelfTest/IntrospectiveTests/UniquePtr.tests.cpp',
-  'SelfTest/IntrospectiveTests/Xml.tests.cpp',
   'SelfTest/TestRegistrations.cpp',
   'SelfTest/TimingTests/Sleep.tests.cpp',
   'SelfTest/UsageTests/Approx.tests.cpp',
@@ -75,7 +66,7 @@ self_test = executable(
   link_with: [catch2_with_main, catch2],
 )
 
-test('SelfTest', self_test)
+test('SelfTest', self_test, args: ['--no-history'])
 
 # Validate Progmasoft's C++20 extension without changing Catch2's library
 # language requirement or the upstream SelfTest compilation mode.
@@ -86,6 +77,12 @@ progmasoft_property_tests = executable(
     'Progmasoft/Property.tests.cpp',
     'Progmasoft/ForAll.tests.cpp',
     'Progmasoft/Results.tests.cpp',
+    'Progmasoft/Runner.tests.cpp',
+    'Progmasoft/RunnerUnits.tests.cpp',
+    'Progmasoft/RunnerPlanner.tests.cpp',
+    'Progmasoft/RunnerOptions.tests.cpp',
+    'Progmasoft/RunnerAnalysis.tests.cpp',
+    'Progmasoft/RunnerOutput.tests.cpp',
     'Progmasoft/Snapshot.tests.cpp',
     'Progmasoft/Stateful.tests.cpp',
     'Progmasoft/Strategy.tests.cpp',
@@ -95,4 +92,20 @@ progmasoft_property_tests = executable(
   override_options: ['cpp_std=c++20'],
 )
 
-test('Progmasoft_PropertyTests', progmasoft_property_tests)
+# Tests that misbehave on purpose, for the runner's integration tests.
+runner_fixture = executable(
+  'RunnerFixture',
+  'Progmasoft/RunnerFixture.cpp',
+  include_directories: '../src',
+  dependencies: [catch2_with_main_dep],
+  override_options: ['cpp_std=c++20'],
+)
+
+test(
+  'Progmasoft_PropertyTests',
+  progmasoft_property_tests,
+  args: ['--no-history'],
+  env: {'CATCH3_RUNNER_FIXTURE': runner_fixture.full_path()},
+  depends: runner_fixture,
+  timeout: 300,
+)

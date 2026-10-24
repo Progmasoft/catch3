@@ -17,22 +17,28 @@ serialization.
 
 ## What Catch3 provides
 
-- **Familiar test authoring and execution.** The existing test runner,
-  assertions, sections, reporters, benchmarks, and command-line behavior remain
-  available through the Catch2 compatibility surface.
+- **Familiar test authoring.** Catch2's test cases, assertions, sections,
+  matchers, generators, listeners and benchmarks keep working unchanged.
+- **A runner of its own.** The [Catch3 runner](docs/progmasoft-runner.md)
+  runs tests in parallel worker processes, survives crashes and hangs, retries
+  failures to tell flaky and order-dependent tests apart, quarantines flaky
+  tests, keeps a history that drives time limits, ordering, incremental runs
+  and replay, selects and shards tests, and writes console, JUnit, JSON and
+  trace reports.
 - **Deterministic property testing.** Generate values from a reproducible seed,
   check a predicate over multiple trials, and shrink a failing input to a
   smaller counterexample.
 - **Text snapshots.** Compare generated output against explicitly located
   snapshot files, with opt-in creation or replacement modes.
-- **Structured results and XML output.** Build a runner-neutral result model and
-  serialize it as deterministic JUnit-style XML.
+- **Structured results and XML output.** The runner's result model, with
+  every attempt, and its deterministic JUnit XML writer are public.
 - **A compiled library, not a header-only package.** Snapshot I/O and result/XML
   serialization are compiled C++20 implementations; templates and assertion
   macros remain in headers where needed.
 
-Catch3 is in an early development stage. The Catch2-compatible runner is still
-its execution engine; Catch3 does not yet provide an independent runner. The
+Catch3 is in an early development stage. Catch2's command line and reporters
+were replaced by the Catch3 runner; see
+[the command line](docs/command-line.md) before moving a project over. The
 property API currently checks one generated value per property and uses bounded,
 deterministic greedy shrinking. See [current capabilities and limitations](docs/why-catch3.md)
 before adopting it in a production project.
@@ -81,7 +87,7 @@ target_link_libraries(MyTests PRIVATE
     Catch2::Catch2WithMain)
 ```
 
-The Catch2 target supplies the compatibility runner and `main`; link
+The Catch2 target supplies the Catch3 runner and `main`; link
 `Progmasoft::Catch3` for the compiled Catch3 additions. The two targets retain
 their separate language baselines and licensing boundaries.
 
@@ -89,7 +95,8 @@ their separate language baselines and licensing boundaries.
 
 - [Catch3 additions: properties, snapshots, results, and XML](docs/progmasoft-catch3.md)
 - [Project scope, compatibility policy, and limitations](docs/why-catch3.md)
-- [Catch2-compatible runner tutorial](docs/tutorial.md)
+- [The Catch3 runner](docs/progmasoft-runner.md)
+- [Tutorial](docs/tutorial.md)
 - [Catch2-compatible API reference](docs/Readme.md)
 - [Catch2 upstream project and source history](https://github.com/catchorg/Catch2)
 
