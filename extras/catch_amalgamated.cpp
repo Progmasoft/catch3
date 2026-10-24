@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch v3.16.1
-//  Generated: 2026-10-24 12:33:30.890575
+//  Generated: 2026-10-24 14:20:15.030330
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -5218,21 +5218,23 @@ namespace Catch {
          *
          * Redirection can be stopped and started on-demand, assumes
          * that the underlying stream's rdbuf aren't changed by other
-         * users.
+         * users while it is active. The rdbuf to restore is the one the
+         * stream had when the redirection started, not when this object
+         * was made.
          */
         class RedirectedStreamNew {
             std::ostream& m_originalStream;
             std::ostream& m_redirectionStream;
-            std::streambuf* m_prevBuf;
+            std::streambuf* m_prevBuf = nullptr;
 
         public:
             RedirectedStreamNew( std::ostream& originalStream,
                                  std::ostream& redirectionStream ):
                 m_originalStream( originalStream ),
-                m_redirectionStream( redirectionStream ),
-                m_prevBuf( m_originalStream.rdbuf() ) {}
+                m_redirectionStream( redirectionStream ) {}
 
             void startRedirect() {
+                m_prevBuf = m_originalStream.rdbuf();
                 m_originalStream.rdbuf( m_redirectionStream.rdbuf() );
             }
             void stopRedirect() { m_originalStream.rdbuf( m_prevBuf ); }
@@ -10518,6 +10520,7 @@ namespace Progmasoft::Catch3::Runner
 #include <cstdlib>
 #include <mutex>
 #include <optional>
+#include <sstream>
 
 
 namespace Progmasoft::Catch3::Runner
@@ -11039,14 +11042,23 @@ namespace Progmasoft::Catch3::Runner
                 connected = false;
             }
         };
-        // Listeners are created and told of the run before the greeting, so
-        // what they print then is written before the runner assigns a test
-        // and is not mistaken for that test's output.
+        // Listeners are created, and told of the run, before the greeting.
+        // What they print then travels in the greeting: through the error
+        // stream it could arrive after the runner gave this worker a test,
+        // and pass for that test's output.
+        std::ostringstream startup;
+        auto *const previousOut = Catch::cout().rdbuf(startup.rdbuf());
+        auto *const previousErr = Catch::cerr().rdbuf(startup.rdbuf());
+        auto *const previousLog = Catch::clog().rdbuf(startup.rdbuf());
         TestExecutor executor{ options, *catalog, programName, send };
+        Catch::cout().rdbuf(previousOut);
+        Catch::cerr().rdbuf(previousErr);
+        Catch::clog().rdbuf(previousLog);
         std::fflush(stdout);
         std::fflush(stderr);
 
         JsonValue hello = Message("hello");
+        hello.Set("output", startup.str());
         hello.Set("pid", CurrentProcessId());
         hello.Set("identity", catalog->Identity());
         hello.Set("tests", catalog->Tests().size());
@@ -18169,6 +18181,14 @@ namespace Progmasoft::Catch3::Runner
                     }
                     worker.ready = true;
                     startupFailures_ = 0;
+                    // What the listeners printed when the worker started.
+                    const std::string &output = message["output"].AsString();
+                    if (!output.empty())
+                    {
+                        AppendBounded(worker.startupOutput, output);
+                        std::fwrite(output.data(), 1, output.size(), stderr);
+                        std::fflush(stderr);
+                    }
                     return;
                 }
                 if (!worker.running)

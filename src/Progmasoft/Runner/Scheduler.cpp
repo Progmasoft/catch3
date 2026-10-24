@@ -728,6 +728,14 @@ namespace Progmasoft::Catch3::Runner
                     }
                     worker.ready = true;
                     startupFailures_ = 0;
+                    // What the listeners printed when the worker started.
+                    const std::string &output = message["output"].AsString();
+                    if (!output.empty())
+                    {
+                        AppendBounded(worker.startupOutput, output);
+                        std::fwrite(output.data(), 1, output.size(), stderr);
+                        std::fflush(stderr);
+                    }
                     return;
                 }
                 if (!worker.running)

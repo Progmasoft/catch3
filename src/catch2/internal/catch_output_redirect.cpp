@@ -46,21 +46,23 @@ namespace Catch {
          *
          * Redirection can be stopped and started on-demand, assumes
          * that the underlying stream's rdbuf aren't changed by other
-         * users.
+         * users while it is active. The rdbuf to restore is the one the
+         * stream had when the redirection started, not when this object
+         * was made.
          */
         class RedirectedStreamNew {
             std::ostream& m_originalStream;
             std::ostream& m_redirectionStream;
-            std::streambuf* m_prevBuf;
+            std::streambuf* m_prevBuf = nullptr;
 
         public:
             RedirectedStreamNew( std::ostream& originalStream,
                                  std::ostream& redirectionStream ):
                 m_originalStream( originalStream ),
-                m_redirectionStream( redirectionStream ),
-                m_prevBuf( m_originalStream.rdbuf() ) {}
+                m_redirectionStream( redirectionStream ) {}
 
             void startRedirect() {
+                m_prevBuf = m_originalStream.rdbuf();
                 m_originalStream.rdbuf( m_redirectionStream.rdbuf() );
             }
             void stopRedirect() { m_originalStream.rdbuf( m_prevBuf ); }

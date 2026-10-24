@@ -10,6 +10,7 @@
 #include <catch2/internal/catch_context.hpp>
 #include <catch2/internal/catch_reporter_registry.hpp>
 #include <catch2/internal/catch_run_context.hpp>
+#include <catch2/internal/catch_stdstreams.hpp>
 #include <catch2/internal/catch_string_manip.hpp>
 #include <catch2/reporters/catch_reporter_multi.hpp>
 #include <chrono>
@@ -17,6 +18,7 @@
 #include <cstdlib>
 #include <mutex>
 #include <optional>
+#include <sstream>
 
 #include "Execution.hpp"
 #include "Process.hpp"
@@ -543,14 +545,23 @@ namespace Progmasoft::Catch3::Runner
                 connected = false;
             }
         };
-        // Listeners are created and told of the run before the greeting, so
-        // what they print then is written before the runner assigns a test
-        // and is not mistaken for that test's output.
+        // Listeners are created, and told of the run, before the greeting.
+        // What they print then travels in the greeting: through the error
+        // stream it could arrive after the runner gave this worker a test,
+        // and pass for that test's output.
+        std::ostringstream startup;
+        auto *const previousOut = Catch::cout().rdbuf(startup.rdbuf());
+        auto *const previousErr = Catch::cerr().rdbuf(startup.rdbuf());
+        auto *const previousLog = Catch::clog().rdbuf(startup.rdbuf());
         TestExecutor executor{ options, *catalog, programName, send };
+        Catch::cout().rdbuf(previousOut);
+        Catch::cerr().rdbuf(previousErr);
+        Catch::clog().rdbuf(previousLog);
         std::fflush(stdout);
         std::fflush(stderr);
 
         JsonValue hello = Message("hello");
+        hello.Set("output", startup.str());
         hello.Set("pid", CurrentProcessId());
         hello.Set("identity", catalog->Identity());
         hello.Set("tests", catalog->Tests().size());
