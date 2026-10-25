@@ -1,12 +1,12 @@
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #include <algorithm>
-#include <catch2/catch_test_case_info.hpp>
-#include <catch2/catch_test_spec.hpp>
-#include <catch2/interfaces/catch_interfaces_config.hpp>
-#include <catch2/interfaces/catch_interfaces_registry_hub.hpp>
-#include <catch2/interfaces/catch_interfaces_testcase.hpp>
-#include <catch2/internal/catch_test_case_registry_impl.hpp>
+#include <Progmasoft/Catch3/TestCaseInfo.hpp>
+#include <Progmasoft/Catch3/TestSpec.hpp>
+#include <Progmasoft/Catch3/Interfaces/IConfig.hpp>
+#include <Progmasoft/Catch3/Interfaces/IRegistryHub.hpp>
+#include <Progmasoft/Catch3/Interfaces/ITestCaseRegistry.hpp>
+#include <Progmasoft/Catch3/Internal/TestCaseRegistryImpl.hpp>
 #include <cmath>
 #include <iterator>
 #include <map>

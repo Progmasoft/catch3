@@ -9,11 +9,11 @@ import os
 import re
 import datetime
 
-from scriptCommon import catchPath
+from scriptCommon import catchPath, upstreamFiles
 from releaseCommon import Version
 
 root_path = os.path.join(catchPath, 'src')
-starting_header = os.path.join(root_path, 'catch2', 'catch_all.hpp')
+starting_header = os.path.join(root_path, 'Progmasoft', 'Catch3', 'All.hpp')
 output_header = os.path.join(catchPath, 'extras', 'catch_amalgamated.hpp')
 output_cpp = os.path.join(catchPath, 'extras', 'catch_amalgamated.cpp')
 
@@ -71,16 +71,28 @@ def formatted_file_header(version):
 # processed again)
 concatenated_headers = set()
 
-internal_include_parser = re.compile(r'\s*#include <(catch2/.*)>.*')
+# The engine's files are the ones that come from Catch2.
+upstream_files = upstreamFiles()
+include_parser = re.compile(r'\s*#include <(Progmasoft/Catch3/[^>]+)>.*')
+
+
+def engine_include(line):
+    """The engine header a line includes, or None."""
+    m = include_parser.match(line)
+    # The configuration header is generated from UserConfig.hpp.in.
+    if m and ('src/' + m.group(1) in upstream_files
+              or m.group(1) == 'Progmasoft/Catch3/UserConfig.hpp'):
+        return m.group(1)
+    return None
 
 def concatenate_file(out, filename: str, expand_headers: bool) -> int:
     # Gathers statistics on how many headers were expanded
     concatenated = 1
     with open(filename, mode='r', encoding='utf-8') as input:
         for line in input:
-            if line in copyright_lines:
+            if line in copyright_lines or line.strip() == '#pragma once':
                 continue
-            m = internal_include_parser.match(line)
+            m = engine_include(line)
             # The runner's headers are expanded at the start of the .cpp file.
             if not m and not expand_headers and progmasoft_include_parser.match(line):
                 continue
@@ -99,7 +111,7 @@ def concatenate_file(out, filename: str, expand_headers: bool) -> int:
             if not expand_headers:
                 continue
 
-            next_header = m.group(1)
+            next_header = m
             # We have to avoid re-expanding the same header over and
             # over again, or the header will end up with couple
             # hundred thousands lines (~300k as of preview3 :-) )
@@ -110,7 +122,7 @@ def concatenate_file(out, filename: str, expand_headers: bool) -> int:
             # because it has not been generated yet at this point.
             # The code around it should be written so that just not including
             # it is equivalent with all-default user configuration.
-            if next_header == 'catch2/catch_user_config.hpp':
+            if next_header == 'Progmasoft/Catch3/UserConfig.hpp':
                 concatenated_headers.add(next_header)
                 continue
 
@@ -142,8 +154,8 @@ def concatenate_runner_file(out, filename: str, expand_headers: bool):
         for line in input:
             if line.strip() == '#pragma once':
                 continue
-            # Catch2's own headers are all in the amalgamated header.
-            if internal_include_parser.match(line):
+            # The engine's headers are all in the amalgamated header.
+            if engine_include(line):
                 continue
             m = progmasoft_include_parser.match(line)
             if not m:
@@ -161,7 +173,8 @@ def concatenate_runner_file(out, filename: str, expand_headers: bool):
 
 def generate_cpp():
     from glob import glob
-    cpp_files = sorted(glob(os.path.join(root_path, 'catch2', '**/*.cpp'), recursive=True))
+    cpp_files = sorted(os.path.join(catchPath, path) for path in upstream_files
+                       if path.endswith('.cpp'))
     runner_headers = sorted(glob(os.path.join(root_path, 'Progmasoft', 'Runner', '*.hpp'))) + [
         os.path.join(root_path, 'Progmasoft', 'Catch3', name)
         for name in ('Results.hpp', 'Runner.hpp', 'Version.hpp', 'XmlWriter.hpp')]
@@ -171,7 +184,7 @@ def generate_cpp():
     with open(output_cpp, mode='w', encoding='utf-8') as cpp:
         cpp.write(formatted_file_header(Version()))
         cpp.write('\n#include "catch_amalgamated.hpp"\n')
-        concatenate_file(cpp, os.path.join(root_path, 'catch2/internal/catch_windows_h_proxy.hpp'), False)
+        concatenate_file(cpp, os.path.join(root_path, 'Progmasoft/Catch3/Internal/WindowsHProxy.hpp'), False)
         # The runner's headers come first: Catch::Session reaches the runner.
         for header in runner_headers:
             header = os.path.normpath(header)
@@ -195,6 +208,6 @@ if __name__ == "__main__":
 # * The .cpp file needs to start with `#include "catch_amalgamated.hpp"
 # * include guards can be left/stripped, doesn't matter
 # * *.cpp files should be included sorted, to minimize diffs between versions
-# * *.hpp files should also be somehow sorted -> use catch_all.hpp as the
+# * *.hpp files should also be somehow sorted -> use Progmasoft/Catch3/All.hpp as the
 # *       entrypoint
 # * allow disabling main in the .cpp amalgamation

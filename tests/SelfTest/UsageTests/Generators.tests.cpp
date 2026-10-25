@@ -6,11 +6,11 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generator_exception.hpp>
-#include <catch2/generators/catch_generators_adapters.hpp>
-#include <catch2/generators/catch_generators_random.hpp>
-#include <catch2/generators/catch_generators_range.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/GeneratorException.hpp>
+#include <Progmasoft/Catch3/Generators/Adapters.hpp>
+#include <Progmasoft/Catch3/Generators/Random.hpp>
+#include <Progmasoft/Catch3/Generators/Range.hpp>
 
 #include <cstring>
 

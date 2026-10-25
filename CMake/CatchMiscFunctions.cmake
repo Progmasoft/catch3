@@ -29,7 +29,7 @@ function(add_warnings_to_targets targets)
       # Force MSVC to consider everything as encoded in utf-8
       target_compile_options(${target} PRIVATE /utf-8)
       # Enable Werror equivalent
-      if(CATCH_ENABLE_WERROR)
+      if(CATCH3_ENABLE_WERROR)
         target_compile_options(${target} PRIVATE /WX)
       endif()
 
@@ -102,7 +102,7 @@ function(add_warnings_to_targets targets)
       add_cxx_flag_if_supported_to_targets(${warning} "${targets}")
     endforeach()
 
-    if(CATCH_ENABLE_WERROR)
+    if(CATCH3_ENABLE_WERROR)
       foreach(target ${targets})
         # Enable Werror equivalent
         target_compile_options(${target} PRIVATE -Werror)

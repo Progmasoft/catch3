@@ -6,14 +6,14 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_container_properties.hpp>
-#include <catch2/matchers/catch_matchers_contains.hpp>
-#include <catch2/matchers/catch_matchers_range_equals.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <catch2/matchers/catch_matchers_quantifiers.hpp>
-#include <catch2/matchers/catch_matchers_predicate.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Matchers/ContainerProperties.hpp>
+#include <Progmasoft/Catch3/Matchers/Contains.hpp>
+#include <Progmasoft/Catch3/Matchers/RangeEquals.hpp>
+#include <Progmasoft/Catch3/Matchers/FloatingPoint.hpp>
+#include <Progmasoft/Catch3/Matchers/Quantifiers.hpp>
+#include <Progmasoft/Catch3/Matchers/Predicate.hpp>
+#include <Progmasoft/Catch3/Matchers/String.hpp>
 
 #include <helpers/range_test_helpers.hpp>
 

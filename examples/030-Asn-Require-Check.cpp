@@ -18,7 +18,7 @@
 
 // main() provided by linkage to Catch2WithMain
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 static std::string one() {
     return "1";

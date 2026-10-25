@@ -7,9 +7,9 @@
 [Version detection](#version-detection)<br>
 
 The easiest way to use Catch3 is its own `main`: link against
-`Catch2::Catch2WithMain` (the [CMake target](cmake-integration.md#cmake-targets))
-or the `catch2-with-main` pkg-config file. To write your own `main`, link
-against `Catch2::Catch2` and hand the command line to the
+`Catch3::Catch3WithMain` (the [CMake target](cmake-integration.md#cmake-targets))
+or the `catch3-with-main` pkg-config file. To write your own `main`, link
+against `Catch3::Catch3` and hand the command line to the
 [Catch3 runner](progmasoft-runner.md#top).
 
 The runner starts the same binary again for its worker processes, with the
@@ -22,7 +22,7 @@ variable `CATCH3_WORKER` is set, which it is only in workers.
 ## Run the tests from your own main
 
 ```cpp
-#include <catch2/catch_session.hpp>
+#include <Progmasoft/Catch3/Session.hpp>
 
 int main( int argc, char* argv[] ) {
   // your setup ...

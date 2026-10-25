@@ -13,7 +13,7 @@
 // semantic, because it buffers the output. For most uses however,
 // there is no important difference between having `std::cerr` buffered
 // or unbuffered.
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 #include <sstream>
 #include <cstdio>

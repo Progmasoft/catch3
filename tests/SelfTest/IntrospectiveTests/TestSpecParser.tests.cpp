@@ -6,11 +6,11 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
-#include <catch2/catch_test_case_info.hpp>
-#include <catch2/internal/catch_tag_alias_registry.hpp>
-#include <catch2/internal/catch_test_spec_parser.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/Generators.hpp>
+#include <Progmasoft/Catch3/TestCaseInfo.hpp>
+#include <Progmasoft/Catch3/Internal/TagAliasRegistry.hpp>
+#include <Progmasoft/Catch3/Internal/TestSpecParser.hpp>
 
 namespace {
     static constexpr Catch::SourceLineInfo dummySourceLineInfo = CATCH_INTERNAL_LINEINFO;

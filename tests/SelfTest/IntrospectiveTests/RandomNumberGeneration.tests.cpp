@@ -6,16 +6,16 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_template_test_macros.hpp>
-#include <catch2/internal/catch_floating_point_helpers.hpp>
-#include <catch2/internal/catch_random_integer_helpers.hpp>
-#include <catch2/internal/catch_random_number_generator.hpp>
-#include <catch2/internal/catch_random_seed_generation.hpp>
-#include <catch2/internal/catch_uniform_floating_point_distribution.hpp>
-#include <catch2/internal/catch_uniform_integer_distribution.hpp>
-#include <catch2/generators/catch_generators.hpp>
-#include <catch2/matchers/catch_matchers_range_equals.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/TemplateTestMacros.hpp>
+#include <Progmasoft/Catch3/Internal/FloatingPointHelpers.hpp>
+#include <Progmasoft/Catch3/Internal/RandomIntegerHelpers.hpp>
+#include <Progmasoft/Catch3/Internal/RandomNumberGenerator.hpp>
+#include <Progmasoft/Catch3/Internal/RandomSeedGeneration.hpp>
+#include <Progmasoft/Catch3/Internal/UniformFloatingPointDistribution.hpp>
+#include <Progmasoft/Catch3/Internal/UniformIntegerDistribution.hpp>
+#include <Progmasoft/Catch3/Generators/Generators.hpp>
+#include <Progmasoft/Catch3/Matchers/RangeEquals.hpp>
 
 #include <random>
 

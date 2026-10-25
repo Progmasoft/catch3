@@ -34,7 +34,7 @@ configure_and_build(catch2_source_path,
                      # We need to turn off WERROR, because the compilers
                      # can see that the various variables inside test cases
                      # are set but unused.
-                     ("CATCH_ENABLE_WERROR", "OFF")])
+                     ("CATCH3_ENABLE_WERROR", "OFF")])
 
 stdout, _ = run_and_return_output(os.path.join(build_dir_path, 'tests'),
                                   'SelfTest',

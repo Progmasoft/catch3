@@ -1,6 +1,6 @@
 <a id="top"></a>
 
-> **Catch3 compatibility reference:** This page describes the bundled Catch2-compatible API. Names such as `Catch2`, `catch2/`, and `Catch2::Catch2WithMain` remain where they are actual compatibility interfaces. See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
+> **Catch3 compatibility reference:** This page describes the test-writing API Catch3 shares with Catch2: the macros, such as `TEST_CASE` and `REQUIRE`, and the `Catch::` namespace keep Catch2's names. Headers and build names are Catch3's own (`<Progmasoft/Catch3/TestMacros.hpp>`, `find_package(Catch3)`, `Catch3::Catch3WithMain`). See [Catch3 additions](progmasoft-catch3.md) for Progmasoft APIs.
 
 # Known limitations
 
@@ -94,7 +94,7 @@ error when preprocessor attempts to stringize a raw string literal
 to trigger the compilation error:
 
 ```cpp
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 TEST_CASE("test") {
     CHECK(std::string(R"("\)") == "\"\\");
@@ -106,7 +106,7 @@ of the original expression by defining `CATCH_CONFIG_DISABLE_STRINGIFICATION`,
 like so:
 ```cpp
 #define CATCH_CONFIG_DISABLE_STRINGIFICATION
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 TEST_CASE("test") {
     CHECK(std::string(R"("\)") == "\"\\");
@@ -126,7 +126,7 @@ with expansion:
 ### Clang/G++ -- skipping leaf sections after an exception
 Some versions of `libc++` and `libstdc++` (or their runtimes) have a bug with `std::uncaught_exception()` getting stuck returning `true` after rethrow, even if there are no active exceptions. One such case is this snippet, which skipped the sections "a" and "b", when compiled against `libcxxrt` from the master branch
 ```cpp
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 TEST_CASE("a") {
     CHECK_THROWS(throw 3);

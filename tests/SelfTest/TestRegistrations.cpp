@@ -6,11 +6,11 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_tag_alias_autoregistrar.hpp>
-#include <catch2/reporters/catch_reporter_event_listener.hpp>
-#include <catch2/internal/catch_enforce.hpp>
-#include <catch2/catch_test_case_info.hpp>
-#include <catch2/reporters/catch_reporter_registrars.hpp>
+#include <Progmasoft/Catch3/TagAliasAutoregistrar.hpp>
+#include <Progmasoft/Catch3/Reporters/EventListener.hpp>
+#include <Progmasoft/Catch3/Internal/Enforce.hpp>
+#include <Progmasoft/Catch3/TestCaseInfo.hpp>
+#include <Progmasoft/Catch3/Reporters/Registrars.hpp>
 
 
 // Some example tag aliases

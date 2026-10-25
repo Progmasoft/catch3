@@ -12,13 +12,13 @@
 
 #include <helpers/range_test_helpers.hpp>
 
-#include <catch2/catch_approx.hpp>
-#include <catch2/catch_template_test_macros.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generator_exception.hpp>
-#include <catch2/generators/catch_generators_adapters.hpp>
-#include <catch2/generators/catch_generators_random.hpp>
-#include <catch2/generators/catch_generators_range.hpp>
+#include <Progmasoft/Catch3/Approx.hpp>
+#include <Progmasoft/Catch3/TemplateTestMacros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/GeneratorException.hpp>
+#include <Progmasoft/Catch3/Generators/Adapters.hpp>
+#include <Progmasoft/Catch3/Generators/Random.hpp>
+#include <Progmasoft/Catch3/Generators/Range.hpp>
 
 // Tests of generator implementation details
 TEST_CASE("Generators internals", "[generators][internals]") {

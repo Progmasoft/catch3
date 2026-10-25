@@ -6,11 +6,11 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/matchers/catch_matchers_string.hpp>
-#include <catch2/matchers/catch_matchers_vector.hpp>
-#include <catch2/internal/catch_tag_alias_registry.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_test_case_info.hpp>
+#include <Progmasoft/Catch3/Matchers/String.hpp>
+#include <Progmasoft/Catch3/Matchers/Vector.hpp>
+#include <Progmasoft/Catch3/Internal/TagAliasRegistry.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/TestCaseInfo.hpp>
 
 TEST_CASE( "Tag alias can be registered against tag patterns" ) {
 

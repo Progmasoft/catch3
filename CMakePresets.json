@@ -11,7 +11,7 @@
                 "CMAKE_CXX_EXTENSIONS": "OFF",
                 "CMAKE_CXX_STANDARD_REQUIRED": "ON",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "CATCH_DEVELOPMENT_BUILD": "ON"
+                "CATCH3_DEVELOPMENT_BUILD": "ON"
             }
         },
         {
@@ -20,10 +20,10 @@
             "displayName": "Full development build",
             "description": "Enables development build with extended set of tests (still relatively cheap to build)",
             "cacheVariables": {
-                "CATCH_BUILD_EXAMPLES": "ON",
-                "CATCH_BUILD_EXTRA_TESTS": "ON",
-                "CATCH_BUILD_SURROGATES": "ON",
-                "CATCH_BUILD_BENCHMARKS": "ON"
+                "CATCH3_BUILD_EXAMPLES": "ON",
+                "CATCH3_BUILD_EXTRA_TESTS": "ON",
+                "CATCH3_BUILD_SURROGATES": "ON",
+                "CATCH3_BUILD_BENCHMARKS": "ON"
             }
         },
         {
@@ -32,8 +32,8 @@
             "displayName": "Full development build",
             "description": "Enables development build with examples and ALL tests",
             "cacheVariables": {
-                "CATCH_ENABLE_CONFIGURE_TESTS": "ON",
-                "CATCH_ENABLE_CMAKE_HELPER_TESTS": "ON"
+                "CATCH3_ENABLE_CONFIGURE_TESTS": "ON",
+                "CATCH3_ENABLE_CMAKE_HELPER_TESTS": "ON"
             }
         }
     ]   

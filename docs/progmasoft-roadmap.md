@@ -6,11 +6,12 @@ unit testing, property testing, mocking, coverage, mutation testing, test
 generation and test selection, driven by a runner of its own. Two rules hold
 for every step:
 
-- **Catch2's API stays compatible.** The `Catch` namespace, the `catch2/`
-  headers, the macros, matchers, generators and listeners keep working
-  unchanged. The runner is Catch3's own: Catch2's session, command line and
-  reporters were replaced. New capabilities live under `Progmasoft::Catch3`
-  and `Progmasoft/Catch3/`.
+- **Catch2's test-writing API stays compatible.** The macros and the `Catch`
+  namespace, with its matchers, generators and listeners, keep working
+  unchanged. Everything else is Catch3's own: the runner replaced Catch2's
+  session, command line and reporters, the headers are under
+  `Progmasoft/Catch3/` and the build names are `Catch3`. New capabilities
+  live in the `Progmasoft::Catch3` namespace.
 - **Nothing is claimed before it is tested.** A feature is listed as done when
   its tests run in CI on Windows, Linux and macOS.
 

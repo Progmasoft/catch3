@@ -11,7 +11,7 @@
  * not reported as an error.
  */
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 TEST_CASE("A test case with duplicated name but different tags", "[tag1]") {}
 TEST_CASE("A test case with duplicated name but different tags", "[tag2]") {}

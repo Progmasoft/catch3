@@ -9,7 +9,7 @@
 #ifndef CATCH_TEST_HELPERS_PARSE_TEST_SPEC_HPP_INCLUDED
 #define CATCH_TEST_HELPERS_PARSE_TEST_SPEC_HPP_INCLUDED
 
-#include <catch2/catch_test_spec.hpp>
+#include <Progmasoft/Catch3/TestSpec.hpp>
 
 #include <string>
 

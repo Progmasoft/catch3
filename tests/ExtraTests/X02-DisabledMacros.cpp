@@ -11,10 +11,10 @@
  * and expressions in assertion macros are not run.
  */
 
-#include <catch2/benchmark/catch_benchmark.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_predicate.hpp>
+#include <Progmasoft/Catch3/Benchmark/Benchmark.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Matchers/Matchers.hpp>
+#include <Progmasoft/Catch3/Matchers/Predicate.hpp>
 
 #include <iostream>
 

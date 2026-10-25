@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(Catch2Examples LANGUAGES CXX)
+project(Catch3Examples LANGUAGES CXX)
 
 message(STATUS "Examples included")
 
@@ -18,7 +18,7 @@ add_executable(020-MultiFile
 add_executable(231-Cfg_OutputStreams
   231-Cfg-OutputStreams.cpp
 )
-target_link_libraries(231-Cfg_OutputStreams Catch2_buildall_interface)
+target_link_libraries(231-Cfg_OutputStreams Catch3_buildall_interface)
 target_compile_definitions(231-Cfg_OutputStreams PUBLIC CATCH_CONFIG_NOSTDOUT)
 
 # These examples use the standard separate compilation
@@ -51,7 +51,7 @@ set(ALL_EXAMPLE_TARGETS
 )
 
 foreach(name ${ALL_EXAMPLE_TARGETS})
-  target_link_libraries(${name} Catch2WithMain)
+  target_link_libraries(${name} Catch3WithMain)
 endforeach()
 
 list(APPEND CATCH_TEST_TARGETS ${ALL_EXAMPLE_TARGETS})

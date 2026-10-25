@@ -3,17 +3,17 @@ project(discover-tests-test LANGUAGES CXX)
 
 add_executable(tests register-tests.cpp)
 add_subdirectory(${CATCH2_PATH} catch2-build)
-target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(tests PRIVATE Catch3::Catch3WithMain)
 
 enable_testing()
-include(Catch)
+include(Catch3)
 set(extra_args)
 if(CMAKE_VERSION GREATER_EQUAL 3.27)
   list(APPEND extra_args
     DL_PATHS "${CMAKE_CURRENT_LIST_DIR};${CMAKE_CURRENT_LIST_DIR}/.."
   )
 endif()
-catch_discover_tests(
+catch3_discover_tests(
   tests
   TEST_PREFIX " prefix "
   TEST_SUFFIX " suffix "

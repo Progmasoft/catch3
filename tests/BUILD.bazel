@@ -3,7 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "catch2_self_test_helper",
+    name = "catch3_self_test_helper",
     srcs = ["SelfTest/helpers/parse_test_spec.cpp"],
     hdrs = [
         "SelfTest/helpers/parse_test_spec.hpp",
@@ -12,12 +12,12 @@ cc_library(
     ],
     includes = ["SelfTest"],
     deps = [
-        "//:catch2",
+        "//:catch3",
     ],
 )
 
 cc_test(
-    name = "catch2_self_test",
+    name = "catch3_self_test",
     size = "small",
     srcs = [
         "SelfTest/IntrospectiveTests/Algorithms.tests.cpp",
@@ -70,8 +70,8 @@ cc_test(
         "SelfTest/UsageTests/VariadicMacros.tests.cpp",
     ],
     deps = [
-        ":catch2_self_test_helper",
-        "//:catch2",
-        "//:catch2_main",
+        ":catch3_self_test_helper",
+        "//:catch3",
+        "//:catch3_main",
     ],
 )

@@ -4,289 +4,289 @@ include(CatchMiscFunctions)
 # (see https://gitlab.kitware.com/cmake/cmake/-/commit/c85367f4).  Using a non-constant GUID
 # can cause problems if other projects/repos want to reference the vcxproj file,
 # so we force a constant GUID here.
-set(Catch2_GUID_CMAKE "8d538cbe-01bf-4a2e-a98a-6c368fdf13d7" CACHE INTERNAL "Project GUID")
-set(Catch2WithMain_GUID_CMAKE "8bd3552a-2cfb-4a59-ab15-2031b97ada1e" CACHE INTERNAL "Project GUID")
+set(Catch3_GUID_CMAKE "e1270d21-1024-5593-b85a-e7fa93204357" CACHE INTERNAL "Project GUID")
+set(Catch3WithMain_GUID_CMAKE "43cd2803-2f99-5aad-8802-81da0f3e776d" CACHE INTERNAL "Project GUID")
 
 set(BENCHMARK_HEADERS
-  ${SOURCES_DIR}/benchmark/catch_benchmark.hpp
-  ${SOURCES_DIR}/benchmark/catch_benchmark_all.hpp
-  ${SOURCES_DIR}/benchmark/catch_chronometer.hpp
-  ${SOURCES_DIR}/benchmark/catch_clock.hpp
-  ${SOURCES_DIR}/benchmark/catch_constructor.hpp
-  ${SOURCES_DIR}/benchmark/catch_environment.hpp
-  ${SOURCES_DIR}/benchmark/catch_estimate.hpp
-  ${SOURCES_DIR}/benchmark/catch_execution_plan.hpp
-  ${SOURCES_DIR}/benchmark/catch_optimizer.hpp
-  ${SOURCES_DIR}/benchmark/catch_outlier_classification.hpp
-  ${SOURCES_DIR}/benchmark/catch_sample_analysis.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_analyse.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_benchmark_function.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_benchmark_stats.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_benchmark_stats_fwd.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_complete_invoke.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_estimate_clock.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_measure.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_repeat.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_run_for_at_least.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_stats.hpp
-  ${SOURCES_DIR}/benchmark/detail/catch_timing.hpp
+  ${SOURCES_DIR}/Benchmark/Benchmark.hpp
+  ${SOURCES_DIR}/Benchmark/All.hpp
+  ${SOURCES_DIR}/Benchmark/Chronometer.hpp
+  ${SOURCES_DIR}/Benchmark/Clock.hpp
+  ${SOURCES_DIR}/Benchmark/Constructor.hpp
+  ${SOURCES_DIR}/Benchmark/Environment.hpp
+  ${SOURCES_DIR}/Benchmark/Estimate.hpp
+  ${SOURCES_DIR}/Benchmark/ExecutionPlan.hpp
+  ${SOURCES_DIR}/Benchmark/Optimizer.hpp
+  ${SOURCES_DIR}/Benchmark/OutlierClassification.hpp
+  ${SOURCES_DIR}/Benchmark/SampleAnalysis.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/Analyse.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/BenchmarkFunction.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/BenchmarkStats.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/BenchmarkStatsFwd.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/CompleteInvoke.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/EstimateClock.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/Measure.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/Repeat.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/RunForAtLeast.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/Stats.hpp
+  ${SOURCES_DIR}/Benchmark/Detail/Timing.hpp
 )
 set(BENCHMARK_SOURCES
-  ${SOURCES_DIR}/benchmark/catch_benchmark.cpp
-  ${SOURCES_DIR}/benchmark/catch_chronometer.cpp
-  ${SOURCES_DIR}/benchmark/detail/catch_analyse.cpp
-  ${SOURCES_DIR}/benchmark/detail/catch_benchmark_function.cpp
-  ${SOURCES_DIR}/benchmark/detail/catch_run_for_at_least.cpp
-  ${SOURCES_DIR}/benchmark/detail/catch_stats.cpp
+  ${SOURCES_DIR}/Benchmark/Benchmark.cpp
+  ${SOURCES_DIR}/Benchmark/Chronometer.cpp
+  ${SOURCES_DIR}/Benchmark/Detail/Analyse.cpp
+  ${SOURCES_DIR}/Benchmark/Detail/BenchmarkFunction.cpp
+  ${SOURCES_DIR}/Benchmark/Detail/RunForAtLeast.cpp
+  ${SOURCES_DIR}/Benchmark/Detail/Stats.cpp
 )
 set(BENCHMARK_FILES ${BENCHMARK_HEADERS} ${BENCHMARK_SOURCES})
 
 set(IMPL_HEADERS
- "${PROJECT_BINARY_DIR}/generated-includes/catch2/catch_user_config.hpp"
-  ${SOURCES_DIR}/catch_user_config.hpp.in
-  ${SOURCES_DIR}/catch_all.hpp
-  ${SOURCES_DIR}/catch_approx.hpp
-  ${SOURCES_DIR}/catch_assertion_info.hpp
-  ${SOURCES_DIR}/catch_assertion_result.hpp
-  ${SOURCES_DIR}/catch_case_sensitive.hpp
-  ${SOURCES_DIR}/catch_config.hpp
-  ${SOURCES_DIR}/catch_get_random_seed.hpp
-  ${SOURCES_DIR}/catch_message.hpp
-  ${SOURCES_DIR}/catch_section_info.hpp
-  ${SOURCES_DIR}/catch_session.hpp
-  ${SOURCES_DIR}/catch_tag_alias.hpp
-  ${SOURCES_DIR}/catch_tag_alias_autoregistrar.hpp
-  ${SOURCES_DIR}/catch_template_test_macros.hpp
-  ${SOURCES_DIR}/catch_test_case_info.hpp
-  ${SOURCES_DIR}/catch_test_macros.hpp
-  ${SOURCES_DIR}/catch_test_run_info.hpp
-  ${SOURCES_DIR}/catch_test_spec.hpp
-  ${SOURCES_DIR}/catch_timer.hpp
-  ${SOURCES_DIR}/catch_tostring.hpp
-  ${SOURCES_DIR}/catch_totals.hpp
-  ${SOURCES_DIR}/catch_translate_exception.hpp
-  ${SOURCES_DIR}/catch_version.hpp
-  ${SOURCES_DIR}/catch_version_macros.hpp
-  ${SOURCES_DIR}/internal/catch_assertion_handler.hpp
-  ${SOURCES_DIR}/internal/catch_case_insensitive_comparisons.hpp
-  ${SOURCES_DIR}/internal/catch_compare_traits.hpp
-  ${SOURCES_DIR}/internal/catch_compiler_capabilities.hpp
-  ${SOURCES_DIR}/internal/catch_config_android_logwrite.hpp
-  ${SOURCES_DIR}/internal/catch_config_counter.hpp
-  ${SOURCES_DIR}/internal/catch_config_prefix_messages.hpp
-  ${SOURCES_DIR}/internal/catch_config_static_analysis_support.hpp
-  ${SOURCES_DIR}/internal/catch_config_uncaught_exceptions.hpp
-  ${SOURCES_DIR}/internal/catch_config_wchar.hpp
-  ${SOURCES_DIR}/internal/catch_container_nonmembers.hpp
-  ${SOURCES_DIR}/internal/catch_context.hpp
-  ${SOURCES_DIR}/internal/catch_debugger.hpp
-  ${SOURCES_DIR}/internal/catch_decomposer.hpp
-  ${SOURCES_DIR}/internal/catch_deprecation_macro.hpp
-  ${SOURCES_DIR}/internal/catch_enforce.hpp
-  ${SOURCES_DIR}/internal/catch_enum_info.hpp
-  ${SOURCES_DIR}/internal/catch_errno_guard.hpp
-  ${SOURCES_DIR}/internal/catch_exception_translator_registry.hpp
-  ${SOURCES_DIR}/internal/catch_fatal_condition_handler.hpp
-  ${SOURCES_DIR}/internal/catch_floating_point_helpers.hpp
-  ${SOURCES_DIR}/internal/catch_getenv.hpp
-  ${SOURCES_DIR}/internal/catch_is_permutation.hpp
-  ${SOURCES_DIR}/internal/catch_lazy_expr.hpp
-  ${SOURCES_DIR}/internal/catch_leak_detector.hpp
-  ${SOURCES_DIR}/internal/catch_lifetimebound.hpp
-  ${SOURCES_DIR}/internal/catch_logical_traits.hpp
-  ${SOURCES_DIR}/internal/catch_message_info.hpp
-  ${SOURCES_DIR}/internal/catch_meta.hpp
-  ${SOURCES_DIR}/internal/catch_move_and_forward.hpp
-  ${SOURCES_DIR}/internal/catch_noncopyable.hpp
-  ${SOURCES_DIR}/internal/catch_optional.hpp
-  ${SOURCES_DIR}/internal/catch_output_redirect.hpp
-  ${SOURCES_DIR}/internal/catch_parse_numbers.hpp
-  ${SOURCES_DIR}/internal/catch_path_filter.hpp
-  ${SOURCES_DIR}/internal/catch_platform.hpp
-  ${SOURCES_DIR}/internal/catch_polyfills.hpp
-  ${SOURCES_DIR}/internal/catch_preprocessor.hpp
-  ${SOURCES_DIR}/internal/catch_preprocessor_remove_parens.hpp
-  ${SOURCES_DIR}/internal/catch_random_floating_point_helpers.hpp
-  ${SOURCES_DIR}/internal/catch_random_integer_helpers.hpp
-  ${SOURCES_DIR}/internal/catch_random_number_generator.hpp
-  ${SOURCES_DIR}/internal/catch_random_seed_generation.hpp
-  ${SOURCES_DIR}/internal/catch_reporter_registry.hpp
-  ${SOURCES_DIR}/internal/catch_result_type.hpp
-  ${SOURCES_DIR}/internal/catch_reusable_string_stream.hpp
-  ${SOURCES_DIR}/internal/catch_run_context.hpp
-  ${SOURCES_DIR}/internal/catch_section.hpp
-  ${SOURCES_DIR}/internal/catch_singletons.hpp
-  ${SOURCES_DIR}/internal/catch_source_line_info.hpp
-  ${SOURCES_DIR}/internal/catch_startup_exception_registry.hpp
-  ${SOURCES_DIR}/internal/catch_stdstreams.hpp
-  ${SOURCES_DIR}/internal/catch_stream_end_stop.hpp
-  ${SOURCES_DIR}/internal/catch_string_manip.hpp
-  ${SOURCES_DIR}/internal/catch_stringref.hpp
-  ${SOURCES_DIR}/internal/catch_tag_alias_registry.hpp
-  ${SOURCES_DIR}/internal/catch_template_test_registry.hpp
-  ${SOURCES_DIR}/internal/catch_test_case_info_hasher.hpp
-  ${SOURCES_DIR}/internal/catch_test_case_registry_impl.hpp
-  ${SOURCES_DIR}/internal/catch_test_case_tracker.hpp
-  ${SOURCES_DIR}/internal/catch_test_failure_exception.hpp
-  ${SOURCES_DIR}/internal/catch_test_macro_impl.hpp
-  ${SOURCES_DIR}/internal/catch_test_registry.hpp
-  ${SOURCES_DIR}/internal/catch_test_spec_parser.hpp
-  ${SOURCES_DIR}/internal/catch_thread_local.hpp
-  ${SOURCES_DIR}/internal/catch_thread_support.hpp
-  ${SOURCES_DIR}/internal/catch_to_string.hpp
-  ${SOURCES_DIR}/internal/catch_uncaught_exceptions.hpp
-  ${SOURCES_DIR}/internal/catch_uniform_floating_point_distribution.hpp
-  ${SOURCES_DIR}/internal/catch_uniform_integer_distribution.hpp
-  ${SOURCES_DIR}/internal/catch_unique_name.hpp
-  ${SOURCES_DIR}/internal/catch_unique_ptr.hpp
-  ${SOURCES_DIR}/internal/catch_unreachable.hpp
-  ${SOURCES_DIR}/internal/catch_void_type.hpp
-  ${SOURCES_DIR}/internal/catch_wildcard_pattern.hpp
-  ${SOURCES_DIR}/internal/catch_windows_h_proxy.hpp
+ "${PROJECT_BINARY_DIR}/generated-includes/Progmasoft/Catch3/UserConfig.hpp"
+  ${SOURCES_DIR}/UserConfig.hpp.in
+  ${SOURCES_DIR}/All.hpp
+  ${SOURCES_DIR}/Approx.hpp
+  ${SOURCES_DIR}/AssertionInfo.hpp
+  ${SOURCES_DIR}/AssertionResult.hpp
+  ${SOURCES_DIR}/CaseSensitive.hpp
+  ${SOURCES_DIR}/Config.hpp
+  ${SOURCES_DIR}/GetRandomSeed.hpp
+  ${SOURCES_DIR}/Message.hpp
+  ${SOURCES_DIR}/SectionInfo.hpp
+  ${SOURCES_DIR}/Session.hpp
+  ${SOURCES_DIR}/TagAlias.hpp
+  ${SOURCES_DIR}/TagAliasAutoregistrar.hpp
+  ${SOURCES_DIR}/TemplateTestMacros.hpp
+  ${SOURCES_DIR}/TestCaseInfo.hpp
+  ${SOURCES_DIR}/TestMacros.hpp
+  ${SOURCES_DIR}/TestRunInfo.hpp
+  ${SOURCES_DIR}/TestSpec.hpp
+  ${SOURCES_DIR}/Timer.hpp
+  ${SOURCES_DIR}/ToString.hpp
+  ${SOURCES_DIR}/Totals.hpp
+  ${SOURCES_DIR}/TranslateException.hpp
+  ${SOURCES_DIR}/EngineVersion.hpp
+  ${SOURCES_DIR}/EngineVersionMacros.hpp
+  ${SOURCES_DIR}/Internal/AssertionHandler.hpp
+  ${SOURCES_DIR}/Internal/CaseInsensitiveComparisons.hpp
+  ${SOURCES_DIR}/Internal/CompareTraits.hpp
+  ${SOURCES_DIR}/Internal/CompilerCapabilities.hpp
+  ${SOURCES_DIR}/Internal/ConfigAndroidLogWrite.hpp
+  ${SOURCES_DIR}/Internal/ConfigCounter.hpp
+  ${SOURCES_DIR}/Internal/ConfigPrefixMessages.hpp
+  ${SOURCES_DIR}/Internal/ConfigStaticAnalysisSupport.hpp
+  ${SOURCES_DIR}/Internal/ConfigUncaughtExceptions.hpp
+  ${SOURCES_DIR}/Internal/ConfigWchar.hpp
+  ${SOURCES_DIR}/Internal/ContainerNonMembers.hpp
+  ${SOURCES_DIR}/Internal/Context.hpp
+  ${SOURCES_DIR}/Internal/Debugger.hpp
+  ${SOURCES_DIR}/Internal/Decomposer.hpp
+  ${SOURCES_DIR}/Internal/DeprecationMacro.hpp
+  ${SOURCES_DIR}/Internal/Enforce.hpp
+  ${SOURCES_DIR}/Internal/EnumInfo.hpp
+  ${SOURCES_DIR}/Internal/ErrnoGuard.hpp
+  ${SOURCES_DIR}/Internal/ExceptionTranslatorRegistry.hpp
+  ${SOURCES_DIR}/Internal/FatalConditionHandler.hpp
+  ${SOURCES_DIR}/Internal/FloatingPointHelpers.hpp
+  ${SOURCES_DIR}/Internal/GetEnv.hpp
+  ${SOURCES_DIR}/Internal/IsPermutation.hpp
+  ${SOURCES_DIR}/Internal/LazyExpr.hpp
+  ${SOURCES_DIR}/Internal/LeakDetector.hpp
+  ${SOURCES_DIR}/Internal/LifetimeBound.hpp
+  ${SOURCES_DIR}/Internal/LogicalTraits.hpp
+  ${SOURCES_DIR}/Internal/MessageInfo.hpp
+  ${SOURCES_DIR}/Internal/Meta.hpp
+  ${SOURCES_DIR}/Internal/MoveAndForward.hpp
+  ${SOURCES_DIR}/Internal/NonCopyable.hpp
+  ${SOURCES_DIR}/Internal/Optional.hpp
+  ${SOURCES_DIR}/Internal/OutputRedirect.hpp
+  ${SOURCES_DIR}/Internal/ParseNumbers.hpp
+  ${SOURCES_DIR}/Internal/PathFilter.hpp
+  ${SOURCES_DIR}/Internal/Platform.hpp
+  ${SOURCES_DIR}/Internal/Polyfills.hpp
+  ${SOURCES_DIR}/Internal/Preprocessor.hpp
+  ${SOURCES_DIR}/Internal/PreprocessorRemoveParens.hpp
+  ${SOURCES_DIR}/Internal/RandomFloatingPointHelpers.hpp
+  ${SOURCES_DIR}/Internal/RandomIntegerHelpers.hpp
+  ${SOURCES_DIR}/Internal/RandomNumberGenerator.hpp
+  ${SOURCES_DIR}/Internal/RandomSeedGeneration.hpp
+  ${SOURCES_DIR}/Internal/ReporterRegistry.hpp
+  ${SOURCES_DIR}/Internal/ResultType.hpp
+  ${SOURCES_DIR}/Internal/ReusableStringStream.hpp
+  ${SOURCES_DIR}/Internal/RunContext.hpp
+  ${SOURCES_DIR}/Internal/Section.hpp
+  ${SOURCES_DIR}/Internal/Singletons.hpp
+  ${SOURCES_DIR}/Internal/SourceLineInfo.hpp
+  ${SOURCES_DIR}/Internal/StartupExceptionRegistry.hpp
+  ${SOURCES_DIR}/Internal/StdStreams.hpp
+  ${SOURCES_DIR}/Internal/StreamEndStop.hpp
+  ${SOURCES_DIR}/Internal/StringManip.hpp
+  ${SOURCES_DIR}/Internal/StringRef.hpp
+  ${SOURCES_DIR}/Internal/TagAliasRegistry.hpp
+  ${SOURCES_DIR}/Internal/TemplateTestRegistry.hpp
+  ${SOURCES_DIR}/Internal/TestCaseInfoHasher.hpp
+  ${SOURCES_DIR}/Internal/TestCaseRegistryImpl.hpp
+  ${SOURCES_DIR}/Internal/TestCaseTracker.hpp
+  ${SOURCES_DIR}/Internal/TestFailureException.hpp
+  ${SOURCES_DIR}/Internal/TestMacroImpl.hpp
+  ${SOURCES_DIR}/Internal/TestRegistry.hpp
+  ${SOURCES_DIR}/Internal/TestSpecParser.hpp
+  ${SOURCES_DIR}/Internal/ThreadLocal.hpp
+  ${SOURCES_DIR}/Internal/ThreadSupport.hpp
+  ${SOURCES_DIR}/Internal/ToString.hpp
+  ${SOURCES_DIR}/Internal/UncaughtExceptions.hpp
+  ${SOURCES_DIR}/Internal/UniformFloatingPointDistribution.hpp
+  ${SOURCES_DIR}/Internal/UniformIntegerDistribution.hpp
+  ${SOURCES_DIR}/Internal/UniqueName.hpp
+  ${SOURCES_DIR}/Internal/UniquePtr.hpp
+  ${SOURCES_DIR}/Internal/Unreachable.hpp
+  ${SOURCES_DIR}/Internal/VoidType.hpp
+  ${SOURCES_DIR}/Internal/WildcardPattern.hpp
+  ${SOURCES_DIR}/Internal/WindowsHProxy.hpp
 )
 set(IMPL_SOURCES
-  ${SOURCES_DIR}/catch_approx.cpp
-  ${SOURCES_DIR}/catch_assertion_result.cpp
-  ${SOURCES_DIR}/catch_config.cpp
-  ${SOURCES_DIR}/catch_get_random_seed.cpp
-  ${SOURCES_DIR}/catch_message.cpp
-  ${SOURCES_DIR}/catch_registry_hub.cpp
-  ${SOURCES_DIR}/catch_session.cpp
-  ${SOURCES_DIR}/catch_tag_alias_autoregistrar.cpp
-  ${SOURCES_DIR}/catch_test_case_info.cpp
-  ${SOURCES_DIR}/catch_test_spec.cpp
-  ${SOURCES_DIR}/catch_timer.cpp
-  ${SOURCES_DIR}/catch_tostring.cpp
-  ${SOURCES_DIR}/catch_totals.cpp
-  ${SOURCES_DIR}/catch_translate_exception.cpp
-  ${SOURCES_DIR}/catch_version.cpp
-  ${SOURCES_DIR}/internal/catch_assertion_handler.cpp
-  ${SOURCES_DIR}/internal/catch_case_insensitive_comparisons.cpp
-  ${SOURCES_DIR}/internal/catch_context.cpp
-  ${SOURCES_DIR}/internal/catch_debugger.cpp
-  ${SOURCES_DIR}/internal/catch_decomposer.cpp
-  ${SOURCES_DIR}/internal/catch_enforce.cpp
-  ${SOURCES_DIR}/internal/catch_enum_info.cpp
-  ${SOURCES_DIR}/internal/catch_errno_guard.cpp
-  ${SOURCES_DIR}/internal/catch_exception_translator_registry.cpp
-  ${SOURCES_DIR}/internal/catch_fatal_condition_handler.cpp
-  ${SOURCES_DIR}/internal/catch_floating_point_helpers.cpp
-  ${SOURCES_DIR}/internal/catch_getenv.cpp
-  ${SOURCES_DIR}/internal/catch_lazy_expr.cpp
-  ${SOURCES_DIR}/internal/catch_leak_detector.cpp
-  ${SOURCES_DIR}/internal/catch_message_info.cpp
-  ${SOURCES_DIR}/internal/catch_output_redirect.cpp
-  ${SOURCES_DIR}/internal/catch_parse_numbers.cpp
-  ${SOURCES_DIR}/internal/catch_polyfills.cpp
-  ${SOURCES_DIR}/internal/catch_random_number_generator.cpp
-  ${SOURCES_DIR}/internal/catch_random_seed_generation.cpp
-  ${SOURCES_DIR}/internal/catch_reporter_registry.cpp
-  ${SOURCES_DIR}/internal/catch_reusable_string_stream.cpp
-  ${SOURCES_DIR}/internal/catch_run_context.cpp
-  ${SOURCES_DIR}/internal/catch_section.cpp
-  ${SOURCES_DIR}/internal/catch_singletons.cpp
-  ${SOURCES_DIR}/internal/catch_source_line_info.cpp
-  ${SOURCES_DIR}/internal/catch_startup_exception_registry.cpp
-  ${SOURCES_DIR}/internal/catch_stdstreams.cpp
-  ${SOURCES_DIR}/internal/catch_string_manip.cpp
-  ${SOURCES_DIR}/internal/catch_stringref.cpp
-  ${SOURCES_DIR}/internal/catch_tag_alias_registry.cpp
-  ${SOURCES_DIR}/internal/catch_test_case_info_hasher.cpp
-  ${SOURCES_DIR}/internal/catch_test_case_registry_impl.cpp
-  ${SOURCES_DIR}/internal/catch_test_case_tracker.cpp
-  ${SOURCES_DIR}/internal/catch_test_failure_exception.cpp
-  ${SOURCES_DIR}/internal/catch_test_registry.cpp
-  ${SOURCES_DIR}/internal/catch_test_spec_parser.cpp
-  ${SOURCES_DIR}/internal/catch_uncaught_exceptions.cpp
-  ${SOURCES_DIR}/internal/catch_wildcard_pattern.cpp
+  ${SOURCES_DIR}/Approx.cpp
+  ${SOURCES_DIR}/AssertionResult.cpp
+  ${SOURCES_DIR}/Config.cpp
+  ${SOURCES_DIR}/GetRandomSeed.cpp
+  ${SOURCES_DIR}/Message.cpp
+  ${SOURCES_DIR}/RegistryHub.cpp
+  ${SOURCES_DIR}/Session.cpp
+  ${SOURCES_DIR}/TagAliasAutoregistrar.cpp
+  ${SOURCES_DIR}/TestCaseInfo.cpp
+  ${SOURCES_DIR}/TestSpec.cpp
+  ${SOURCES_DIR}/Timer.cpp
+  ${SOURCES_DIR}/ToString.cpp
+  ${SOURCES_DIR}/Totals.cpp
+  ${SOURCES_DIR}/TranslateException.cpp
+  ${SOURCES_DIR}/EngineVersion.cpp
+  ${SOURCES_DIR}/Internal/AssertionHandler.cpp
+  ${SOURCES_DIR}/Internal/CaseInsensitiveComparisons.cpp
+  ${SOURCES_DIR}/Internal/Context.cpp
+  ${SOURCES_DIR}/Internal/Debugger.cpp
+  ${SOURCES_DIR}/Internal/Decomposer.cpp
+  ${SOURCES_DIR}/Internal/Enforce.cpp
+  ${SOURCES_DIR}/Internal/EnumInfo.cpp
+  ${SOURCES_DIR}/Internal/ErrnoGuard.cpp
+  ${SOURCES_DIR}/Internal/ExceptionTranslatorRegistry.cpp
+  ${SOURCES_DIR}/Internal/FatalConditionHandler.cpp
+  ${SOURCES_DIR}/Internal/FloatingPointHelpers.cpp
+  ${SOURCES_DIR}/Internal/GetEnv.cpp
+  ${SOURCES_DIR}/Internal/LazyExpr.cpp
+  ${SOURCES_DIR}/Internal/LeakDetector.cpp
+  ${SOURCES_DIR}/Internal/MessageInfo.cpp
+  ${SOURCES_DIR}/Internal/OutputRedirect.cpp
+  ${SOURCES_DIR}/Internal/ParseNumbers.cpp
+  ${SOURCES_DIR}/Internal/Polyfills.cpp
+  ${SOURCES_DIR}/Internal/RandomNumberGenerator.cpp
+  ${SOURCES_DIR}/Internal/RandomSeedGeneration.cpp
+  ${SOURCES_DIR}/Internal/ReporterRegistry.cpp
+  ${SOURCES_DIR}/Internal/ReusableStringStream.cpp
+  ${SOURCES_DIR}/Internal/RunContext.cpp
+  ${SOURCES_DIR}/Internal/Section.cpp
+  ${SOURCES_DIR}/Internal/Singletons.cpp
+  ${SOURCES_DIR}/Internal/SourceLineInfo.cpp
+  ${SOURCES_DIR}/Internal/StartupExceptionRegistry.cpp
+  ${SOURCES_DIR}/Internal/StdStreams.cpp
+  ${SOURCES_DIR}/Internal/StringManip.cpp
+  ${SOURCES_DIR}/Internal/StringRef.cpp
+  ${SOURCES_DIR}/Internal/TagAliasRegistry.cpp
+  ${SOURCES_DIR}/Internal/TestCaseInfoHasher.cpp
+  ${SOURCES_DIR}/Internal/TestCaseRegistryImpl.cpp
+  ${SOURCES_DIR}/Internal/TestCaseTracker.cpp
+  ${SOURCES_DIR}/Internal/TestFailureException.cpp
+  ${SOURCES_DIR}/Internal/TestRegistry.cpp
+  ${SOURCES_DIR}/Internal/TestSpecParser.cpp
+  ${SOURCES_DIR}/Internal/UncaughtExceptions.cpp
+  ${SOURCES_DIR}/Internal/WildcardPattern.cpp
 )
 set(INTERNAL_FILES ${IMPL_SOURCES} ${IMPL_HEADERS})
 
 set(INTERFACE_HEADERS
-  ${SOURCES_DIR}/interfaces/catch_interfaces_all.hpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_capture.hpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_config.hpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_exception.hpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_generatortracker.hpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_registry_hub.hpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_reporter.hpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_reporter_factory.hpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_tag_alias_registry.hpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_test_invoker.hpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_testcase.hpp
+  ${SOURCES_DIR}/Interfaces/All.hpp
+  ${SOURCES_DIR}/Interfaces/IResultCapture.hpp
+  ${SOURCES_DIR}/Interfaces/IConfig.hpp
+  ${SOURCES_DIR}/Interfaces/IExceptionTranslator.hpp
+  ${SOURCES_DIR}/Interfaces/IGeneratorTracker.hpp
+  ${SOURCES_DIR}/Interfaces/IRegistryHub.hpp
+  ${SOURCES_DIR}/Interfaces/IEventListener.hpp
+  ${SOURCES_DIR}/Interfaces/EventListenerFactory.hpp
+  ${SOURCES_DIR}/Interfaces/ITagAliasRegistry.hpp
+  ${SOURCES_DIR}/Interfaces/ITestInvoker.hpp
+  ${SOURCES_DIR}/Interfaces/ITestCaseRegistry.hpp
 )
 set(INTERFACE_SOURCES
-  ${SOURCES_DIR}/interfaces/catch_interfaces_capture.cpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_config.cpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_exception.cpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_generatortracker.cpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_registry_hub.cpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_reporter.cpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_reporter_factory.cpp
-  ${SOURCES_DIR}/interfaces/catch_interfaces_testcase.cpp
+  ${SOURCES_DIR}/Interfaces/IResultCapture.cpp
+  ${SOURCES_DIR}/Interfaces/IConfig.cpp
+  ${SOURCES_DIR}/Interfaces/IExceptionTranslator.cpp
+  ${SOURCES_DIR}/Interfaces/IGeneratorTracker.cpp
+  ${SOURCES_DIR}/Interfaces/IRegistryHub.cpp
+  ${SOURCES_DIR}/Interfaces/IEventListener.cpp
+  ${SOURCES_DIR}/Interfaces/EventListenerFactory.cpp
+  ${SOURCES_DIR}/Interfaces/ITestCaseRegistry.cpp
 )
 set(INTERFACE_FILES ${INTERFACE_HEADERS} ${INTERFACE_SOURCES})
 
 set(GENERATOR_HEADERS
-  ${SOURCES_DIR}/generators/catch_generator_exception.hpp
-  ${SOURCES_DIR}/generators/catch_generators.hpp
-  ${SOURCES_DIR}/generators/catch_generators_adapters.hpp
-  ${SOURCES_DIR}/generators/catch_generators_all.hpp
-  ${SOURCES_DIR}/generators/catch_generators_random.hpp
-  ${SOURCES_DIR}/generators/catch_generators_range.hpp
-  ${SOURCES_DIR}/generators/catch_generators_throw.hpp
+  ${SOURCES_DIR}/Generators/GeneratorException.hpp
+  ${SOURCES_DIR}/Generators/Generators.hpp
+  ${SOURCES_DIR}/Generators/Adapters.hpp
+  ${SOURCES_DIR}/Generators/All.hpp
+  ${SOURCES_DIR}/Generators/Random.hpp
+  ${SOURCES_DIR}/Generators/Range.hpp
+  ${SOURCES_DIR}/Generators/Throw.hpp
 )
 set(GENERATOR_SOURCES
-  ${SOURCES_DIR}/generators/catch_generator_exception.cpp
-  ${SOURCES_DIR}/generators/catch_generators.cpp
-  ${SOURCES_DIR}/generators/catch_generators_random.cpp
-  ${SOURCES_DIR}/generators/catch_generators_throw.cpp
+  ${SOURCES_DIR}/Generators/GeneratorException.cpp
+  ${SOURCES_DIR}/Generators/Generators.cpp
+  ${SOURCES_DIR}/Generators/Random.cpp
+  ${SOURCES_DIR}/Generators/Throw.cpp
 )
 set(GENERATOR_FILES ${GENERATOR_HEADERS} ${GENERATOR_SOURCES})
 
 set(MATCHER_HEADERS
-  ${SOURCES_DIR}/matchers/catch_matchers.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_all.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_container_properties.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_contains.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_range_equals.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_exception.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_floating_point.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_predicate.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_quantifiers.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_string.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_templated.hpp
-  ${SOURCES_DIR}/matchers/catch_matchers_vector.hpp
-  ${SOURCES_DIR}/matchers/internal/catch_matchers_impl.hpp
+  ${SOURCES_DIR}/Matchers/Matchers.hpp
+  ${SOURCES_DIR}/Matchers/All.hpp
+  ${SOURCES_DIR}/Matchers/ContainerProperties.hpp
+  ${SOURCES_DIR}/Matchers/Contains.hpp
+  ${SOURCES_DIR}/Matchers/RangeEquals.hpp
+  ${SOURCES_DIR}/Matchers/Exception.hpp
+  ${SOURCES_DIR}/Matchers/FloatingPoint.hpp
+  ${SOURCES_DIR}/Matchers/Predicate.hpp
+  ${SOURCES_DIR}/Matchers/Quantifiers.hpp
+  ${SOURCES_DIR}/Matchers/String.hpp
+  ${SOURCES_DIR}/Matchers/Templated.hpp
+  ${SOURCES_DIR}/Matchers/Vector.hpp
+  ${SOURCES_DIR}/Matchers/Internal/Impl.hpp
 )
 set(MATCHER_SOURCES
-  ${SOURCES_DIR}/matchers/catch_matchers.cpp
-  ${SOURCES_DIR}/matchers/catch_matchers_container_properties.cpp
-  ${SOURCES_DIR}/matchers/catch_matchers_exception.cpp
-  ${SOURCES_DIR}/matchers/catch_matchers_floating_point.cpp
-  ${SOURCES_DIR}/matchers/catch_matchers_predicate.cpp
-  ${SOURCES_DIR}/matchers/catch_matchers_quantifiers.cpp
-  ${SOURCES_DIR}/matchers/catch_matchers_string.cpp
-  ${SOURCES_DIR}/matchers/catch_matchers_templated.cpp
-  ${SOURCES_DIR}/matchers/internal/catch_matchers_impl.cpp
+  ${SOURCES_DIR}/Matchers/Matchers.cpp
+  ${SOURCES_DIR}/Matchers/ContainerProperties.cpp
+  ${SOURCES_DIR}/Matchers/Exception.cpp
+  ${SOURCES_DIR}/Matchers/FloatingPoint.cpp
+  ${SOURCES_DIR}/Matchers/Predicate.cpp
+  ${SOURCES_DIR}/Matchers/Quantifiers.cpp
+  ${SOURCES_DIR}/Matchers/String.cpp
+  ${SOURCES_DIR}/Matchers/Templated.cpp
+  ${SOURCES_DIR}/Matchers/Internal/Impl.cpp
 )
 set(MATCHER_FILES ${MATCHER_HEADERS} ${MATCHER_SOURCES})
 
 set(REPORTER_HEADERS
-  ${SOURCES_DIR}/reporters/catch_reporter_event_listener.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_multi.hpp
-  ${SOURCES_DIR}/reporters/catch_reporter_registrars.hpp
-  ${SOURCES_DIR}/reporters/catch_reporters_all.hpp
+  ${SOURCES_DIR}/Reporters/EventListener.hpp
+  ${SOURCES_DIR}/Reporters/Multi.hpp
+  ${SOURCES_DIR}/Reporters/Registrars.hpp
+  ${SOURCES_DIR}/Reporters/All.hpp
 )
 set(REPORTER_SOURCES
-  ${SOURCES_DIR}/reporters/catch_reporter_event_listener.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_multi.cpp
-  ${SOURCES_DIR}/reporters/catch_reporter_registrars.cpp
+  ${SOURCES_DIR}/Reporters/EventListener.cpp
+  ${SOURCES_DIR}/Reporters/Multi.cpp
+  ${SOURCES_DIR}/Reporters/Registrars.cpp
 )
 set(REPORTER_FILES ${REPORTER_HEADERS} ${REPORTER_SOURCES})
 
 # The Catch3 runner, which replaced Catch2's session, command line and
-# reporters. It is built into Catch2 so that Catch::Session reaches it.
+# reporters. It is built into the library so that Catch::Session reaches it.
 set(PROGMASOFT_RUNNER_FILES
   "${CATCH_DIR}/src/Progmasoft/Catch3/Results.hpp"
   "${CATCH_DIR}/src/Progmasoft/Catch3/Runner.hpp"
@@ -331,6 +331,14 @@ set(PROGMASOFT_RUNNER_FILES
   "${CATCH_DIR}/src/Progmasoft/Runner/TemporaryDirectory.cpp"
 )
 
+# Property testing and snapshots.
+set(PROGMASOFT_LIBRARY_FILES
+  "${CATCH_DIR}/src/Progmasoft/ChoiceShrinker.cpp"
+  "${CATCH_DIR}/src/Progmasoft/StrategyContext.cpp"
+  "${CATCH_DIR}/src/Progmasoft/PropertyEngine.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Snapshot.cpp"
+)
+
 set(ALL_FILES
   ${BENCHMARK_FILES}
   ${GENERATOR_FILES}
@@ -339,11 +347,12 @@ set(ALL_FILES
   ${INTERNAL_FILES}
   ${MATCHER_FILES}
   ${PROGMASOFT_RUNNER_FILES}
+  ${PROGMASOFT_LIBRARY_FILES}
 )
 
 set(FILTERED_FILES ${ALL_FILES})
-list(REMOVE_ITEM FILTERED_FILES "${PROJECT_BINARY_DIR}/generated-includes/catch2/catch_user_config.hpp")
-list(REMOVE_ITEM FILTERED_FILES ${PROGMASOFT_RUNNER_FILES})
+list(REMOVE_ITEM FILTERED_FILES "${PROJECT_BINARY_DIR}/generated-includes/Progmasoft/Catch3/UserConfig.hpp")
+list(REMOVE_ITEM FILTERED_FILES ${PROGMASOFT_RUNNER_FILES} ${PROGMASOFT_LIBRARY_FILES})
 source_group(
   TREE ${SOURCES_DIR}
   PREFIX sources
@@ -351,90 +360,73 @@ source_group(
 )
 source_group(
   TREE "${CATCH_DIR}/src/Progmasoft"
-  PREFIX runner
-  FILES ${PROGMASOFT_RUNNER_FILES}
+  PREFIX Progmasoft
+  FILES ${PROGMASOFT_RUNNER_FILES} ${PROGMASOFT_LIBRARY_FILES}
 )
 source_group("generated headers"
   FILES
-    "${PROJECT_BINARY_DIR}/generated-includes/catch2/catch_user_config.hpp"
+    "${PROJECT_BINARY_DIR}/generated-includes/Progmasoft/Catch3/UserConfig.hpp"
 )
 
-add_library(Catch2 ${ALL_FILES})
-if(CATCH_ENABLE_REPRODUCIBLE_BUILD)
-  add_build_reproducibility_settings(Catch2)
+add_library(Catch3 ${ALL_FILES})
+if(CATCH3_ENABLE_REPRODUCIBLE_BUILD)
+  add_build_reproducibility_settings(Catch3)
 endif()
-add_library(Catch2::Catch2 ALIAS Catch2)
-
-# The property engine and the other Progmasoft test utilities. Their headers
-# need C++20 in the code that includes them.
-add_library(ProgmasoftCatch3 STATIC
-  "${CATCH_DIR}/src/Progmasoft/ChoiceShrinker.cpp"
-  "${CATCH_DIR}/src/Progmasoft/Context.cpp"
-  "${CATCH_DIR}/src/Progmasoft/PropertyEngine.cpp"
-  "${CATCH_DIR}/src/Progmasoft/Snapshot.cpp"
-)
-add_library(Progmasoft::Catch3 ALIAS ProgmasoftCatch3)
-set_target_properties(ProgmasoftCatch3 PROPERTIES EXPORT_NAME Catch3)
-target_link_libraries(ProgmasoftCatch3 PUBLIC Catch2::Catch2)
-target_include_directories(ProgmasoftCatch3
-  PUBLIC
-    $<BUILD_INTERFACE:${CATCH_DIR}/src>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-target_compile_features(ProgmasoftCatch3 PUBLIC cxx_std_20)
+add_library(Catch3::Catch3 ALIAS Catch3)
 
 if(ANDROID)
-  target_link_libraries(Catch2 PRIVATE log)
+  target_link_libraries(Catch3 PRIVATE log)
 endif()
 
-set_target_properties(Catch2 PROPERTIES
+set_target_properties(Catch3 PROPERTIES
   DEBUG_POSTFIX "d"
   VERSION ${PROJECT_VERSION}
   SOVERSION ${PROJECT_VERSION}
 )
 
-# Code that includes Catch2's headers needs C++14; the library itself, with
-# the Catch3 runner, is built as C++20.
-target_compile_features(Catch2 PUBLIC cxx_std_14)
-set_target_properties(Catch2 PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+# Code that includes the engine's headers needs C++14, and the other
+# Progmasoft/ headers C++20; the library itself, with the runner, is built as C++20.
+target_compile_features(Catch3 PUBLIC cxx_std_14)
+set_target_properties(Catch3 PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 
 configure_file(
-  "${SOURCES_DIR}/catch_user_config.hpp.in"
-  "${PROJECT_BINARY_DIR}/generated-includes/catch2/catch_user_config.hpp"
+  "${SOURCES_DIR}/UserConfig.hpp.in"
+  "${PROJECT_BINARY_DIR}/generated-includes/Progmasoft/Catch3/UserConfig.hpp"
 )
 
-target_include_directories(Catch2
+target_include_directories(Catch3
   PUBLIC
-    $<BUILD_INTERFACE:${SOURCES_DIR}/..>
+    $<BUILD_INTERFACE:${CATCH_DIR}/src>
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/generated-includes>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 
-add_library(Catch2WithMain
-  ${SOURCES_DIR}/internal/catch_main.cpp
+add_library(Catch3WithMain
+  ${SOURCES_DIR}/Internal/Main.cpp
 )
-if(CATCH_ENABLE_REPRODUCIBLE_BUILD)
-  add_build_reproducibility_settings(Catch2WithMain)
+if(CATCH3_ENABLE_REPRODUCIBLE_BUILD)
+  add_build_reproducibility_settings(Catch3WithMain)
 endif()
-add_library(Catch2::Catch2WithMain ALIAS Catch2WithMain)
-target_link_libraries(Catch2WithMain PUBLIC Catch2)
-set_target_properties(Catch2WithMain
+add_library(Catch3::Catch3WithMain ALIAS Catch3WithMain)
+target_link_libraries(Catch3WithMain PUBLIC Catch3)
+set_target_properties(Catch3WithMain
   PROPERTIES
-    OUTPUT_NAME "Catch2Main"
+    OUTPUT_NAME "Catch3Main"
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION}
 )
-set_target_properties(Catch2WithMain PROPERTIES DEBUG_POSTFIX "d")
+set_target_properties(Catch3WithMain PROPERTIES DEBUG_POSTFIX "d")
 
 if(NOT_SUBPROJECT)
-  # create and install an export set for catch target as Catch2::Catch
+  # Create and install an export set for the targets as Catch3::Catch3 and
+  # Catch3::Catch3WithMain.
   install(
     TARGETS
-      Catch2
-      Catch2WithMain
+      Catch3
+      Catch3WithMain
     EXPORT
-      Catch2Targets
+      Catch3Targets
     LIBRARY DESTINATION
       ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION
@@ -445,96 +437,66 @@ if(NOT_SUBPROJECT)
 
   install(
     EXPORT
-      Catch2Targets
+      Catch3Targets
     NAMESPACE
-      Catch2::
+      Catch3::
     DESTINATION
-      ${CATCH_CMAKE_CONFIG_DESTINATION}
+      ${CATCH3_CMAKE_CONFIG_DESTINATION}
   )
-  # Install the headers
+  # Install the headers, with the generated one, below include/Progmasoft.
   install(
     DIRECTORY
-      "${SOURCES_DIR}"
-      "${PROJECT_BINARY_DIR}/generated-includes/catch2" # Also install the generated header
+      "${CATCH_DIR}/src/Progmasoft"
+      "${PROJECT_BINARY_DIR}/generated-includes/Progmasoft"
     DESTINATION
       "${CMAKE_INSTALL_INCLUDEDIR}"
     FILES_MATCHING
       PATTERN "*.hpp"
   )
-
-  # Keep the independently licensed Progmasoft headers beside Catch2's public
-  # headers while preserving a separate CMake target and package namespace.
-  install(
-    DIRECTORY "${CATCH_DIR}/src/Progmasoft"
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-    FILES_MATCHING PATTERN "*.hpp"
-  )
-  install(TARGETS ProgmasoftCatch3 EXPORT ProgmasoftCatch3Targets)
-  install(
-    EXPORT ProgmasoftCatch3Targets
-    NAMESPACE Progmasoft::
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/ProgmasoftCatch3"
-  )
-  configure_package_config_file(
-    "${CATCH_DIR}/src/Progmasoft/ProgmasoftCatch3Config.cmake.in"
-    "${PROJECT_BINARY_DIR}/ProgmasoftCatch3Config.cmake"
-    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/ProgmasoftCatch3"
-  )
-  write_basic_package_version_file(
-    "${PROJECT_BINARY_DIR}/ProgmasoftCatch3ConfigVersion.cmake"
-    VERSION "${PROJECT_VERSION}"
-    COMPATIBILITY SameMajorVersion
-  )
-  install(
-    FILES
-      "${PROJECT_BINARY_DIR}/ProgmasoftCatch3Config.cmake"
-      "${PROJECT_BINARY_DIR}/ProgmasoftCatch3ConfigVersion.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/ProgmasoftCatch3"
-  )
 endif()
 
-# Some tests require a full recompilation of Catch2 lib with different
+# Some tests require a full recompilation of the library with different
 # compilation flags. They can link against this target to recompile all
 # the sources into the binary.
-if(CATCH_BUILD_EXAMPLES OR CATCH_BUILD_EXTRA_TESTS)
-  add_library(Catch2_buildall_interface INTERFACE)
-  target_sources(Catch2_buildall_interface INTERFACE
+if(CATCH3_BUILD_EXAMPLES OR CATCH3_BUILD_EXTRA_TESTS)
+  add_library(Catch3_buildall_interface INTERFACE)
+  target_sources(Catch3_buildall_interface INTERFACE
     ${ALL_FILES}
     # Also include main entry point
-    ${SOURCES_DIR}/internal/catch_main.cpp
+    ${SOURCES_DIR}/Internal/Main.cpp
   )
-  target_include_directories(Catch2_buildall_interface
+  target_include_directories(Catch3_buildall_interface
     INTERFACE
-      $<BUILD_INTERFACE:${SOURCES_DIR}/..>
+      $<BUILD_INTERFACE:${CATCH_DIR}/src>
       $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/generated-includes>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   )
-  target_compile_definitions(Catch2_buildall_interface INTERFACE CATCH_CONFIG_STATIC)
+  target_compile_definitions(Catch3_buildall_interface INTERFACE CATCH_CONFIG_STATIC)
   # These targets compile the library's sources themselves, the runner's
   # among them, which need C++20.
-  target_compile_features(Catch2_buildall_interface INTERFACE cxx_std_20)
+  target_compile_features(Catch3_buildall_interface INTERFACE cxx_std_20)
 endif()
 
-list(APPEND CATCH_IMPL_TARGETS Catch2 Catch2WithMain)
+list(APPEND CATCH_IMPL_TARGETS Catch3 Catch3WithMain)
 set(CATCH_IMPL_TARGETS ${CATCH_IMPL_TARGETS} PARENT_SCOPE)
 
 # We still do not support building dynamic library with hidden visibility
 # so we want to check & warn users if they do this. However, we won't abort
 # the configuration step so that we don't have to also provide an override.
 if(BUILD_SHARED_LIBS)
-  set_target_properties(Catch2 Catch2WithMain
+  set_target_properties(Catch3 Catch3WithMain
     PROPERTIES
       WINDOWS_EXPORT_ALL_SYMBOLS ON
   )
 
-  get_target_property(_VisPreset Catch2 CXX_VISIBILITY_PRESET)
+  get_target_property(_VisPreset Catch3 CXX_VISIBILITY_PRESET)
   if(NOT MSVC AND _VisPreset STREQUAL "hidden")
-    set_target_properties(Catch2 Catch2WithMain
+    set_target_properties(Catch3 Catch3WithMain
       PROPERTIES
         CXX_VISIBILITY_PRESET "default"
         VISIBILITY_INLINES_HIDDEN OFF
     )
-    message(WARNING "Setting Catch2's visibility to default."
+    message(WARNING "Setting Catch3's visibility to default."
                     " Hidden visibility is not supported.")
   endif()
 endif()

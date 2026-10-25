@@ -10,7 +10,7 @@
 
 // main() provided by Catch in file 020-TestCase-1.cpp.
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 static int Factorial( int number ) {
    return number <= 1 ? number : Factorial( number - 1 ) * number;  // fail

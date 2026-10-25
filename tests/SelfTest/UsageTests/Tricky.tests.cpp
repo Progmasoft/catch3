@@ -15,9 +15,9 @@
                                  // that is triggered when compiling as Win32|Release
 #endif
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
-#include <catch2/generators/catch_generators_range.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Generators/Generators.hpp>
+#include <Progmasoft/Catch3/Generators/Range.hpp>
 
 #include <cstdio>
 #include <sstream>

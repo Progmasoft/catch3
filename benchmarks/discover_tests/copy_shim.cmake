@@ -2,7 +2,7 @@
 
 # Fake Catch2 binary used by benchmark_discovery.py.
 #
-# catch_discover_tests_impl discovers tests by running
+# catch3_discover_tests_impl discovers tests by running
 #
 #     ${TEST_EXECUTOR} "${TEST_EXECUTABLE}" ... --list-tests --reporter json --out <file>
 #

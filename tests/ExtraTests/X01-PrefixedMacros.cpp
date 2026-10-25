@@ -14,9 +14,9 @@
  */
 
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_predicate.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
+#include <Progmasoft/Catch3/Matchers/Predicate.hpp>
+#include <Progmasoft/Catch3/Matchers/String.hpp>
 
 #include <type_traits>
 #include <stdexcept>

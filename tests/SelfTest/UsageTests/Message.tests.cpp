@@ -6,7 +6,7 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 #include <iostream>
 
 TEST_CASE( "INFO and WARN do not abort tests", "[messages][.]" ) {

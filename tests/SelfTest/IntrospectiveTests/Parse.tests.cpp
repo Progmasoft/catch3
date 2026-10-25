@@ -6,9 +6,9 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
-#include <catch2/internal/catch_parse_numbers.hpp>
+#include <Progmasoft/Catch3/Internal/ParseNumbers.hpp>
 
 TEST_CASE("Parse uints", "[parse-numbers]") {
 	using Catch::parseUInt;

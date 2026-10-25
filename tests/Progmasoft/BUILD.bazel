@@ -30,9 +30,8 @@ cc_test(
     data = [":runner_fixture"],
     env = {"CATCH3_RUNNER_FIXTURE": "$(rootpath :runner_fixture)"},
     deps = [
-        "//:catch2",
-        "//:catch2_main",
-        "//src/Progmasoft:catch3",
+        "//:catch3",
+        "//:catch3_main",
     ],
 )
 
@@ -45,7 +44,7 @@ cc_binary(
         "//conditions:default": ["-std=c++20"],
     }),
     deps = [
-        "//:catch2",
-        "//:catch2_main",
+        "//:catch3",
+        "//:catch3_main",
     ],
 )

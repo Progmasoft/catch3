@@ -10,7 +10,7 @@
  * Checks that test cases with identical name and tags are reported as error
  */
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 TEST_CASE("A test case with duplicated name and tags", "[tag1][tag2]") {}
 TEST_CASE("A test case with duplicated name and tags", "[tag1][tag2]") {}

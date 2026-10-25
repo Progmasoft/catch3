@@ -10,7 +10,7 @@
 
 // main() provided by linkage with Catch2WithMain
 
-#include <catch2/catch_test_macros.hpp>
+#include <Progmasoft/Catch3/TestMacros.hpp>
 
 SCENARIO( "vectors can be sized and resized", "[vector]" ) {
 
