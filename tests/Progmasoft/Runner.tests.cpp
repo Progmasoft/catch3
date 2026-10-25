@@ -285,7 +285,7 @@ TEST_CASE("JUnit and trace outputs are written", "[progmasoft][runner]")
     CHECK(ExitCode(run) == 0);
     auto xml = Runner::ReadFile(junit);
     REQUIRE(xml);
-    CHECK_THAT(*xml, ContainsSubstring("<skipped message=\"skipped\"/>"));
+    CHECK_THAT(*xml, ContainsSubstring("<skipped message=\"skipped\" />"));
     auto traceText = Runner::ReadFile(trace);
     REQUIRE(traceText);
     auto traceJson = Runner::ParseJson(*traceText);

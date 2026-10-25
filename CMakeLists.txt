@@ -77,6 +77,10 @@ set(CATCH_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(SOURCES_DIR ${CATCH_DIR}/src/Progmasoft/Catch3)
 set(SELF_TEST_DIR ${CATCH_DIR}/tests/SelfTest)
 
+# yyjson and pugixml, compiled into the library; nothing of them is installed.
+add_subdirectory(third_party/yyjson)
+add_subdirectory(third_party/pugixml)
+
 # We need to bring-in the variables defined there to this scope
 add_subdirectory(src)
 

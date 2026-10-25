@@ -294,6 +294,7 @@ set(PROGMASOFT_RUNNER_FILES
   "${CATCH_DIR}/src/Progmasoft/Catch3/XmlWriter.hpp"
   "${CATCH_DIR}/src/Progmasoft/Results.cpp"
   "${CATCH_DIR}/src/Progmasoft/XmlWriter.cpp"
+  "${CATCH_DIR}/src/Progmasoft/PugiXml.inl"
   "${CATCH_DIR}/src/Progmasoft/Runner/Analysis.hpp"
   "${CATCH_DIR}/src/Progmasoft/Runner/Catalog.hpp"
   "${CATCH_DIR}/src/Progmasoft/Runner/Console.hpp"
@@ -321,6 +322,7 @@ set(PROGMASOFT_RUNNER_FILES
   "${CATCH_DIR}/src/Progmasoft/Runner/Hash.cpp"
   "${CATCH_DIR}/src/Progmasoft/Runner/History.cpp"
   "${CATCH_DIR}/src/Progmasoft/Runner/Json.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Runner/Yyjson.inl"
   "${CATCH_DIR}/src/Progmasoft/Runner/Options.cpp"
   "${CATCH_DIR}/src/Progmasoft/Runner/Planner.cpp"
   "${CATCH_DIR}/src/Progmasoft/Runner/Process.cpp"
@@ -377,6 +379,14 @@ add_library(Catch3::Catch3 ALIAS Catch3)
 if(ANDROID)
   target_link_libraries(Catch3 PRIVATE log)
 endif()
+
+# The JSON and XML libraries of the runner are compiled into its own
+# translation units, so only the build needs them.
+target_link_libraries(Catch3
+  PRIVATE
+    $<BUILD_INTERFACE:Catch3Yyjson>
+    $<BUILD_INTERFACE:Catch3Pugixml>
+)
 
 set_target_properties(Catch3 PROPERTIES
   DEBUG_POSTFIX "d"
@@ -472,6 +482,11 @@ if(CATCH3_BUILD_EXAMPLES OR CATCH3_BUILD_EXTRA_TESTS)
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   )
   target_compile_definitions(Catch3_buildall_interface INTERFACE CATCH_CONFIG_STATIC)
+  target_link_libraries(Catch3_buildall_interface
+    INTERFACE
+      Catch3Yyjson
+      Catch3Pugixml
+  )
   # These targets compile the library's sources themselves, the runner's
   # among them, which need C++20.
   target_compile_features(Catch3_buildall_interface INTERFACE cxx_std_20)

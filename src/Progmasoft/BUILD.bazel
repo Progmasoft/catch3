@@ -79,8 +79,13 @@ expand_template(
 
 cc_library(
     name = "catch3",
+    # The .inl files compile yyjson and pugixml into the runner's own
+    # translation units.
     srcs = glob(
-        ["**/*.cpp"],
+        [
+            "**/*.cpp",
+            "**/*.inl",
+        ],
         exclude = ["Catch3/Internal/Main.cpp"],
     ),
     hdrs = glob(["**/*.hpp"]) + [":Catch3/UserConfig.hpp"],
@@ -88,6 +93,10 @@ cc_library(
     linkstatic = True,
     strip_include_prefix = "/src",
     visibility = ["//:__pkg__"],
+    deps = [
+        "//third_party/pugixml",
+        "//third_party/yyjson",
+    ],
 )
 
 cc_library(

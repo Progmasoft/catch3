@@ -154,9 +154,6 @@ namespace Progmasoft::Catch3::Runner
 
     private:
         void
-        Write(std::string &output, int indent, int depth) const;
-
-        void
         Destroy() noexcept;
 
         void

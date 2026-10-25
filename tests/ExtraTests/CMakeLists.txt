@@ -427,6 +427,7 @@ add_executable(AmalgamatedTestCompilation
   ${TESTS_DIR}/X91-AmalgamatedCatch.cpp
   ${CATCH_DIR}/extras/catch_amalgamated.hpp
   ${CATCH_DIR}/extras/catch_amalgamated.cpp
+  ${CATCH_DIR}/extras/catch_amalgamated_third_party.hpp
 )
 target_include_directories(AmalgamatedTestCompilation PRIVATE ${CATCH_DIR}/extras)
 # The amalgamated files hold the runner, which needs C++20.

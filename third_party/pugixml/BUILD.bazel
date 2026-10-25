@@ -1,0 +1,16 @@
+# Copyright (c) 2026 Progmasoft.
+# SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+# pugixml (MIT), the XML writer of the reports.
+# The version is pinned in tools/scripts/updateThirdParty.py. Catch3
+# compiles the library into one of its own translation units with
+# internal linkage, so this target only provides the files.
+cc_library(
+    name = "pugixml",
+    hdrs = ["pugiconfig.hpp", "pugixml.hpp"],
+    includes = ["."],
+    textual_hdrs = ["pugixml.cpp"],
+    visibility = ["//src/Progmasoft:__pkg__"],
+)

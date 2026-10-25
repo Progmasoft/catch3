@@ -190,7 +190,7 @@ TEST_CASE("JUnit XML keeps every attempt and marks flaky tests",
     CHECK(xml.rfind("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", 0) == 0);
     CHECK(xml.find("tests=\"4\" failures=\"1\" errors=\"1\" skipped=\"1\"") !=
           std::string::npos);
-    CHECK(xml.find("name=\"reports &lt;errors&gt;\"") != std::string::npos);
+    CHECK(xml.find("name=\"reports &lt;errors>\"") != std::string::npos);
     CHECK(xml.find("classname=\"ParserTests\"") != std::string::npos);
     CHECK(xml.find("<failure message=\"parser.cpp:7: FAILED:\" "
                    "type=\"assertion\">") != std::string::npos);
@@ -202,9 +202,9 @@ TEST_CASE("JUnit XML keeps every attempt and marks flaky tests",
                    "type=\"crash\">") != std::string::npos);
     CHECK(xml.find("<flakyFailure message=\"timed out after 5.0 s\" "
                    "type=\"timeout\">") != std::string::npos);
-    CHECK(xml.find("<skipped message=\"depends on &apos;reports &lt;errors&gt;"
-                   "&apos;, which failed\"/>") != std::string::npos);
-    CHECK(xml.find("<property name=\"random-seed\" value=\"42\"/>") !=
+    CHECK(xml.find("<skipped message=\"depends on 'reports &lt;errors>', "
+                   "which failed\" />") != std::string::npos);
+    CHECK(xml.find("<property name=\"random-seed\" value=\"42\" />") !=
           std::string::npos);
     CHECK(xml.find("time=\"0.263500\"") != std::string::npos);
     CHECK(xml.ends_with("</testsuites>\n"));
@@ -220,9 +220,10 @@ TEST_CASE("JUnit XML replaces malformed UTF-8 and forbidden XML controls",
     run.tests.push_back(test);
 
     const std::string xml = JUnitXmlWriter::ToString(run);
-    CHECK(xml.find("name=\"bad&#xFFFD;utf8&#xFFFD;(&#xFFFD;(\"") !=
+    // U+FFFD, written as the character itself.
+    CHECK(xml.find("name=\"bad\xEF\xBF\xBDutf8\xEF\xBF\xBD(\xEF\xBF\xBD(\"") !=
           std::string::npos);
-    CHECK(xml.find("name=\"suite&#xFFFD;name\"") != std::string::npos);
+    CHECK(xml.find("name=\"suite\xEF\xBF\xBDname\"") != std::string::npos);
 }
 
 TEST_CASE("The JUnit writer reports a failed stream", "[progmasoft][results][xml]")

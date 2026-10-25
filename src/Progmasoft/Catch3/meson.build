@@ -335,7 +335,9 @@ foreach file : headers
   endif
 endforeach
 
-catch3_dependencies = []
+# The JSON and XML libraries of the runner are compiled into its own
+# translation units, so only the build needs them.
+catch3_dependencies = [yyjson_dep, pugixml_dep]
 # Check if this is an Android NDK build.
 if ((host_machine.system() == 'android') or
   # Check if this is an Android Termux build.

@@ -14,6 +14,9 @@ project(
   meson_version: '>=1.1.0',
 )
 
+# yyjson and pugixml, compiled into the library; nothing of them is installed.
+subdir('third_party/yyjson')
+subdir('third_party/pugixml')
 subdir('src/Progmasoft/Catch3')
 subdir('src/Progmasoft')
 if get_option('tests')

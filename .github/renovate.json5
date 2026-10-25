@@ -38,13 +38,33 @@
 
   ignorePaths: ["third_party/**", "**/node_modules/**"],
 
-  // What Dependabot watched here, and nothing more for now.
-  enabledManagers: ["github-actions", "bazel-module", "pip_requirements"],
+  // What Dependabot watched here, and the libraries vendored in third_party/.
+  enabledManagers: [
+    "github-actions",
+    "bazel-module",
+    "pip_requirements",
+    "custom.regex",
+  ],
+
+  // third_party/ holds copies of release archives, which
+  // tools/scripts/updateThirdParty.py pins by version and sha256. Renovate
+  // changes the version; the pull request then needs the new digest and
+  // --update, which the third_party check of CI asks for.
+  customManagers: [
+    {
+      customType: "regex",
+      managerFilePatterns: ["/^tools/scripts/updateThirdParty\\.py$/"],
+      matchStrings: [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( extractVersion=(?<extractVersion>\\S+))?\\s+\"version\": \"(?<currentValue>[^\"]+)\"",
+      ],
+    },
+  ],
 
   // One pull request for each kind of dependency.
   packageRules: [
     { matchManagers: ["github-actions"], groupName: "GitHub Actions" },
     { matchManagers: ["bazel-module"], groupName: "Bazel modules" },
     { matchManagers: ["pip_requirements"], groupName: "Python tools of CI" },
+    { matchManagers: ["custom.regex"], groupName: "Vendored libraries" },
   ],
 }

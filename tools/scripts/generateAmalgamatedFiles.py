@@ -16,6 +16,8 @@ root_path = os.path.join(catchPath, 'src')
 starting_header = os.path.join(root_path, 'Progmasoft', 'Catch3', 'All.hpp')
 output_header = os.path.join(catchPath, 'extras', 'catch_amalgamated.hpp')
 output_cpp = os.path.join(catchPath, 'extras', 'catch_amalgamated.cpp')
+output_third_party = os.path.join(catchPath, 'extras', 'catch_amalgamated_third_party.hpp')
+third_party_path = os.path.join(catchPath, 'third_party')
 
 # REUSE-IgnoreStart
 
@@ -49,6 +51,21 @@ file_header = '''\
 //  their own copyright and license lines (MPL-2.0 WITH
 //  AdditionRef-Progmasoft-Exception-1.1). The runner needs C++20.
 //  ----------------------------------------------------------
+'''
+
+# The header of the file with yyjson and pugixml.
+third_party_header = '''\
+// Catch3 v{catch3_version}: yyjson and pugixml for catch_amalgamated.cpp
+// Generated: {generation_time}
+// ----------------------------------------------------------
+// This file is an amalgamation of src/Progmasoft/Runner/Yyjson.inl,
+// src/Progmasoft/PugiXml.inl and the libraries they include from
+// third_party/. You probably shouldn't edit it directly.
+//
+// yyjson and pugixml keep their MIT licenses, stated in their text below;
+// the rest is MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1. Only
+// catch_amalgamated.cpp includes this file.
+// ----------------------------------------------------------
 '''
 
 # REUSE-IgnoreEnd
@@ -145,6 +162,21 @@ def generate_header():
 progmasoft_include_parser = re.compile(r'\s*#include (?:<(Progmasoft/[^>]+)>|"([A-Za-z/]+\.hpp)").*')
 concatenated_runner_headers = set()
 
+# The runner compiles yyjson and pugixml into its own code through these
+# files; in the amalgamation they are one header, included where the first
+# of them was.
+third_party_wrappers = ['Runner/Yyjson.inl', 'PugiXml.inl']
+wrapper_include_parser = re.compile(r'\s*#include "([A-Za-z/]+\.inl)".*')
+third_party_files = {
+    'yyjson.c': 'yyjson/yyjson.c',
+    'yyjson.h': 'yyjson/yyjson.h',
+    'pugixml.cpp': 'pugixml/pugixml.cpp',
+    'pugixml.hpp': 'pugixml/pugixml.hpp',
+    'pugiconfig.hpp': 'pugixml/pugiconfig.hpp',
+}
+third_party_include_parser = re.compile(r'\s*#\s*include\s+[<"]([A-Za-z.]+)[>"].*')
+third_party_included = False
+
 
 def concatenate_runner_file(out, filename: str, expand_headers: bool):
     """Copies a file of the runner, expanding the runner's headers it
@@ -156,6 +188,12 @@ def concatenate_runner_file(out, filename: str, expand_headers: bool):
                 continue
             # The engine's headers are all in the amalgamated header.
             if engine_include(line):
+                continue
+            if wrapper_include_parser.match(line):
+                global third_party_included
+                if not third_party_included:
+                    out.write('#include "catch_amalgamated_third_party.hpp"\n')
+                    third_party_included = True
                 continue
             m = progmasoft_include_parser.match(line)
             if not m:
@@ -169,6 +207,49 @@ def concatenate_runner_file(out, filename: str, expand_headers: bool):
                 continue
             concatenated_runner_headers.add(header)
             concatenate_runner_file(out, header, True)
+
+
+def concatenate_third_party_file(out, filename: str, done: set):
+    """Copies a file of yyjson or pugixml, with the files of the two
+    libraries it includes expanded once."""
+    with open(filename, mode='r', encoding='utf-8') as input:
+        for line in input:
+            m = third_party_include_parser.match(line)
+            name = m.group(1) if m else None
+            # pugixml includes its source through a macro in header-only mode.
+            if line.strip() == '#\tinclude PUGIXML_SOURCE':
+                name = 'pugixml.cpp'
+            if name not in third_party_files:
+                out.write(line)
+                continue
+            if name not in done:
+                done.add(name)
+                concatenate_third_party_file(
+                    out, os.path.join(third_party_path, third_party_files[name]), done)
+
+
+def generate_third_party():
+    with open(output_third_party, mode='w', encoding='utf-8', newline='\n') as header:
+        header.write(third_party_header.format(catch3_version=catch3_version(),
+                                               generation_time=datetime.datetime.now()))
+        header.write('#pragma once\n')
+        done = set()
+        for wrapper in third_party_wrappers:
+            path = os.path.join(root_path, 'Progmasoft', wrapper)
+            with open(path, mode='r', encoding='utf-8') as input:
+                for line in input:
+                    if line.startswith(('// Copyright', '// SPDX-License-Identifier')):
+                        continue
+                    m = third_party_include_parser.match(line)
+                    if m and m.group(1) in third_party_files:
+                        name = m.group(1)
+                        if name not in done:
+                            done.add(name)
+                            concatenate_third_party_file(
+                                header, os.path.join(third_party_path, third_party_files[name]), done)
+                        continue
+                    header.write(line)
+    print('Wrote {}'.format(os.path.relpath(output_third_party, catchPath)))
 
 
 def generate_cpp():
@@ -200,6 +281,7 @@ def generate_cpp():
 if __name__ == "__main__":
     generate_header()
     generate_cpp()
+    generate_third_party()
 
 
 # Notes:

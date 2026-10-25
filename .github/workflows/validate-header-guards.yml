@@ -39,3 +39,8 @@ jobs:
       - name: Check that all source files have the correct license header
         run: |
           ./tools/scripts/checkLicense.py
+
+      # third_party/ must be the pinned release archives, byte for byte.
+      - name: Check that third_party matches its pinned archives
+        run: |
+          ./tools/scripts/updateThirdParty.py --check
