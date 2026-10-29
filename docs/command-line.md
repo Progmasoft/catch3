@@ -8,6 +8,7 @@
 [How tests behave](#how-tests-behave)<br>
 [History and analysis](#history-and-analysis)<br>
 [Output](#output)<br>
+[Configuration](#configuration)<br>
 [Information](#information)<br>
 [Environment](#environment)<br>
 
@@ -120,6 +121,17 @@ Without a spec, every test runs except hidden ones, whose tags start with
 | `--trace=FILE` | write a trace for `chrome://tracing` or Perfetto |
 | `--slowest[=N]` | list the N slowest tests (default 10) |
 | `--premature-exit-guard-file=FILE` | create FILE, private to the user, when the run starts and remove it when the run ends normally |
+
+
+## Configuration
+
+A project can keep its options in a [`catch3.json`](progmasoft-runner.md#project-configuration);
+options on the command line win over it.
+
+| Option | |
+| --- | --- |
+| `--config=FILE` | read this `catch3.json` instead of searching for one |
+| `--no-config` | read no `catch3.json` |
 
 
 ## Information

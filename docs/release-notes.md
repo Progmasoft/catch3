@@ -33,6 +33,10 @@ line and reporters with [a runner of its own](progmasoft-runner.md#top):
 * Reports are console, JUnit XML, JSON and a Chrome trace; `--list=json` is a
   versioned discovery format.
 * Every test gets a temporary directory of its own.
+* A project keeps its options in a
+  [`catch3.json`](progmasoft-runner.md#project-configuration), found up to
+  the root of the repository; the command line wins over it, and
+  `--config=FILE` and `--no-config` choose another file or none.
 * JSON is read and written with [yyjson](https://github.com/ibireme/yyjson)
   and JUnit XML is written with [pugixml](https://github.com/zeux/pugixml),
   both MIT and vendored in `third_party/`. They are compiled into Catch3's
