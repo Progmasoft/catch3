@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch3 v0.3.0, on the Catch2 v3.16.1 engine
-//  Generated: 2026-10-29 19:10:35.449209
+//  Generated: 2026-10-29 19:30:41.305371
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -15774,7 +15774,7 @@ namespace Progmasoft::Catch3::Runner
     namespace
     {
         /// The version of the file format this runner reads.
-        constexpr double kConfigVersion = 1;
+        constexpr std::uint64_t kConfigVersion = 1;
 
         /// What the value of a key is, and how it becomes arguments.
         enum class ValueKind : std::uint8_t
@@ -15933,7 +15933,7 @@ namespace Progmasoft::Catch3::Runner
             }
             const double number = value.AsNumber();
             if (!std::isfinite(number) || number < 0
-                || number != std::floor(number) || number > 9007199254740992.0)
+                || number > std::floor(number) || number > 9007199254740992.0)
             {
                 return std::nullopt;
             }
@@ -16192,7 +16192,7 @@ namespace Progmasoft::Catch3::Runner
             }
             if (name == "version")
             {
-                if (!value.IsNumber() || value.AsNumber() != kConfigVersion)
+                if (WholeNumber(value) != kConfigVersion)
                 {
                     return Error{
                         prefix + "version " + value.ToString()

@@ -16,7 +16,7 @@ namespace Progmasoft::Catch3::Runner
     namespace
     {
         /// The version of the file format this runner reads.
-        constexpr double kConfigVersion = 1;
+        constexpr std::uint64_t kConfigVersion = 1;
 
         /// What the value of a key is, and how it becomes arguments.
         enum class ValueKind : std::uint8_t
@@ -175,7 +175,7 @@ namespace Progmasoft::Catch3::Runner
             }
             const double number = value.AsNumber();
             if (!std::isfinite(number) || number < 0
-                || number != std::floor(number) || number > 9007199254740992.0)
+                || number > std::floor(number) || number > 9007199254740992.0)
             {
                 return std::nullopt;
             }
@@ -434,7 +434,7 @@ namespace Progmasoft::Catch3::Runner
             }
             if (name == "version")
             {
-                if (!value.IsNumber() || value.AsNumber() != kConfigVersion)
+                if (WholeNumber(value) != kConfigVersion)
                 {
                     return Error{
                         prefix + "version " + value.ToString()

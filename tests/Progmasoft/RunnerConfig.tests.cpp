@@ -4,6 +4,7 @@
 // catch3.json: where it is found, what its keys set, how the command line
 // wins over it and how a wrong file is explained.
 
+#include <Progmasoft/Catch3/Matchers/FloatingPoint.hpp>
 #include <Progmasoft/Catch3/Matchers/String.hpp>
 #include <Progmasoft/Catch3/TestMacros.hpp>
 #include <Progmasoft/Runner/Files.hpp>
@@ -21,6 +22,7 @@ namespace
     namespace Runner = Progmasoft::Catch3::Runner;
     namespace fs = std::filesystem;
     using Catch::Matchers::ContainsSubstring;
+    using Catch::Matchers::WithinAbs;
     using std::chrono::milliseconds;
 
     /// A directory of its own under the system's temporary directory,
@@ -221,7 +223,7 @@ TEST_CASE("Keys set the option of the same name",
     CHECK(options.skipBenchmarks);
     CHECK(options.benchmarkSamples == 10);
     CHECK(options.benchmarkResamples == 1000);
-    CHECK(options.benchmarkConfidenceInterval == 0.9);
+    CHECK_THAT(options.benchmarkConfidenceInterval, WithinAbs(0.9, 1e-12));
     CHECK(options.benchmarkNoAnalysis);
     CHECK(options.benchmarkWarmupTime == milliseconds{ 5 });
     CHECK(options.quarantine == Runner::QuarantineMode::kReport);
