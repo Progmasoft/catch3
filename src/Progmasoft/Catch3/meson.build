@@ -295,6 +295,7 @@ runner_sources = files(
   '../Runner/Options.cpp',
   '../Runner/Planner.cpp',
   '../Runner/Process.cpp',
+  '../Runner/ProjectConfig.cpp',
   '../Runner/Protocol.cpp',
   '../Runner/ResultsJson.cpp',
   '../Runner/Runner.cpp',

@@ -6,8 +6,10 @@
 
 #include <chrono>
 #include <cstdint>
+#include <cstddef>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Progmasoft::Catch3::Runner
@@ -165,11 +167,24 @@ namespace Progmasoft::Catch3::Runner
         /// Created when the run starts and removed when it ends normally, so
         /// a file left behind shows that the run ended early.
         std::string exitGuardPath;
+
+        // Configuration.
+        /// The `catch3.json` named by --config; after ParseCommandLine, the
+        /// one that was read, if any.
+        std::string configPath;
+        bool noConfig = false;
     };
 
-    /// Reads a command line. `arguments` does not include the program.
+    /// Reads a command line on top of `options`. `arguments` does not include
+    /// the program.
     [[nodiscard]] Expected<Options>
-    ParseOptions(const std::vector<std::string> &arguments);
+    ParseOptions(const std::vector<std::string> &arguments,
+                 Options options = {});
+
+    /// How many single-character edits turn `left` into `right`, for
+    /// suggesting the name that was meant.
+    [[nodiscard]] std::size_t
+    EditDistance(std::string_view left, std::string_view right);
 
     /// The help text, for `--help`.
     [[nodiscard]] std::string

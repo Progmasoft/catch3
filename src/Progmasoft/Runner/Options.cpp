@@ -140,32 +140,6 @@ namespace Progmasoft::Catch3::Runner
                          names + ", not '" + value.value_or("") + "'"};
         }
 
-        std::size_t
-        EditDistance(std::string_view left, std::string_view right)
-        {
-            std::vector<std::size_t> previous(right.size() + 1);
-            std::vector<std::size_t> current(right.size() + 1);
-            for (std::size_t index = 0; index <= right.size(); ++index)
-            {
-                previous[index] = index;
-            }
-            for (std::size_t row = 1; row <= left.size(); ++row)
-            {
-                current[0] = row;
-                for (std::size_t column = 1; column <= right.size(); ++column)
-                {
-                    const std::size_t substitution =
-                        previous[column - 1] +
-                        (left[row - 1] == right[column - 1] ? 0 : 1);
-                    current[column] = std::min({previous[column] + 1,
-                                                current[column - 1] + 1,
-                                                substitution});
-                }
-                std::swap(previous, current);
-            }
-            return previous[right.size()];
-        }
-
         const std::vector<OptionSpec> &
         Specs()
         {
@@ -817,6 +791,29 @@ namespace Progmasoft::Catch3::Runner
                      }
                      return ReadCount(value, "slowest", options.slowest, 1);
                  }},
+                // Configuration.
+                {"config",
+                 '\0',
+                 Takes::kValue,
+                 "FILE",
+                 "Configuration",
+                 "read this catch3.json instead of searching for one",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.configPath = *value;
+                     options.noConfig = false;
+                     return Status::Ok();
+                 }},
+                {"no-config",
+                 '\0',
+                 Takes::kNothing,
+                 "",
+                 "Configuration",
+                 "read no catch3.json",
+                 [](Options &options, const std::optional<std::string> &) {
+                     options.noConfig = true;
+                     options.configPath.clear();
+                     return Status::Ok();
+                 }},
                 // Information.
                 {"list",
                  'l',
@@ -949,10 +946,35 @@ namespace Progmasoft::Catch3::Runner
         }
     } // namespace
 
-    Expected<Options>
-    ParseOptions(const std::vector<std::string> &arguments)
+    std::size_t
+    EditDistance(std::string_view left, std::string_view right)
     {
-        Options options;
+        std::vector<std::size_t> previous(right.size() + 1);
+        std::vector<std::size_t> current(right.size() + 1);
+        for (std::size_t index = 0; index <= right.size(); ++index)
+        {
+            previous[index] = index;
+        }
+        for (std::size_t row = 1; row <= left.size(); ++row)
+        {
+            current[0] = row;
+            for (std::size_t column = 1; column <= right.size(); ++column)
+            {
+                const std::size_t substitution =
+                    previous[column - 1] +
+                    (left[row - 1] == right[column - 1] ? 0 : 1);
+                current[column] = std::min({previous[column] + 1,
+                                            current[column - 1] + 1,
+                                            substitution});
+            }
+            std::swap(previous, current);
+        }
+        return previous[right.size()];
+    }
+
+    Expected<Options>
+    ParseOptions(const std::vector<std::string> &arguments, Options options)
+    {
         bool onlySpecs = false;
         for (std::size_t index = 0; index < arguments.size(); ++index)
         {

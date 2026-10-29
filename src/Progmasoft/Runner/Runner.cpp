@@ -16,8 +16,10 @@
 #include <chrono>
 #include <cstdio>
 #include <exception>
+#include <filesystem>
 #include <map>
 #include <random>
+#include <system_error>
 
 #include "Analysis.hpp"
 #include "Catalog.hpp"
@@ -31,6 +33,7 @@
 #include "Options.hpp"
 #include "Planner.hpp"
 #include "Process.hpp"
+#include "ProjectConfig.hpp"
 #include "ResultsJson.hpp"
 #include "Scheduler.hpp"
 
@@ -523,7 +526,9 @@ namespace Progmasoft::Catch3
             {
                 rest.assign(arguments.begin() + 1, arguments.end());
             }
-            auto parsed = Runner::ParseOptions(rest);
+            std::error_code here;
+            auto parsed = Runner::ParseCommandLine(
+                rest, std::filesystem::current_path(here));
             if (!parsed)
             {
                 PrintError(parsed.GetError().Message());
@@ -558,6 +563,11 @@ namespace Progmasoft::Catch3
             }
 
             std::vector<std::string> notes;
+            if (!options.configPath.empty()
+                && options.verbosity == Runner::Verbosity::kVerbose)
+            {
+                notes.push_back("configuration from " + options.configPath);
+            }
             if (BazelTest())
             {
                 ApplyBazel(options, notes);
