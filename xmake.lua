@@ -10,6 +10,9 @@ local repository_root = os.projectdir()
 local generated_include = path.join(repository_root, ".xmake", "generated")
 add_moduledirs(path.join(repository_root, "buildsupport"))
 
+-- yyjson and pugixml, compiled into the library.
+includes("third_party/yyjson", "third_party/pugixml")
+
 -- The Catch2-compatible engine, the Catch3 runner, which replaced Catch2's
 -- session, command line and reporters, property testing and snapshots. The
 -- library is C++20; the engine's headers still need only C++14 in the code
@@ -37,6 +40,9 @@ target("catch3")
     )
     add_includedirs("src", {public = true})
     add_headerfiles("src/(Progmasoft/**.hpp)")
+    -- The JSON and XML libraries of the runner are compiled into its own
+    -- translation units.
+    add_deps("catch3_yyjson", "catch3_pugixml")
 
 target("catch3_main")
     set_kind("static")

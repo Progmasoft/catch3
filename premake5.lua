@@ -6,6 +6,10 @@ local generated_include = path.join(repository_root, "build", "premake", "genera
 local configure_catch3 = dofile(path.join(repository_root, "buildsupport", "catch3_config.lua"))
 configure_catch3.generate(generated_include, repository_root)
 
+-- yyjson and pugixml, compiled into the library.
+include "third_party/yyjson"
+include "third_party/pugixml"
+
 workspace "Catch3"
     location "build/premake"
     configurations { "Debug", "Release" }
@@ -53,6 +57,9 @@ project "Catch3"
     }
     removefiles { "src/Progmasoft/Catch3/Internal/Main.cpp" }
     includedirs { "src", generated_include }
+    -- The JSON and XML libraries of the runner are compiled into its own
+    -- translation units.
+    externalincludedirs { catch3_third_party.yyjson, catch3_third_party.pugixml }
 
 project "Catch3WithMain"
     kind "StaticLib"

@@ -3,6 +3,8 @@
 #include <Progmasoft/Catch3/Results.hpp>
 #include <Progmasoft/Catch3/XmlWriter.hpp>
 
+#include "PugiXml.inl"
+
 #include <ostream>
 #include <sstream>
 #include <string_view>
@@ -82,63 +84,50 @@ namespace Progmasoft::Catch3
                    (value >= 0x10000 && value <= 0x10FFFF);
         }
 
-        void
-        WriteEscaped(std::string_view value, std::ostream &output, bool attribute)
+        /// The text as XML can hold it: every byte that is not part of a
+        /// well-formed character XML allows becomes U+FFFD, replaced and not
+        /// dropped, so the reader sees that something was there. pugixml
+        /// escapes the rest.
+        std::string
+        XmlText(std::string_view value)
         {
+            std::string result;
+            result.reserve(value.size());
             for (std::size_t index = 0; index < value.size();)
             {
                 const DecodedCharacter character = DecodeUtf8(value, index);
                 if (character.length == 0 || !IsXmlCharacter(character.value))
                 {
-                    // A character XML cannot hold is replaced, not dropped,
-                    // so the reader sees that something was there.
-                    output << "&#xFFFD;";
+                    result += "\xEF\xBF\xBD";
                     ++index;
                     continue;
                 }
-                if (character.value < 0x80)
-                {
-                    switch (static_cast<char>(character.value))
-                    {
-                        case '&':
-                            output << "&amp;";
-                            break;
-                        case '<':
-                            output << "&lt;";
-                            break;
-                        case '>':
-                            output << "&gt;";
-                            break;
-                        case '"':
-                            output << (attribute ? "&quot;" : "\"");
-                            break;
-                        case '\'':
-                            output << (attribute ? "&apos;" : "'");
-                            break;
-                        case '\n':
-                            output << (attribute ? "&#10;" : "\n");
-                            break;
-                        default:
-                            output.put(static_cast<char>(character.value));
-                    }
-                }
-                else
-                {
-                    output.write(value.data() + index,
-                                 static_cast<std::streamsize>(character.length));
-                }
+                result.append(value.data() + index, character.length);
                 index += character.length;
             }
+            return result;
         }
 
         void
-        WriteAttribute(std::ostream &output,
-                       std::string_view name,
+        AddAttribute(pugi::xml_node node,
+                     const char *name,
+                     std::string_view value)
+        {
+            node.append_attribute(name).set_value(XmlText(value).c_str());
+        }
+
+        void
+        AddText(pugi::xml_node node, std::string_view value)
+        {
+            node.text().set(XmlText(value).c_str());
+        }
+
+        void
+        AddTextElement(pugi::xml_node parent,
+                       const char *name,
                        std::string_view value)
         {
-            output << ' ' << name << "=\"";
-            WriteEscaped(value, output, true);
-            output << '"';
+            AddText(parent.append_child(name), value);
         }
 
         std::string
@@ -150,27 +139,6 @@ namespace Progmasoft::Catch3
             fraction.insert(0, 6 - fraction.size(), '0');
             return (negative ? "-" : "") + std::to_string(magnitude / 1000000) +
                    "." + fraction;
-        }
-
-        void
-        WriteIndent(std::ostream &output, unsigned level)
-        {
-            for (unsigned index = 0; index < level; ++index)
-            {
-                output << "  ";
-            }
-        }
-
-        void
-        WriteTextElement(std::ostream &output,
-                         unsigned indent,
-                         std::string_view name,
-                         std::string_view value)
-        {
-            WriteIndent(output, indent);
-            output << '<' << name << '>';
-            WriteEscaped(value, output, false);
-            output << "</" << name << ">\n";
         }
 
         std::string
@@ -186,27 +154,22 @@ namespace Progmasoft::Catch3
         /// An earlier attempt: `<rerunFailure>` before a final failure,
         /// `<flakyFailure>` before a final pass.
         void
-        WriteEarlierAttempt(std::ostream &output,
-                            const Attempt &attempt,
-                            std::string_view element)
+        AddEarlierAttempt(pugi::xml_node testCase,
+                          const Attempt &attempt,
+                          const char *element)
         {
-            WriteIndent(output, 3);
-            output << '<' << element;
-            WriteAttribute(output, "message", SummarizeFailure(attempt));
-            WriteAttribute(output, "type", CategoryName(attempt.category));
-            output << ">\n";
-            WriteTextElement(output, 4, "stackTrace", DescribeFailure(attempt));
+            pugi::xml_node node = testCase.append_child(element);
+            AddAttribute(node, "message", SummarizeFailure(attempt));
+            AddAttribute(node, "type", CategoryName(attempt.category));
+            AddTextElement(node, "stackTrace", DescribeFailure(attempt));
             if (!attempt.standardOutput.empty())
             {
-                WriteTextElement(
-                    output, 4, "system-out", Output(attempt, false));
+                AddTextElement(node, "system-out", Output(attempt, false));
             }
             if (!Output(attempt, true).empty())
             {
-                WriteTextElement(output, 4, "system-err", Output(attempt, true));
+                AddTextElement(node, "system-err", Output(attempt, true));
             }
-            WriteIndent(output, 3);
-            output << "</" << element << ">\n";
         }
 
         std::string
@@ -227,23 +190,21 @@ namespace Progmasoft::Catch3
         }
 
         void
-        WriteTestCase(std::ostream &output,
-                      const TestResult &test,
-                      std::string_view suiteName)
+        AddTestCase(pugi::xml_node suite,
+                    const TestResult &test,
+                    std::string_view suiteName)
         {
-            WriteIndent(output, 2);
-            output << "<testcase";
-            WriteAttribute(output,
-                           "classname",
-                           test.className.empty() ? suiteName : test.className);
-            WriteAttribute(output, "name", test.name);
-            WriteAttribute(output, "time", JUnitSeconds(test.DurationMicroseconds()));
+            pugi::xml_node node = suite.append_child("testcase");
+            AddAttribute(node,
+                         "classname",
+                         test.className.empty() ? suiteName : test.className);
+            AddAttribute(node, "name", test.name);
+            AddAttribute(node, "time", JUnitSeconds(test.DurationMicroseconds()));
             if (!test.file.empty())
             {
-                WriteAttribute(output, "file", test.file);
-                WriteAttribute(output, "line", std::to_string(test.line));
+                AddAttribute(node, "file", test.file);
+                AddAttribute(node, "line", std::to_string(test.line));
             }
-            output << ">\n";
 
             const Attempt *last =
                 test.attempts.empty() ? nullptr : &test.attempts.back();
@@ -253,12 +214,10 @@ namespace Progmasoft::Catch3
                 const bool error = test.outcome != Outcome::kFailed ||
                                    last->category ==
                                        FailureCategory::kInfrastructure;
-                const std::string_view element = error ? "error" : "failure";
-                WriteIndent(output, 3);
-                output << '<' << element;
-                WriteAttribute(output, "message", SummarizeFailure(*last));
-                WriteAttribute(output, "type", CategoryName(test.category));
-                output << '>';
+                pugi::xml_node failure =
+                    node.append_child(error ? "error" : "failure");
+                AddAttribute(failure, "message", SummarizeFailure(*last));
+                AddAttribute(failure, "type", CategoryName(test.category));
                 std::string details = DescribeFailure(*last);
                 for (const auto &finding : test.analysis)
                 {
@@ -268,18 +227,15 @@ namespace Progmasoft::Catch3
                 {
                     details += "replay: " + test.replayCommand + "\n";
                 }
-                WriteEscaped(details, output, false);
-                output << "</" << element << ">\n";
+                AddText(failure, details);
             }
             else if (test.outcome == Outcome::kSkipped ||
                      test.outcome == Outcome::kBlocked ||
                      test.outcome == Outcome::kNotRun ||
                      test.outcome == Outcome::kUpToDate)
             {
-                WriteIndent(output, 3);
-                output << "<skipped";
-                WriteAttribute(output, "message", SkipReason(test));
-                output << "/>\n";
+                AddAttribute(
+                    node.append_child("skipped"), "message", SkipReason(test));
             }
             // Every earlier failed attempt, so retries stay visible.
             for (std::size_t index = 0; index + 1 < test.attempts.size();
@@ -290,20 +246,36 @@ namespace Progmasoft::Catch3
                 {
                     continue;
                 }
-                WriteEarlierAttempt(output,
-                                    attempt,
-                                    failedRun ? "rerunFailure" : "flakyFailure");
+                AddEarlierAttempt(node,
+                                  attempt,
+                                  failedRun ? "rerunFailure" : "flakyFailure");
             }
             if (last != nullptr && !last->standardOutput.empty())
             {
-                WriteTextElement(output, 3, "system-out", Output(*last, false));
+                AddTextElement(node, "system-out", Output(*last, false));
             }
             if (last != nullptr && !Output(*last, true).empty())
             {
-                WriteTextElement(output, 3, "system-err", Output(*last, true));
+                AddTextElement(node, "system-err", Output(*last, true));
             }
-            WriteIndent(output, 2);
-            output << "</testcase>\n";
+        }
+
+        void
+        AddCounts(pugi::xml_node node,
+                  const RunResult &run,
+                  const RunSummary &summary)
+        {
+            AddAttribute(node, "name", run.binary);
+            AddAttribute(node, "tests", std::to_string(summary.tests));
+            AddAttribute(node, "failures", std::to_string(summary.failed));
+            AddAttribute(node,
+                         "errors",
+                         std::to_string(summary.crashed + summary.timedOut));
+            AddAttribute(node,
+                         "skipped",
+                         std::to_string(summary.skipped + summary.blocked +
+                                        summary.notRun + summary.upToDate));
+            AddAttribute(node, "time", JUnitSeconds(run.wallMicroseconds));
         }
     } // namespace
 
@@ -311,38 +283,21 @@ namespace Progmasoft::Catch3
     JUnitXmlWriter::Write(const RunResult &run, std::ostream &output)
     {
         const RunSummary summary = Summarize(run);
-        const std::size_t errors = summary.crashed + summary.timedOut;
-        const std::size_t failures = summary.failed;
-        const std::size_t skipped =
-            summary.skipped + summary.blocked + summary.notRun +
-            summary.upToDate;
-        const std::string time = JUnitSeconds(run.wallMicroseconds);
-        output << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites";
-        WriteAttribute(output, "name", run.binary);
-        WriteAttribute(output, "tests", std::to_string(summary.tests));
-        WriteAttribute(output, "failures", std::to_string(failures));
-        WriteAttribute(output, "errors", std::to_string(errors));
-        WriteAttribute(output, "skipped", std::to_string(skipped));
-        WriteAttribute(output, "time", time);
-        output << ">\n";
-        WriteIndent(output, 1);
-        output << "<testsuite";
-        WriteAttribute(output, "name", run.binary);
-        WriteAttribute(output, "tests", std::to_string(summary.tests));
-        WriteAttribute(output, "failures", std::to_string(failures));
-        WriteAttribute(output, "errors", std::to_string(errors));
-        WriteAttribute(output, "skipped", std::to_string(skipped));
-        WriteAttribute(output, "time", time);
-        output << ">\n";
-        WriteIndent(output, 2);
-        output << "<properties>\n";
-        const auto property = [&](std::string_view name,
-                                  const std::string &value) {
-            WriteIndent(output, 3);
-            output << "<property";
-            WriteAttribute(output, "name", name);
-            WriteAttribute(output, "value", value);
-            output << "/>\n";
+        pugi::xml_document document;
+        pugi::xml_node declaration =
+            document.append_child(pugi::node_declaration);
+        declaration.append_attribute("version").set_value("1.0");
+        declaration.append_attribute("encoding").set_value("UTF-8");
+
+        pugi::xml_node suites = document.append_child("testsuites");
+        AddCounts(suites, run, summary);
+        pugi::xml_node suite = suites.append_child("testsuite");
+        AddCounts(suite, run, summary);
+        pugi::xml_node properties = suite.append_child("properties");
+        const auto property = [&](const char *name, const std::string &value) {
+            pugi::xml_node node = properties.append_child("property");
+            AddAttribute(node, "name", name);
+            AddAttribute(node, "value", value);
         };
         property("random-seed", std::to_string(run.seed));
         property("workers", std::to_string(run.workers));
@@ -354,14 +309,12 @@ namespace Progmasoft::Catch3
         }
         property("flaky", std::to_string(summary.flaky));
         property("quarantined", std::to_string(summary.quarantined));
-        WriteIndent(output, 2);
-        output << "</properties>\n";
         for (const auto &test : run.tests)
         {
-            WriteTestCase(output, test, run.binary);
+            AddTestCase(suite, test, run.binary);
         }
-        WriteIndent(output, 1);
-        output << "</testsuite>\n</testsuites>\n";
+
+        document.save(output, "  ", pugi::format_indent, pugi::encoding_utf8);
         return static_cast<bool>(output);
     }
 

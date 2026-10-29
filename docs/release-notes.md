@@ -33,6 +33,13 @@ line and reporters with [a runner of its own](progmasoft-runner.md#top):
 * Reports are console, JUnit XML, JSON and a Chrome trace; `--list=json` is a
   versioned discovery format.
 * Every test gets a temporary directory of its own.
+* JSON is read and written with [yyjson](https://github.com/ibireme/yyjson)
+  and JUnit XML is written with [pugixml](https://github.com/zeux/pugixml),
+  both MIT and vendored in `third_party/`. They are compiled into Catch3's
+  own translation units with internal linkage or a renamed namespace, so a
+  project that links its own copy of either library is not affected. The
+  amalgamated sources include them from a third file,
+  `extras/catch_amalgamated_third_party.hpp`.
 
 ### Breaking changes
 

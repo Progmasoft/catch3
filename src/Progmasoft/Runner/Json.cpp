@@ -2,12 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #include "Json.hpp"
 
-#include <clocale>
+#include "Yyjson.inl"
+
 #include <cmath>
-#include <cstdio>
 #include <cstdlib>
-#include <limits>
-#include <optional>
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -45,481 +43,160 @@ namespace Progmasoft::Catch3::Runner
         }
 
         /// Documents nested deeper than this are refused, so a hostile or
-        /// broken file cannot exhaust the stack of the parser.
+        /// broken file cannot exhaust the stack while it is converted.
         constexpr int kMaximumDepth = 256;
 
-        void
-        AppendUtf8(std::string &output, std::uint32_t codePoint)
+        /// Strings are bytes: test names and output need not be UTF-8, and
+        /// they come back as they were written.
+        constexpr yyjson_read_flag kReadFlags =
+            YYJSON_READ_ALLOW_INVALID_UNICODE;
+
+        /// JSON has no infinities; null is the conventional stand-in.
+        constexpr yyjson_write_flag kWriteFlags =
+            YYJSON_WRITE_ALLOW_INVALID_UNICODE |
+            YYJSON_WRITE_INF_AND_NAN_AS_NULL;
+
+        /// Converts a value of yyjson's tree; false when it is nested too
+        /// deeply.
+        bool
+        FromYyjson(yyjson_val *value, int depth, JsonValue &result)
         {
-            if (codePoint < 0x80)
+            if (depth > kMaximumDepth)
             {
-                output.push_back(static_cast<char>(codePoint));
-            }
-            else if (codePoint < 0x800)
-            {
-                output.push_back(static_cast<char>(0xC0 | (codePoint >> 6)));
-                output.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
-            }
-            else if (codePoint < 0x10000)
-            {
-                output.push_back(static_cast<char>(0xE0 | (codePoint >> 12)));
-                output.push_back(
-                    static_cast<char>(0x80 | ((codePoint >> 6) & 0x3F)));
-                output.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
-            }
-            else
-            {
-                output.push_back(static_cast<char>(0xF0 | (codePoint >> 18)));
-                output.push_back(
-                    static_cast<char>(0x80 | ((codePoint >> 12) & 0x3F)));
-                output.push_back(
-                    static_cast<char>(0x80 | ((codePoint >> 6) & 0x3F)));
-                output.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
-            }
-        }
-
-        /// Reads a JSON number exactly. The grammar is checked here; strtod
-        /// does the rounding, with the point replaced by the decimal
-        /// separator of the current locale, which a test may have changed.
-        std::optional<double>
-        ToDouble(std::string_view digits)
-        {
-            std::size_t index = 0;
-            const auto skipDigits = [&] {
-                const std::size_t start = index;
-                while (index < digits.size() && digits[index] >= '0' &&
-                       digits[index] <= '9')
-                {
-                    ++index;
-                }
-                return index > start;
-            };
-            if (index < digits.size() && digits[index] == '-')
-            {
-                ++index;
-            }
-            if (!skipDigits())
-            {
-                return std::nullopt;
-            }
-            std::size_t point = std::string_view::npos;
-            if (index < digits.size() && digits[index] == '.')
-            {
-                point = index++;
-                if (!skipDigits())
-                {
-                    return std::nullopt;
-                }
-            }
-            if (index < digits.size() &&
-                (digits[index] == 'e' || digits[index] == 'E'))
-            {
-                ++index;
-                if (index < digits.size() &&
-                    (digits[index] == '+' || digits[index] == '-'))
-                {
-                    ++index;
-                }
-                if (!skipDigits())
-                {
-                    return std::nullopt;
-                }
-            }
-            if (index != digits.size())
-            {
-                return std::nullopt;
-            }
-            std::string copy{digits};
-            if (point != std::string_view::npos)
-            {
-                const char *separator = std::localeconv()->decimal_point;
-                copy.replace(point,
-                             1,
-                             separator == nullptr || *separator == '\0'
-                                 ? "."
-                                 : separator);
-            }
-            return std::strtod(copy.c_str(), nullptr);
-        }
-
-        class Parser final
-        {
-        public:
-            explicit Parser(std::string_view text)
-                : text_{text}
-            {
-            }
-
-            Expected<JsonValue>
-            ParseDocument()
-            {
-                SkipWhitespace();
-                auto value = ParseValue(0);
-                if (!value)
-                {
-                    return value;
-                }
-                SkipWhitespace();
-                if (position_ != text_.size())
-                {
-                    return Fail("unexpected text after the value");
-                }
-                return value;
-            }
-
-        private:
-            Error
-            Fail(const std::string &message) const
-            {
-                return Error{"invalid JSON at offset " +
-                             std::to_string(position_) + ": " + message};
-            }
-
-            void
-            SkipWhitespace()
-            {
-                while (position_ < text_.size())
-                {
-                    const char character = text_[position_];
-                    if (character != ' ' && character != '\t' &&
-                        character != '\n' && character != '\r')
-                    {
-                        return;
-                    }
-                    ++position_;
-                }
-            }
-
-            bool
-            Consume(std::string_view word)
-            {
-                if (text_.substr(position_, word.size()) == word)
-                {
-                    position_ += word.size();
-                    return true;
-                }
                 return false;
             }
-
-            Expected<JsonValue>
-            ParseValue(int depth)
+            switch (yyjson_get_type(value))
             {
-                if (depth > kMaximumDepth)
+                case YYJSON_TYPE_BOOL:
+                    result = JsonValue{yyjson_get_bool(value)};
+                    return true;
+                case YYJSON_TYPE_NUM:
+                    result = JsonValue{yyjson_get_num(value)};
+                    return true;
+                case YYJSON_TYPE_STR:
+                    result = JsonValue{std::string_view{
+                        yyjson_get_str(value), yyjson_get_len(value)}};
+                    return true;
+                case YYJSON_TYPE_ARR:
                 {
-                    return Fail("nested too deeply");
-                }
-                if (position_ >= text_.size())
-                {
-                    return Fail("a value was expected");
-                }
-                const char character = text_[position_];
-                if (character == '{')
-                {
-                    return ParseObject(depth);
-                }
-                if (character == '[')
-                {
-                    return ParseArray(depth);
-                }
-                if (character == '"')
-                {
-                    auto text = ParseString();
-                    if (!text)
+                    JsonValue array = JsonValue::Array();
+                    auto &items = array.MutableItems();
+                    items.reserve(yyjson_arr_size(value));
+                    yyjson_arr_iter iterator = yyjson_arr_iter_with(value);
+                    while (yyjson_val *item = yyjson_arr_iter_next(&iterator))
                     {
-                        return text.GetError();
-                    }
-                    return JsonValue{std::move(*text)};
-                }
-                if (Consume("true"))
-                {
-                    return JsonValue{true};
-                }
-                if (Consume("false"))
-                {
-                    return JsonValue{false};
-                }
-                if (Consume("null"))
-                {
-                    return JsonValue{};
-                }
-                return ParseNumber();
-            }
-
-            Expected<JsonValue>
-            ParseNumber()
-            {
-                const std::size_t start = position_;
-                if (position_ < text_.size() && text_[position_] == '-')
-                {
-                    ++position_;
-                }
-                while (position_ < text_.size())
-                {
-                    const char character = text_[position_];
-                    const bool numeric =
-                        (character >= '0' && character <= '9') ||
-                        character == '.' || character == 'e' ||
-                        character == 'E' || character == '+' ||
-                        character == '-';
-                    if (!numeric)
-                    {
-                        break;
-                    }
-                    ++position_;
-                }
-                if (position_ == start)
-                {
-                    return Fail("a value was expected");
-                }
-                const std::string_view digits =
-                    text_.substr(start, position_ - start);
-                const auto value = ToDouble(digits);
-                if (!value)
-                {
-                    position_ = start;
-                    return Fail("malformed number");
-                }
-                return JsonValue{*value};
-            }
-
-            Expected<std::uint32_t>
-            ParseHexQuad()
-            {
-                if (position_ + 4 > text_.size())
-                {
-                    return Fail("truncated \\u escape");
-                }
-                std::uint32_t value = 0;
-                for (int index = 0; index < 4; ++index)
-                {
-                    const char character = text_[position_++];
-                    value <<= 4;
-                    if (character >= '0' && character <= '9')
-                    {
-                        value |= static_cast<std::uint32_t>(character - '0');
-                    }
-                    else if (character >= 'a' && character <= 'f')
-                    {
-                        value |=
-                            static_cast<std::uint32_t>(character - 'a' + 10);
-                    }
-                    else if (character >= 'A' && character <= 'F')
-                    {
-                        value |=
-                            static_cast<std::uint32_t>(character - 'A' + 10);
-                    }
-                    else
-                    {
-                        return Fail("malformed \\u escape");
-                    }
-                }
-                return value;
-            }
-
-            Expected<std::string>
-            ParseString()
-            {
-                ++position_; // The opening quote.
-                std::string result;
-                while (position_ < text_.size())
-                {
-                    const char character = text_[position_++];
-                    if (character == '"')
-                    {
-                        return result;
-                    }
-                    if (static_cast<unsigned char>(character) < 0x20)
-                    {
-                        return Fail("control character in a string");
-                    }
-                    if (character != '\\')
-                    {
-                        result.push_back(character);
-                        continue;
-                    }
-                    if (position_ >= text_.size())
-                    {
-                        break;
-                    }
-                    const char escape = text_[position_++];
-                    switch (escape)
-                    {
-                        case '"':
-                        case '\\':
-                        case '/':
-                            result.push_back(escape);
-                            break;
-                        case 'b':
-                            result.push_back('\b');
-                            break;
-                        case 'f':
-                            result.push_back('\f');
-                            break;
-                        case 'n':
-                            result.push_back('\n');
-                            break;
-                        case 'r':
-                            result.push_back('\r');
-                            break;
-                        case 't':
-                            result.push_back('\t');
-                            break;
-                        case 'u':
+                        items.emplace_back();
+                        if (!FromYyjson(item, depth + 1, items.back()))
                         {
-                            auto high = ParseHexQuad();
-                            if (!high)
-                            {
-                                return high.GetError();
-                            }
-                            std::uint32_t codePoint = *high;
-                            if (codePoint >= 0xD800 && codePoint <= 0xDBFF &&
-                                Consume("\\u"))
-                            {
-                                auto low = ParseHexQuad();
-                                if (!low)
-                                {
-                                    return low.GetError();
-                                }
-                                if (*low >= 0xDC00 && *low <= 0xDFFF)
-                                {
-                                    codePoint = 0x10000 +
-                                                ((codePoint - 0xD800) << 10) +
-                                                (*low - 0xDC00);
-                                }
-                            }
-                            AppendUtf8(result, codePoint);
-                            break;
+                            return false;
                         }
-                        default:
-                            return Fail("unknown escape");
                     }
+                    result = std::move(array);
+                    return true;
                 }
-                return Fail("unterminated string");
-            }
-
-            Expected<JsonValue>
-            ParseArray(int depth)
-            {
-                ++position_;
-                JsonValue array = JsonValue::Array();
-                SkipWhitespace();
-                if (Consume("]"))
+                case YYJSON_TYPE_OBJ:
                 {
-                    return array;
+                    JsonValue object = JsonValue::Object();
+                    auto &members = object.MutableMembers();
+                    members.reserve(yyjson_obj_size(value));
+                    yyjson_obj_iter iterator = yyjson_obj_iter_with(value);
+                    while (yyjson_val *key = yyjson_obj_iter_next(&iterator))
+                    {
+                        members.emplace_back(
+                            std::string{yyjson_get_str(key),
+                                        yyjson_get_len(key)},
+                            JsonValue{});
+                        if (!FromYyjson(yyjson_obj_iter_get_val(key),
+                                        depth + 1,
+                                        members.back().second))
+                        {
+                            return false;
+                        }
+                    }
+                    result = std::move(object);
+                    return true;
                 }
-                while (true)
-                {
-                    SkipWhitespace();
-                    auto item = ParseValue(depth + 1);
-                    if (!item)
-                    {
-                        return item;
-                    }
-                    array.Append(std::move(*item));
-                    SkipWhitespace();
-                    if (Consume("]"))
-                    {
-                        return array;
-                    }
-                    if (!Consume(","))
-                    {
-                        return Fail("',' or ']' was expected");
-                    }
-                }
+                default:
+                    result = JsonValue{};
+                    return true;
             }
-
-            Expected<JsonValue>
-            ParseObject(int depth)
-            {
-                ++position_;
-                JsonValue object = JsonValue::Object();
-                SkipWhitespace();
-                if (Consume("}"))
-                {
-                    return object;
-                }
-                while (true)
-                {
-                    SkipWhitespace();
-                    if (position_ >= text_.size() || text_[position_] != '"')
-                    {
-                        return Fail("a member name was expected");
-                    }
-                    auto key = ParseString();
-                    if (!key)
-                    {
-                        return key.GetError();
-                    }
-                    SkipWhitespace();
-                    if (!Consume(":"))
-                    {
-                        return Fail("':' was expected");
-                    }
-                    SkipWhitespace();
-                    auto value = ParseValue(depth + 1);
-                    if (!value)
-                    {
-                        return value;
-                    }
-                    object.MutableMembers().emplace_back(std::move(*key),
-                                                         std::move(*value));
-                    SkipWhitespace();
-                    if (Consume("}"))
-                    {
-                        return object;
-                    }
-                    if (!Consume(","))
-                    {
-                        return Fail("',' or '}' was expected");
-                    }
-                }
-            }
-
-            std::string_view text_;
-            std::size_t position_ = 0;
-        };
-
-        void
-        AppendNumber(std::string &output, double value)
-        {
-            if (!std::isfinite(value))
-            {
-                // JSON has no infinities; null is the conventional stand-in.
-                output += "null";
-                return;
-            }
-            if (std::fabs(value) < 9.007199254740992e15)
-            {
-                const auto integral = static_cast<long long>(value);
-                if (std::fabs(value - static_cast<double>(integral)) < 1e-9)
-                {
-                    output += std::to_string(integral);
-                    return;
-                }
-            }
-            char buffer[64];
-            std::snprintf(buffer, sizeof(buffer), "%.17g", value);
-            // The C library writes the decimal separator of the current
-            // locale, which a test may have changed.
-            for (char &character : buffer)
-            {
-                if (character == ',')
-                {
-                    character = '.';
-                }
-            }
-            output += buffer;
         }
 
-        void
-        AppendIndent(std::string &output, int indent, int depth)
+        /// A whole number within the exact range of a double is written as
+        /// an integer, anything else as the shortest text that reads back as
+        /// the same double.
+        yyjson_mut_val *
+        ToYyjsonNumber(yyjson_mut_doc *document, double value)
         {
-            if (indent <= 0)
+            if (std::isfinite(value) &&
+                std::fabs(value) < 9.007199254740992e15 &&
+                value == std::trunc(value))
             {
-                return;
+                return yyjson_mut_sint(document,
+                                       static_cast<std::int64_t>(value));
             }
-            output.push_back('\n');
-            output.append(static_cast<std::size_t>(indent * depth), ' ');
+            return yyjson_mut_real(document, value);
+        }
+
+        /// Builds yyjson's tree of a value. Strings are referenced, not
+        /// copied: the tree is written before `value` can change.
+        yyjson_mut_val *
+        ToYyjson(yyjson_mut_doc *document, const JsonValue &value)
+        {
+            switch (value.GetKind())
+            {
+                case JsonValue::Kind::kNull:
+                    return yyjson_mut_null(document);
+                case JsonValue::Kind::kBoolean:
+                    return yyjson_mut_bool(document, value.AsBoolean());
+                case JsonValue::Kind::kNumber:
+                    return ToYyjsonNumber(document, value.AsNumber());
+                case JsonValue::Kind::kString:
+                {
+                    const std::string &text = value.AsString();
+                    return yyjson_mut_strn(document, text.data(), text.size());
+                }
+                case JsonValue::Kind::kArray:
+                {
+                    yyjson_mut_val *array = yyjson_mut_arr(document);
+                    for (const auto &item : value.Items())
+                    {
+                        yyjson_mut_arr_append(array, ToYyjson(document, item));
+                    }
+                    return array;
+                }
+                case JsonValue::Kind::kObject:
+                {
+                    yyjson_mut_val *object = yyjson_mut_obj(document);
+                    for (const auto &[name, member] : value.Members())
+                    {
+                        yyjson_mut_obj_add(
+                            object,
+                            yyjson_mut_strn(document, name.data(), name.size()),
+                            ToYyjson(document, member));
+                    }
+                    return object;
+                }
+            }
+            return yyjson_mut_null(document);
+        }
+
+        std::string
+        WriteJson(const JsonValue &value, yyjson_write_flag flags)
+        {
+            yyjson_mut_doc *document = yyjson_mut_doc_new(nullptr);
+            if (document == nullptr)
+            {
+                return {};
+            }
+            yyjson_mut_doc_set_root(document, ToYyjson(document, value));
+            std::size_t length = 0;
+            char *text = yyjson_mut_write(document, flags, &length);
+            std::string result =
+                text == nullptr ? std::string{} : std::string{text, length};
+            std::free(text);
+            yyjson_mut_doc_free(document);
+            return result;
         }
     } // namespace
 
@@ -786,133 +463,48 @@ namespace Progmasoft::Catch3::Runner
     std::string
     JsonValue::ToString() const
     {
-        std::string output;
-        Write(output, 0, 0);
-        return output;
+        return WriteJson(*this, kWriteFlags);
     }
 
     std::string
     JsonValue::ToPrettyString() const
     {
-        std::string output;
-        Write(output, 2, 0);
+        std::string output =
+            WriteJson(*this, kWriteFlags | YYJSON_WRITE_PRETTY_TWO_SPACES);
         output.push_back('\n');
         return output;
-    }
-
-    void
-    JsonValue::Write(std::string &output, int indent, int depth) const
-    {
-        switch (kind_)
-        {
-            case Kind::kNull:
-                output += "null";
-                return;
-            case Kind::kBoolean:
-                output += boolean_ ? "true" : "false";
-                return;
-            case Kind::kNumber:
-                AppendNumber(output, number_);
-                return;
-            case Kind::kString:
-                AppendJsonString(output, string_);
-                return;
-            case Kind::kArray:
-            {
-                const auto &items = Items();
-                output.push_back('[');
-                for (std::size_t index = 0; index < items.size(); ++index)
-                {
-                    if (index > 0)
-                    {
-                        output.push_back(',');
-                    }
-                    AppendIndent(output, indent, depth + 1);
-                    items[index].Write(output, indent, depth + 1);
-                }
-                if (!items.empty())
-                {
-                    AppendIndent(output, indent, depth);
-                }
-                output.push_back(']');
-                return;
-            }
-            case Kind::kObject:
-            {
-                const auto &members = Members();
-                output.push_back('{');
-                for (std::size_t index = 0; index < members.size(); ++index)
-                {
-                    if (index > 0)
-                    {
-                        output.push_back(',');
-                    }
-                    AppendIndent(output, indent, depth + 1);
-                    AppendJsonString(output, members[index].first);
-                    output += indent > 0 ? ": " : ":";
-                    members[index].second.Write(output, indent, depth + 1);
-                }
-                if (!members.empty())
-                {
-                    AppendIndent(output, indent, depth);
-                }
-                output.push_back('}');
-                return;
-            }
-        }
     }
 
     Expected<JsonValue>
     ParseJson(std::string_view text)
     {
-        return Parser{text}.ParseDocument();
+        yyjson_read_err error{};
+        // Without YYJSON_READ_INSITU the text is only read.
+        yyjson_doc *document = yyjson_read_opts(const_cast<char *>(text.data()),
+                                                text.size(),
+                                                kReadFlags,
+                                                nullptr,
+                                                &error);
+        if (document == nullptr)
+        {
+            return Error{"invalid JSON at offset " + std::to_string(error.pos) +
+                         ": " + (error.msg == nullptr ? "" : error.msg)};
+        }
+        JsonValue result;
+        const bool converted =
+            FromYyjson(yyjson_doc_get_root(document), 0, result);
+        yyjson_doc_free(document);
+        if (!converted)
+        {
+            return Error{"invalid JSON: nested deeper than " +
+                         std::to_string(kMaximumDepth) + " levels"};
+        }
+        return result;
     }
 
     void
     AppendJsonString(std::string &output, std::string_view text)
     {
-        output.push_back('"');
-        for (const char character : text)
-        {
-            switch (character)
-            {
-                case '"':
-                    output += "\\\"";
-                    break;
-                case '\\':
-                    output += "\\\\";
-                    break;
-                case '\n':
-                    output += "\\n";
-                    break;
-                case '\r':
-                    output += "\\r";
-                    break;
-                case '\t':
-                    output += "\\t";
-                    break;
-                case '\b':
-                    output += "\\b";
-                    break;
-                case '\f':
-                    output += "\\f";
-                    break;
-                default:
-                    if (static_cast<unsigned char>(character) < 0x20)
-                    {
-                        char buffer[8];
-                        std::snprintf(buffer,
-                                      sizeof(buffer),
-                                      "\\u%04x",
-                                      static_cast<unsigned>(character));
-                        output += buffer;
-                    }
-                    else
-                    {
-                        output.push_back(character);
-                    }
-            }
-        }
-        output.push_back('"');
+        output += WriteJson(JsonValue{text}, kWriteFlags);
     }
 } // namespace Progmasoft::Catch3::Runner
