@@ -12,6 +12,7 @@
 [What a failure report says](#what-a-failure-report-says)<br>
 [Reports and traces](#reports-and-traces)<br>
 [Formats other tools read](#formats-other-tools-read)<br>
+[Project configuration](#project-configuration)<br>
 [Bazel and CTest](#bazel-and-ctest)<br>
 [Exit codes](#exit-codes)<br>
 [Coming from Catch2's runner](#coming-from-catch2s-runner)<br>
@@ -271,6 +272,54 @@ version.
 
 The messages between the runner and its workers are internal and change
 with the binary.
+
+
+## Project configuration
+
+Options a project always wants go in a `catch3.json`:
+
+```json
+{
+  "version": 1,
+  "tests": ["~[slow]"],
+  "jobs": 8,
+  "timeout": 60,
+  "warn": ["no-assertions"],
+  "junit": "build/test-results/junit.xml"
+}
+```
+
+The runner looks for the file in the working directory and in each
+directory above it, up to the root of the Git repository, and reads the
+nearest one. Outside a repository it looks only in the working directory.
+`--config=FILE` names a file instead, and `--no-config` reads none.
+
+The keys are the long options, and their values go through the same checks
+as on the command line, with the key named in the message:
+
+| Value | Keys |
+| --- | --- |
+| `true` turns the switch on | `incremental`, `filenames-as-tags`, `in-process`, `isolate`, `success`, `no-throw`, `allow-no-tests`, `skip-benchmarks`, `benchmark-no-analysis` |
+| `false` turns it off | `adaptive-timeout`, `bisect` |
+| a string | `select`, `changes-since`, `order`, `quarantine`, `color` |
+| a whole number | `jobs`, `repeat`, `fail-fast`, `slowest`, `benchmark-samples`, `benchmark-resamples`, `benchmark-warmup-time` |
+| a whole number or a string | `retries` (`"auto"`, `"off"`), `seed` (`"random"`) |
+| a number | `timeout` (seconds), `benchmark-confidence-interval` |
+| a path, relative to the file | `junit`, `json`, `trace`, `shard-durations`; `history`, or `false` for none |
+| an array of strings | `tests` (test specs), `warn` |
+| `"quiet"`, `"normal"` or `"verbose"` | `verbosity` |
+
+`"version": 1` is required; `"$schema"` may name a schema for editors.
+The file is strict JSON: no comments and no trailing commas. A key it does
+not know is an error, with a suggestion when it looks like a known one.
+Options that describe one run, such as `--shard`, `--section`, `--list` or
+`--replay`, belong on the command line only.
+
+Options on the command line win over the file, and test specs on the
+command line replace the file's `tests` rather than adding to them. A
+switch the file turns on stays on; `--no-config` leaves the file out.
+`--verbose` names the file that was read. Workers, `--help` and
+`--version` read no file.
 
 
 ## Bazel and CTest

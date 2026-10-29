@@ -20,7 +20,7 @@ foreach(fuzzer TestSpecParser)
 endforeach()
 
 # Progmasoft's fuzzers live apart, under their own license header.
-foreach(fuzzer RunnerJson RunnerOptions)
+foreach(fuzzer ProjectConfig RunnerJson RunnerOptions)
   add_executable(fuzz_${fuzzer} Progmasoft/fuzz_${fuzzer}.cpp)
   target_link_libraries(fuzz_${fuzzer} PRIVATE fuzzhelper)
 endforeach()

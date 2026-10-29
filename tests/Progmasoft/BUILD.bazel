@@ -16,6 +16,7 @@ cc_test(
         "RunnerUnits.tests.cpp",
         "RunnerPlanner.tests.cpp",
         "RunnerOptions.tests.cpp",
+        "RunnerConfig.tests.cpp",
         "RunnerAnalysis.tests.cpp",
         "RunnerOutput.tests.cpp",
         "Snapshot.tests.cpp",
