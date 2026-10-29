@@ -3,7 +3,10 @@
 
 name: Bazel Builds
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [devel]
+  pull_request:
 
 permissions:
   contents: read
@@ -15,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2025-vs2026, macos-15]
+        os: [windows-2025-vs2026, ubuntu-26.04]
 
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -34,6 +37,8 @@ jobs:
         env:
           BAZEL_SH: C:\Program Files\Git\bin\bash.exe
 
-      - name: Run Progmasoft property tests on macOS
-        if: runner.os == 'macOS'
+      - name: Run Progmasoft property tests on Linux
+        if: runner.os == 'Linux'
         run: bazel test tests/Progmasoft:property_tests
+        env:
+          CC: clang
