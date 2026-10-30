@@ -1,6 +1,9 @@
 name: Windows Builds (Basic)
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [devel]
+  pull_request:
 
 permissions:
   contents: read

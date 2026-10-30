@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   coverage:
-    runs-on: macos-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 40
     permissions:
       contents: read
@@ -22,6 +22,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install Clang, LLVM tools, CMake and Ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm cmake ninja-build python3
       - name: Configure Clang coverage build
         run: >-
           cmake --preset basic-tests -G Ninja
@@ -36,8 +40,8 @@ jobs:
         run: ctest --test-dir build --output-on-failure -R '^(RunTests|Progmasoft::PropertyTests)$'
       - name: Export LLVM source coverage
         run: |
-          xcrun llvm-profdata merge -sparse build/tests/catch3-*.profraw -o catch3.profdata
-          xcrun llvm-cov export \
+          llvm-profdata merge -sparse build/tests/catch3-*.profraw -o catch3.profdata
+          llvm-cov export \
             -instr-profile=catch3.profdata \
             -format=lcov \
             build/tests/SelfTest \
@@ -55,7 +59,7 @@ jobs:
   codecov:
     needs: coverage
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       id-token: write
     steps:

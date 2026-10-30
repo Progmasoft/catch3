@@ -1,6 +1,14 @@
 name: Mac Builds
 
-on: [push, pull_request]
+# macOS runners are few and shared by every Progmasoft repository, so macOS
+# gets one job, as in the Tala compiler: the newest macOS on Apple Silicon,
+# with AddressSanitizer and UndefinedBehaviorSanitizer. The other build
+# systems, the C++ standards and ThreadSanitizer run on Linux and Windows.
+
+on:
+  push:
+    branches: [devel]
+  pull_request:
 
 permissions:
   contents: read
@@ -11,24 +19,23 @@ env:
 
 jobs:
   build:
-    runs-on: ${{matrix.image}}
-    strategy:
-      fail-fast: false
-      matrix:
-        image: [macos-15, macos-26]
-        build_type: [Debug, Release]
-        std: [14, 17]
+    name: macOS 26, C++17, AddressSanitizer and UBSan
+    runs-on: macos-26
+    timeout-minutes: 60
 
     steps:
     - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         persist-credentials: false
 
-    - name: Configure
+    - name: Configure with the sanitizers
+      env:
+        CXXFLAGS: -fsanitize=address,undefined
+        LDFLAGS: -fsanitize=address,undefined
       run: |
-        cmake --preset basic-tests -GNinja \
-              -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
-              -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+        cmake --preset most-tests -GNinja \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_CXX_STANDARD=17 \
               -DCATCH3_BUILD_EXAMPLES=ON \
               -DCATCH3_BUILD_EXTRA_TESTS=ON
 

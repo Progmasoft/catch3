@@ -1,6 +1,9 @@
 name: Check header guards
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [devel]
+  pull_request:
 
 permissions:
   contents: read
@@ -8,7 +11,7 @@ permissions:
 jobs:
   build:
     # Set the type of machine to run on
-    runs-on: macos-15
+    runs-on: ubuntu-26.04
     steps:
 
       - name: Checkout source code

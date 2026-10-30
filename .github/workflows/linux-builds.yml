@@ -4,7 +4,10 @@ name: Linux Builds
 # user of this framework: the current Ubuntu LTS, and Fedora in a container.
 # Both build with Clang, the compiler that project uses everywhere.
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [devel]
+  pull_request:
 
 permissions:
   contents: read
@@ -48,6 +51,38 @@ jobs:
 
     - name: Test
       run: ctest --test-dir build -j
+
+  thread-sanitizer:
+    name: Ubuntu 26.04, C++17, ThreadSanitizer and UBSan
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+
+    steps:
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      with:
+        persist-credentials: false
+
+    - name: Install Clang, CMake and Ninja
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang cmake ninja-build python3
+
+    - name: Configure with the sanitizers
+      env:
+        CXXFLAGS: -fsanitize=thread,undefined
+        LDFLAGS: -fsanitize=thread,undefined
+      run: |
+        cmake --preset basic-tests -GNinja \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_CXX_COMPILER=clang++ \
+              -DCMAKE_CXX_STANDARD=17 \
+              -DCATCH3_BUILD_EXTRA_TESTS=ON
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test
+      run: ctest --test-dir build -R ThreadSafetyTests
 
   fedora:
     name: Fedora 43, C++${{matrix.std}}, ${{matrix.build_type}}

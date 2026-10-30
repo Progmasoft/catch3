@@ -4,6 +4,7 @@
 name: CodeQL
 on:
   push:
+    branches: [devel]
   pull_request:
   schedule:
     - cron: '31 4 * * 1'
@@ -14,7 +15,7 @@ permissions:
 jobs:
   analyze:
     name: ${{ matrix.language }}
-    runs-on: macos-15
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
