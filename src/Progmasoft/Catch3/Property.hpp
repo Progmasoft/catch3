@@ -188,8 +188,8 @@ namespace Progmasoft::Catch3
             {
                 output << "\n  " << statistic.Label << ": " << statistic.Count
                        << " ("
-                       << static_cast<long long>(statistic.Percentage * 10.0
-                                                 + 0.5)
+                       << static_cast<double>(static_cast<long long>(
+                              statistic.Percentage * 10.0 + 0.5))
                               / 10.0
                        << "%";
                 if (statistic.Required > 0.0)
