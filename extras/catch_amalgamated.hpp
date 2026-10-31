@@ -14,7 +14,7 @@
 //
 //  The parts that come from src/Progmasoft, the Catch3 runner, keep
 //  their own copyright and license lines (MPL-2.0 WITH
-//  AdditionRef-Progmasoft-Exception-1.1). The runner needs C++17.
+//  AdditionRef-Progmasoft-Exception-2.0). The runner needs C++17.
 //  ----------------------------------------------------------
 #ifndef CATCH_AMALGAMATED_HPP_INCLUDED
 #define CATCH_AMALGAMATED_HPP_INCLUDED
