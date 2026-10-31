@@ -224,6 +224,6 @@ A mismatch reports both results as notes.
 
 ## Compatibility
 
-The engine is C++20 and part of the `Catch3::Catch3` library. It does not
+The engine is C++17 and part of the `Catch3::Catch3` library. It does not
 change the `Catch` namespace, and it needs no exceptions: a client built without them gets the
 same results, except that an exception thrown by a body cannot be caught.

@@ -62,13 +62,13 @@ distribution with `python tools/scripts/generateAmalgamatedFiles.py`.
 what Catch3 promises to keep: code that compiles against Catch2's headers
 must keep compiling. It stays under the Boost Software License 1.0, keeps the
 `Catch2 Authors` header and follows the style of the surrounding Catch2 code.
-Code that includes only its headers needs C++14.
+Code that includes its headers needs C++17 or later.
 
 `src/Progmasoft` holds what Progmasoft adds: the runner, the results model,
 property testing and snapshots. It is licensed `MPL-2.0 WITH
 AdditionRef-Progmasoft-Exception-1.1`, follows the
 [Progmasoft C++ Style](https://github.com/Progmasoft/progmasoft-cpp), is
-C++20, reports recoverable errors with `Expected` rather than exceptions, and
+C++17, reports recoverable errors with `Expected` rather than exceptions, and
 is formatted with the `.clang-format` beside it.
 
 `tools/scripts/checkLicense.py` checks that every source file carries the

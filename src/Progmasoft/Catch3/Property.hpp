@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #pragma once
 
+#include <Progmasoft/Catch3/Detail/TypeTraits.hpp>
 #include <Progmasoft/Catch3/Generator.hpp>
 #include <Progmasoft/Catch3/ToString.hpp>
-#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -304,8 +304,7 @@ namespace Progmasoft::Catch3
         [[nodiscard]] std::string
         StringifyPropertyValue(const ValueType &value)
         {
-            return PropertyValuePrinter<std::remove_cvref_t<ValueType>>::Print(
-                value);
+            return PropertyValuePrinter<RemoveCvRef<ValueType>>::Print(value);
         }
 
         template<typename Predicate, typename ValueType>
@@ -362,11 +361,11 @@ namespace Progmasoft::Catch3
 
     /// Runs independently seeded trials and greedily accepts failing shrink
     /// candidates.
-    template<typename ValueType, typename Predicate>
-        requires std::invocable<Predicate &, const ValueType &>
-                 && std::convertible_to<
-                     std::invoke_result_t<Predicate &, const ValueType &>,
-                     bool>
+    template<typename ValueType,
+             typename Predicate,
+             std::enable_if_t<
+                 std::is_invocable_r_v<bool, Predicate &, const ValueType &>,
+                 int> = 0>
     [[nodiscard]] PropertyResult
     CheckProperty(const Generator<ValueType> &generator,
                   Predicate predicate,

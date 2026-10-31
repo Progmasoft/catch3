@@ -4,12 +4,11 @@ load("@bazel_skylib//rules:expand_template.bzl", "expand_template")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 # Catch3: the Catch2-compatible engine in Catch3/, the runner in Runner/,
-# property testing and snapshots. It is built as C++20; code that includes
-# only the engine's headers needs C++14. //:catch3 and //:catch3_main are the
-# public names.
-CPP20 = select({
-    "@platforms//os:windows": ["/std:c++20"],
-    "//conditions:default": ["-std=c++20"],
+# property testing and snapshots. It is C++17 and its headers work in C++17
+# and later. //:catch3 and //:catch3_main are the public names.
+CPP17 = select({
+    "@platforms//os:windows": ["/std:c++17"],
+    "//conditions:default": ["-std=c++17"],
 })
 
 # The engine's configuration header, with Bazel support switched on.
@@ -89,7 +88,7 @@ cc_library(
         exclude = ["Catch3/Internal/Main.cpp"],
     ),
     hdrs = glob(["**/*.hpp"]) + [":Catch3/UserConfig.hpp"],
-    copts = CPP20,
+    copts = CPP17,
     linkstatic = True,
     strip_include_prefix = "/src",
     visibility = ["//:__pkg__"],
@@ -102,7 +101,7 @@ cc_library(
 cc_library(
     name = "catch3_main",
     srcs = ["Catch3/Internal/Main.cpp"],
-    copts = CPP20,
+    copts = CPP17,
     linkstatic = True,
     visibility = ["//:__pkg__"],
     deps = [":catch3"],

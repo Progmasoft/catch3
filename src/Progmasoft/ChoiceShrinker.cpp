@@ -14,8 +14,8 @@ namespace Progmasoft::Catch3::Detail
 {
 
     bool
-    IsSimpler(std::span<const std::uint64_t> candidate,
-              std::span<const std::uint64_t> current) noexcept
+    IsSimpler(const std::vector<std::uint64_t> &candidate,
+              const std::vector<std::uint64_t> &current) noexcept
     {
         if (candidate.size() != current.size())
         {
@@ -299,7 +299,7 @@ namespace Progmasoft::Catch3::Detail
     }
 
     std::string
-    EncodeChoices(std::size_t size, std::span<const std::uint64_t> choices)
+    EncodeChoices(std::size_t size, const std::vector<std::uint64_t> &choices)
     {
         // c3.<size>.<choice>-<choice>-... with each number in base 36: short
         // enough to paste from a CI log, and only characters that survive
@@ -329,7 +329,7 @@ namespace Progmasoft::Catch3::Detail
     std::optional<DecodedChoices>
     DecodeChoices(std::string_view token)
     {
-        if (!token.starts_with(kTokenPrefix))
+        if (token.substr(0, kTokenPrefix.size()) != kTokenPrefix)
         {
             return std::nullopt;
         }

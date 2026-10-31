@@ -2,7 +2,7 @@
 # Catch3 documentation
 
 Catch3 keeps Catch2's API for writing tests, runs them with
-[its own runner](progmasoft-runner.md#top) and adds Progmasoft's C++20
+[its own runner](progmasoft-runner.md#top) and adds Progmasoft's C++17
 extensions. Start with the [tutorial](tutorial.md#top), then read
 [the runner](progmasoft-runner.md#top), [what Catch3 adds](progmasoft-catch3.md),
 [native property testing](progmasoft-properties.md), [the roadmap](progmasoft-roadmap.md) and

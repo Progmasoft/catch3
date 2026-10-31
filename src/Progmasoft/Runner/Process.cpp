@@ -191,18 +191,22 @@ namespace Progmasoft::Catch3::Runner
             for (const auto &[name, value] : additions)
             {
                 const std::wstring wideName = Widen(name);
-                std::erase_if(entries, [&](const std::wstring &entry) {
-                    // A leading '=' marks the hidden per-drive variables.
-                    const auto equals = entry.find(L'=', 1);
-                    return equals == wideName.size()
-                           && CompareStringOrdinal(
-                                  entry.data(),
-                                  static_cast<int>(equals),
-                                  wideName.data(),
-                                  static_cast<int>(wideName.size()),
-                                  TRUE)
-                                  == CSTR_EQUAL;
-                });
+                const auto removed = std::remove_if(
+                    entries.begin(),
+                    entries.end(),
+                    [&](const std::wstring &entry) {
+                        // A leading '=' marks the hidden per-drive variables.
+                        const auto equals = entry.find(L'=', 1);
+                        return equals == wideName.size()
+                               && CompareStringOrdinal(
+                                      entry.data(),
+                                      static_cast<int>(equals),
+                                      wideName.data(),
+                                      static_cast<int>(wideName.size()),
+                                      TRUE)
+                                      == CSTR_EQUAL;
+                    });
+                entries.erase(removed, entries.end());
                 entries.push_back(wideName + L"=" + Widen(value));
             }
             std::wstring block;
@@ -957,11 +961,15 @@ namespace Progmasoft::Catch3::Runner
         }
         for (const auto &[name, value] : options.environment)
         {
-            std::erase_if(environmentStorage, [&](const std::string &entry) {
-                return entry.size() > name.size()
-                       && entry.compare(0, name.size(), name) == 0
-                       && entry[name.size()] == '=';
-            });
+            const auto removed = std::remove_if(
+                environmentStorage.begin(),
+                environmentStorage.end(),
+                [&](const std::string &entry) {
+                    return entry.size() > name.size()
+                           && entry.compare(0, name.size(), name) == 0
+                           && entry[name.size()] == '=';
+                });
+            environmentStorage.erase(removed, environmentStorage.end());
             environmentStorage.push_back(name + "=" + value);
         }
         std::vector<char *> environment;

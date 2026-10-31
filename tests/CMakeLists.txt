@@ -172,12 +172,12 @@ add_executable(ProgmasoftSelfTest
   Progmasoft/Strategy.tests.cpp
 )
 target_link_libraries(ProgmasoftSelfTest PRIVATE Catch3WithMain)
-target_compile_features(ProgmasoftSelfTest PRIVATE cxx_std_20)
+target_compile_features(ProgmasoftSelfTest PRIVATE cxx_std_17)
 
 # Tests that misbehave on purpose, for the runner's integration tests.
 add_executable(RunnerFixture Progmasoft/RunnerFixture.cpp)
 target_link_libraries(RunnerFixture PRIVATE Catch3WithMain)
-target_compile_features(RunnerFixture PRIVATE cxx_std_20)
+target_compile_features(RunnerFixture PRIVATE cxx_std_17)
 add_dependencies(ProgmasoftSelfTest RunnerFixture)
 
 add_test(NAME Progmasoft::PropertyTests COMMAND $<TARGET_FILE:ProgmasoftSelfTest> --no-history)

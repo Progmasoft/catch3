@@ -6,7 +6,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <span>
 #include <vector>
 
 namespace Progmasoft::Catch3
@@ -36,11 +35,12 @@ namespace Progmasoft::Catch3
             , size_(size)
         {}
 
-        /// Replay: choices are read from a recorded sequence.
-        ChoiceSource(std::span<const std::uint64_t> replay,
+        /// Replay: choices are read from a recorded sequence, which has to
+        /// outlive this object.
+        ChoiceSource(const std::vector<std::uint64_t> &replay,
                      std::size_t size) noexcept
             : random_(0)
-            , replay_(replay)
+            , replay_(&replay)
             , replaying_(true)
             , size_(size)
         {}
@@ -148,12 +148,12 @@ namespace Progmasoft::Catch3
         [[nodiscard]] std::uint64_t
         ReadReplay(std::uint64_t maximum) noexcept
         {
-            if (position_ >= replay_.size())
+            if (position_ >= replay_->size())
             {
                 overran_ = true;
                 return 0;
             }
-            const std::uint64_t value = replay_[position_++];
+            const std::uint64_t value = (*replay_)[position_++];
             // A shrink may lower a choice that an earlier, changed choice
             // now bounds more tightly; clamping keeps the replay valid.
             return value > maximum ? maximum : value;
@@ -180,7 +180,7 @@ namespace Progmasoft::Catch3
         }
 
         Random random_;
-        std::span<const std::uint64_t> replay_;
+        const std::vector<std::uint64_t> *replay_ = nullptr;
         std::size_t position_ = 0;
         bool replaying_ = false;
         bool overran_ = false;

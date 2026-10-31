@@ -354,7 +354,7 @@ catch3 = static_library(
   sources,
   dependencies: catch3_dependencies,
   include_directories: '../..',
-  override_options: ['cpp_std=c++20'],
+  override_options: ['cpp_std=c++17'],
   install: get_option('install'),
 )
 

@@ -132,7 +132,7 @@ namespace Progmasoft::Catch3
         /// Vectors whose elements are distinct under key. A duplicate is
         /// drawn again up to maximumRetries times before the trial gives
         /// up.
-        template<typename ElementType, typename Key = std::identity>
+        template<typename ElementType, typename Key = Detail::Identity>
         [[nodiscard]] Strategy<std::vector<ElementType>>
         UniqueVectors(Strategy<ElementType> element,
                       SizeRange range = {},
@@ -210,7 +210,7 @@ namespace Progmasoft::Catch3
                                   {
                                       return false;
                                   }
-                                  if (result.contains(*drawnKey))
+                                  if (result.find(*drawnKey) != result.end())
                                   {
                                       continue;
                                   }

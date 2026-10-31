@@ -6,6 +6,7 @@
 if get_option('install')
   install_headers('Catch3.hpp', subdir: 'Progmasoft')
   install_headers('Catch3/Assertions.hpp', subdir: 'Progmasoft/Catch3')
+  install_headers('Catch3/Detail/TypeTraits.hpp', subdir: 'Progmasoft/Catch3/Detail')
   install_headers('Catch3/Detail/InvalidArgument.hpp', subdir: 'Progmasoft/Catch3/Detail')
   install_headers('Catch3/Detail/Sequence.hpp', subdir: 'Progmasoft/Catch3/Detail')
   install_headers('Catch3/Generator.hpp', subdir: 'Progmasoft/Catch3')

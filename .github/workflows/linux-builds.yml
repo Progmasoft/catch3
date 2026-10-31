@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         build_type: [Debug, Release]
-        std: [14, 17]
+        std: [17, 20]
 
     steps:
     - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -93,7 +93,7 @@ jobs:
       fail-fast: false
       matrix:
         build_type: [Debug, Release]
-        std: [14, 17]
+        std: [17, 20]
 
     steps:
     # Git comes first: without it the checkout falls back to an archive of

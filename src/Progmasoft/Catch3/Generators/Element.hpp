@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #pragma once
 
+#include <Progmasoft/Catch3/Detail/TypeTraits.hpp>
 #include <Progmasoft/Catch3/Generator.hpp>
 #include <algorithm>
-#include <concepts>
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
@@ -20,8 +20,9 @@ namespace Progmasoft::Catch3
     /// The list order is the simplicity order: a value shrinks to the values
     /// listed before it, earliest first, so place the simplest case first.
     /// A value that is not in the list has no candidates.
-    template<typename ValueType>
-        requires std::equality_comparable<ValueType>
+    template<typename ValueType,
+             std::enable_if_t<Detail::kIsEqualityComparable<ValueType>, int>
+             = 0>
     [[nodiscard]] Generator<ValueType>
     Element(std::vector<ValueType> values)
     {
@@ -52,8 +53,9 @@ namespace Progmasoft::Catch3
     }
 
     /// Convenience overload for a literal list of values.
-    template<typename ValueType>
-        requires std::equality_comparable<ValueType>
+    template<typename ValueType,
+             std::enable_if_t<Detail::kIsEqualityComparable<ValueType>, int>
+             = 0>
     [[nodiscard]] Generator<ValueType>
     Element(std::initializer_list<ValueType> values)
     {

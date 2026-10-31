@@ -54,10 +54,11 @@ namespace Progmasoft::Catch3
     /// runner's greedy restart this minimizes every component without
     /// trying the cross product of candidates.
     template<typename... ValueTypes>
-        requires(sizeof...(ValueTypes) > 0)
     [[nodiscard]] Generator<std::tuple<ValueTypes...>>
     Tuple(Generator<ValueTypes>... generators)
     {
+        static_assert(sizeof...(ValueTypes) > 0,
+                      "Tuple requires at least one generator");
         using Value = std::tuple<ValueTypes...>;
         const std::tuple<Generator<ValueTypes>...> components{ std::move(
             generators)... };

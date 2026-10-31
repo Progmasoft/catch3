@@ -4,7 +4,7 @@ includedir=${prefix}/@include_dir@
 libdir=${prefix}/@lib_dir@
 
 Name: Catch3
-Description: A C++ test framework with a Catch2-compatible API; headers need C++14 and above
+Description: A C++ test framework with a Catch2-compatible API; headers need C++17 and above
 URL: https://github.com/Progmasoft/catch3
 Version: @Catch3_VERSION@
 Cflags: -I${includedir}

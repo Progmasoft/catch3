@@ -398,8 +398,7 @@ set_target_properties(Catch3 PROPERTIES
 
 # Code that includes the engine's headers needs C++14, and the other
 # Progmasoft/ headers C++20; the library itself, with the runner, is built as C++20.
-target_compile_features(Catch3 PUBLIC cxx_std_14)
-set_target_properties(Catch3 PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+target_compile_features(Catch3 PUBLIC cxx_std_17)
 
 configure_file(
   "${SOURCES_DIR}/UserConfig.hpp.in"
@@ -491,7 +490,7 @@ if(CATCH3_BUILD_EXAMPLES OR CATCH3_BUILD_EXTRA_TESTS)
   )
   # These targets compile the library's sources themselves, the runner's
   # among them, which need C++20.
-  target_compile_features(Catch3_buildall_interface INTERFACE cxx_std_20)
+  target_compile_features(Catch3_buildall_interface INTERFACE cxx_std_17)
 endif()
 
 list(APPEND CATCH_IMPL_TARGETS Catch3 Catch3WithMain)

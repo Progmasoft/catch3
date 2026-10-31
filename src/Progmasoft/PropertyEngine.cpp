@@ -231,7 +231,7 @@ namespace Progmasoft::Catch3::Detail
                    std::size_t size,
                    bool describe)
             {
-                return Execute(ChoiceSource(std::span(choices), size), describe);
+                return Execute(ChoiceSource(choices, size), describe);
             }
 
             static PropertyResult
@@ -302,10 +302,16 @@ namespace Progmasoft::Catch3::Detail
                     // Only the examples checked here are dropped; another
                     // process may have stored new ones meanwhile.
                     database_.Update([&](std::vector<std::string> &stored) {
-                        std::erase_if(stored, [&](const std::string &token) {
-                            return std::find(tokens.begin(), tokens.end(), token)
-                                   != tokens.end();
-                        });
+                        const auto removed = std::remove_if(
+                            stored.begin(),
+                            stored.end(),
+                            [&](const std::string &token) {
+                                return std::find(tokens.begin(),
+                                                 tokens.end(),
+                                                 token)
+                                       != tokens.end();
+                            });
+                        stored.erase(removed, stored.end());
                     });
                 }
                 return std::nullopt;

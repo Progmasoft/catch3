@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
-#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -52,7 +51,7 @@ namespace Progmasoft::Catch3::Detail
 
     /// A replay token: the size of the trial and its choices.
     [[nodiscard]] std::string
-    EncodeChoices(std::size_t size, std::span<const std::uint64_t> choices);
+    EncodeChoices(std::size_t size, const std::vector<std::uint64_t> &choices);
 
     struct DecodedChoices final
     {
@@ -79,7 +78,7 @@ namespace Progmasoft::Catch3::Detail
 
     /// Shortlex order: shorter first, then lexicographically smaller.
     [[nodiscard]] bool
-    IsSimpler(std::span<const std::uint64_t> candidate,
-              std::span<const std::uint64_t> current) noexcept;
+    IsSimpler(const std::vector<std::uint64_t> &candidate,
+              const std::vector<std::uint64_t> &current) noexcept;
 
 } // namespace Progmasoft::Catch3::Detail

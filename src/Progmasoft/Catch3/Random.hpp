@@ -3,8 +3,7 @@
 #pragma once
 
 #include <Progmasoft/Catch3/Detail/InvalidArgument.hpp>
-#include <bit>
-#include <concepts>
+#include <Progmasoft/Catch3/Detail/TypeTraits.hpp>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -63,8 +62,7 @@ namespace Progmasoft::Catch3
 
         /// Returns an inclusive integral value without overflowing at type
         /// limits.
-        template<std::integral IntegerType>
-            requires(!std::same_as<IntegerType, bool>)
+        template<typename IntegerType, Detail::EnableIfInteger<IntegerType> = 0>
         [[nodiscard]] IntegerType
         Between(IntegerType minimum, IntegerType maximum)
         {
@@ -82,31 +80,15 @@ namespace Progmasoft::Catch3
             constexpr UnsignedType kSignBit = UnsignedType{ 1 }
                                               << (kBitCount - 1U);
 
-            const auto encode
-                = [](IntegerType value) constexpr -> UnsignedType {
-                if constexpr (std::is_signed_v<IntegerType>)
-                {
-                    return std::bit_cast<UnsignedType>(value) ^ kSignBit;
-                }
-                else
-                {
-                    return value;
-                }
-            };
-            const auto decode
-                = [](UnsignedType value) constexpr -> IntegerType {
-                if constexpr (std::is_signed_v<IntegerType>)
-                {
-                    return std::bit_cast<IntegerType>(value ^ kSignBit);
-                }
-                else
-                {
-                    return value;
-                }
-            };
-
-            const UnsignedType lower = encode(minimum);
-            const UnsignedType upper = encode(maximum);
+            // Flipping the sign bit orders signed values as unsigned ones.
+            const UnsignedType flip
+                = std::is_signed_v<IntegerType> ? kSignBit : UnsignedType{};
+            const auto lower
+                = static_cast<UnsignedType>(static_cast<UnsignedType>(minimum)
+                                            ^ flip);
+            const auto upper
+                = static_cast<UnsignedType>(static_cast<UnsignedType>(maximum)
+                                            ^ flip);
             // Unsigned wrap to zero represents the complete value domain.
             const UnsignedType width
                 = static_cast<UnsignedType>(upper - lower + UnsignedType{ 1 });
@@ -114,7 +96,8 @@ namespace Progmasoft::Catch3
                 = width == 0 ? static_cast<UnsignedType>(Next())
                              : static_cast<UnsignedType>(
                                    Below(static_cast<std::uint64_t>(width)));
-            return decode(static_cast<UnsignedType>(lower + offset));
+            return static_cast<IntegerType>(
+                static_cast<UnsignedType>(lower + offset) ^ flip);
         }
 
         /// Derives an independent, reproducible seed for one trial.

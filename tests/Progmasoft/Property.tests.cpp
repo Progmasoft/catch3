@@ -63,11 +63,13 @@ TEST_CASE( "Integer generators preserve bounds and useful shrink order",
         Integer<int>( -100, 100 ).Shrink( 6 );
     REQUIRE( !positiveShrinks.empty() );
     CHECK( positiveShrinks.front() == 0 );
-    CHECK( std::ranges::find( positiveShrinks, 5 ) != positiveShrinks.end() );
+    CHECK(std::find(positiveShrinks.begin(), positiveShrinks.end(), 5)
+          != positiveShrinks.end());
 
     const std::vector<int> negativeShrinks = generator.Shrink( -6 );
     CHECK( negativeShrinks.front() == 0 );
-    CHECK( std::ranges::find( negativeShrinks, -5 ) != negativeShrinks.end() );
+    CHECK(std::find(negativeShrinks.begin(), negativeShrinks.end(), -5)
+          != negativeShrinks.end());
 
     CHECK_THROWS_AS( Integer<int>( 5, -5 ), std::invalid_argument );
 }
@@ -93,8 +95,13 @@ TEST_CASE( "Properties count trials and reproduce their seed",
     using Progmasoft::Catch3::PropertyOptions;
 
     int checks = 0;
-    const PropertyOptions options{
-        .Trials = 64, .Seed = 0xC0FFEE, .MaxShrinkSteps = 100 };
+    const PropertyOptions options = [&] {
+        PropertyOptions made;
+        made.Trials = 64;
+        made.Seed = 0xC0FFEE;
+        made.MaxShrinkSteps = 100;
+        return made;
+    }();
     const auto property = [&]( int value ) {
         ++checks;
         return value >= -100 && value <= 100;
@@ -137,8 +144,16 @@ TEST_CASE( "Property failures shrink to and report a replayable counterexample",
 
     const auto result = CheckProperty(
         generator,
-        []( int value ) { return value >= 0; },
-        PropertyOptions{ .Trials = 4, .Seed = 0xFACE, .MaxShrinkSteps = 20 } );
+        [](int value) {
+            return value >= 0;
+        },
+        [&] {
+            PropertyOptions made;
+            made.Trials = 4;
+            made.Seed = 0xFACE;
+            made.MaxShrinkSteps = 20;
+            return made;
+        }());
 
     CHECK_FALSE( result.Succeeded() );
     CHECK( result.Status == Progmasoft::Catch3::PropertyStatus::kFailed );
@@ -166,8 +181,16 @@ TEST_CASE( "Property shrink work is bounded", "[progmasoft][property]" ) {
                             } );
     const auto result = CheckProperty(
         generator,
-        []( int ) { return false; },
-        PropertyOptions{ .Trials = 1, .Seed = 4, .MaxShrinkSteps = 3 } );
+        [](int) {
+            return false;
+        },
+        [&] {
+            PropertyOptions made;
+            made.Trials = 1;
+            made.Seed = 4;
+            made.MaxShrinkSteps = 3;
+            return made;
+        }());
 
     REQUIRE( result.Failure.has_value() );
     CHECK( result.Failure->ShrinkSteps == 3 );
@@ -198,8 +221,16 @@ TEST_CASE(
         []( const int& ) { return std::vector<int>{}; } );
     const auto invalidOptions = CheckProperty(
         constantGenerator,
-        []( int ) { return true; },
-        PropertyOptions{ .Trials = 0, .Seed = 1, .MaxShrinkSteps = 1 } );
+        [](int) {
+            return true;
+        },
+        [&] {
+            PropertyOptions made;
+            made.Trials = 0;
+            made.Seed = 1;
+            made.MaxShrinkSteps = 1;
+            return made;
+        }());
     CHECK( invalidOptions.Status == PropertyStatus::kInvalidConfiguration );
 }
 
@@ -226,8 +257,15 @@ TEST_CASE( "Predicate exceptions are ordinary reproducible property failures",
 TEST_CASE( "Catch3 property assertions report successful runs",
            "[progmasoft][property]" ) {
     CATCH3_CHECK_PROPERTY(
-        Progmasoft::Catch3::Integer<int>( 1, 100 ),
-        []( int value ) { return value > 0; },
-        Progmasoft::Catch3::PropertyOptions{
-            .Trials = 25, .Seed = 42, .MaxShrinkSteps = 10 } );
+        Progmasoft::Catch3::Integer<int>(1, 100),
+        [](int value) {
+            return value > 0;
+        },
+        [&] {
+            Progmasoft::Catch3::PropertyOptions made;
+            made.Trials = 25;
+            made.Seed = 42;
+            made.MaxShrinkSteps = 10;
+            return made;
+        }());
 }

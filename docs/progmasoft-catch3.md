@@ -170,8 +170,8 @@ call-site expansion require it.
 ## Build and integration
 
 The CMake package is `Catch3`, with the targets `Catch3::Catch3` and
-`Catch3::Catch3WithMain`. The library is built as C++20; code that includes
-only the engine's headers still needs only C++14. After installation,
+`Catch3::Catch3WithMain`. The library is C++17, and its headers work in C++17
+and later. After installation,
 consumers can use:
 
 ```cmake
@@ -186,7 +186,7 @@ ways to build the same engine and property tests. Their root files are
 `CMakeLists.txt`, `meson.build`, `xmake.lua`, and `premake5.lua`. Xmake and
 Premake materialize the default generated configuration header,
 `Progmasoft/Catch3/UserConfig.hpp`, from the checked-in template. Meson 1.1.0 or newer is required for the Clang-CL
-C++20 test target.
+C++17 test target.
 
 For project history, compatibility intent, license split, and current feature
 limits, read [Why Progmasoft Catch3?](why-catch3.md).

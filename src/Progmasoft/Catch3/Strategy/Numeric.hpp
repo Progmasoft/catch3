@@ -4,10 +4,9 @@
 
 #include <Progmasoft/Catch3/Strategy/Strategy.hpp>
 #include <array>
-#include <bit>
 #include <cmath>
-#include <concepts>
 #include <cstdint>
+#include <cstring>
 #include <limits>
 #include <optional>
 #include <type_traits>
@@ -34,8 +33,8 @@ namespace Progmasoft::Catch3::Gen
     /// Integers in [minimum, maximum]. They shrink towards the value of the
     /// range closest to zero; generation favours small magnitudes, zero and
     /// the bounds, scaled by the trial size.
-    template<std::integral IntegerType>
-        requires(!std::same_as<IntegerType, bool>)
+    template<typename IntegerType,
+             Catch3::Detail::EnableIfInteger<IntegerType> = 0>
     [[nodiscard]] Strategy<IntegerType>
     Integers(IntegerType minimum = std::numeric_limits<IntegerType>::lowest(),
              IntegerType maximum = std::numeric_limits<IntegerType>::max())
@@ -105,7 +104,8 @@ namespace Progmasoft::Catch3::Gen
     /// Generation mixes integral values, short binary fractions, uniform
     /// values of the range, arbitrary bit patterns, and edge values such as
     /// the smallest subnormal and the largest finite value.
-    template<std::floating_point FloatType>
+    template<typename FloatType,
+             std::enable_if_t<std::is_floating_point_v<FloatType>, int> = 0>
     [[nodiscard]] Strategy<FloatType>
     Floats(FloatOptions options = {})
     {
@@ -204,7 +204,9 @@ namespace Progmasoft::Catch3::Gen
                     {
                         // Any bit pattern; non-finite patterns fall back.
                         const auto bits = source.Draw(UINT64_MAX);
-                        const double value = std::bit_cast<double>(bits);
+                        static_assert(sizeof(double) == sizeof(bits));
+                        double value{};
+                        std::memcpy(&value, &bits, sizeof(value));
                         return finish(std::isfinite(value) ? value : anchor);
                     }
                     default:

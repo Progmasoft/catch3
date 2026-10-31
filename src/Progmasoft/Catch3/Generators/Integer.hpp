@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
 #pragma once
 
+#include <Progmasoft/Catch3/Detail/TypeTraits.hpp>
 #include <Progmasoft/Catch3/Generator.hpp>
 #include <algorithm>
-#include <concepts>
 #include <limits>
 #include <type_traits>
 
@@ -13,8 +13,7 @@ namespace Progmasoft::Catch3
     namespace Detail
     {
 
-        template<std::integral IntegerType>
-            requires(!std::same_as<IntegerType, bool>)
+        template<typename IntegerType, Detail::EnableIfInteger<IntegerType> = 0>
         [[nodiscard]] std::vector<IntegerType>
         ShrinkInteger(IntegerType value,
                       IntegerType minimum,
@@ -24,7 +23,9 @@ namespace Progmasoft::Catch3
             const auto addCandidate = [&](IntegerType candidate) {
                 if (candidate < minimum || candidate > maximum
                     || candidate == value
-                    || std::ranges::find(candidates, candidate)
+                    || std::find(candidates.begin(),
+                                 candidates.end(),
+                                 candidate)
                            != candidates.end())
                 {
                     return;
@@ -86,8 +87,7 @@ namespace Progmasoft::Catch3
 
     /// Generates integers over the inclusive range and shrinks toward simple
     /// values.
-    template<std::integral IntegerType>
-        requires(!std::same_as<IntegerType, bool>)
+    template<typename IntegerType, Detail::EnableIfInteger<IntegerType> = 0>
     [[nodiscard]] Generator<IntegerType>
     Integer(IntegerType minimum = std::numeric_limits<IntegerType>::lowest(),
             IntegerType maximum = std::numeric_limits<IntegerType>::max())

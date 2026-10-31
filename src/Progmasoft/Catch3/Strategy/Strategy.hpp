@@ -3,9 +3,9 @@
 #pragma once
 
 #include <Progmasoft/Catch3/Detail/InvalidArgument.hpp>
+#include <Progmasoft/Catch3/Detail/TypeTraits.hpp>
 #include <Progmasoft/Catch3/Strategy/ChoiceSource.hpp>
 #include <algorithm>
-#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -58,7 +58,7 @@ namespace Progmasoft::Catch3
         [[nodiscard]] auto
         Map(Transform transform) const
         {
-            using Result = std::remove_cvref_t<
+            using Result = Catch3::Detail::RemoveCvRef<
                 std::invoke_result_t<Transform &, ValueType>>;
             Strategy self = *this;
             return Strategy<Result>(
@@ -114,8 +114,8 @@ namespace Progmasoft::Catch3
         [[nodiscard]] auto
         FlatMap(Bind bind) const
         {
-            using Next
-                = std::remove_cvref_t<std::invoke_result_t<Bind &, ValueType>>;
+            using Next = Catch3::Detail::RemoveCvRef<
+                std::invoke_result_t<Bind &, ValueType>>;
             using Result = typename Next::Value;
             Strategy self = *this;
             return Strategy<Result>(
@@ -136,17 +136,18 @@ namespace Progmasoft::Catch3
 
     /// The value type of a strategy.
     template<typename StrategyType>
-    using StrategyValue = typename std::remove_cvref_t<StrategyType>::Value;
+    using StrategyValue =
+        typename Catch3::Detail::RemoveCvRef<StrategyType>::Value;
 
     namespace Gen
     {
 
         /// Always the same value; draws no choice.
         template<typename ValueType>
-        [[nodiscard]] Strategy<std::remove_cvref_t<ValueType>>
+        [[nodiscard]] Strategy<Catch3::Detail::RemoveCvRef<ValueType>>
         Just(ValueType value)
         {
-            using Result = std::remove_cvref_t<ValueType>;
+            using Result = Catch3::Detail::RemoveCvRef<ValueType>;
             return Strategy<Result>(
                 [value = Result(std::move(value))](ChoiceSource &)
                     -> std::optional<Result> { return value; });
@@ -172,9 +173,12 @@ namespace Progmasoft::Catch3
                 });
         }
 
-        template<typename First, typename... Rest>
-            requires(std::same_as<StrategyValue<First>, StrategyValue<Rest>>
-                     && ...)
+        template<typename First,
+                 typename... Rest,
+                 std::enable_if_t<
+                     (std::is_same_v<StrategyValue<First>, StrategyValue<Rest>>
+                      && ...),
+                     int> = 0>
         [[nodiscard]] Strategy<StrategyValue<First>>
         OneOf(First first, Rest... rest)
         {
@@ -249,7 +253,8 @@ namespace Progmasoft::Catch3
         [[nodiscard]] auto
         Lazy(Factory factory)
         {
-            using Result = std::remove_cvref_t<std::invoke_result_t<Factory &>>;
+            using Result
+                = Catch3::Detail::RemoveCvRef<std::invoke_result_t<Factory &>>;
             using ValueType = typename Result::Value;
             return Strategy<ValueType>(
                 [factory](
