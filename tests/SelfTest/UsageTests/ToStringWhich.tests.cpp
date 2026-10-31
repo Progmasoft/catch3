@@ -10,7 +10,7 @@
 
 
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
 // This has to be left enabled until end of the TU, because the GCC
 // frontend reports operator<<(std::ostream& os, const has_maker_and_operator&)
 // as unused anyway
