@@ -68,7 +68,7 @@ self_test = executable(
 
 test('SelfTest', self_test, args: ['--no-history'])
 
-# The Progmasoft tests need C++20; SelfTest keeps the C++ mode it has upstream.
+# The Progmasoft tests need C++17; SelfTest keeps the project's C++ mode.
 progmasoft_property_tests = executable(
   'ProgmasoftPropertyTests',
   [

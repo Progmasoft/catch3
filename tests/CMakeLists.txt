@@ -31,9 +31,8 @@ if(CATCH3_BUILD_SURROGATES)
   # Extracts all non-helper (e.g. Progmasoft/Catch3/All.hpp) headers from the
   # Catch3 target, and returns them through the argument.
   function(ExtractCatch3Headers OutArg)
-    # The engine's headers are the ones that come from Catch2. The other
-    # headers need C++20; the surrogates check the engine's headers at the
-    # language level of the build.
+    # The engine's headers are the ones that come from Catch2; the surrogates
+    # check them at the language level of the build.
     file(STRINGS "${CATCH_DIR}/tools/scripts/upstreamFiles.txt" upstreamFiles REGEX "^src/")
     get_target_property(targetSources Catch3 SOURCES)
     foreach(Source ${targetSources})
@@ -153,8 +152,7 @@ add_executable(SelfTest ${TEST_SOURCES} ${TEST_HEADERS})
 target_include_directories(SelfTest PRIVATE ${SELF_TEST_DIR})
 target_link_libraries(SelfTest PRIVATE Catch3WithMain)
 
-# Exercise the C++20 Progmasoft layer independently so the upstream Catch2
-# SelfTest continues to compile at its supported baseline language level.
+# Exercise the Progmasoft layer independently of the upstream Catch2 SelfTest.
 add_executable(ProgmasoftSelfTest
   Progmasoft/Generators.tests.cpp
   Progmasoft/Property.tests.cpp

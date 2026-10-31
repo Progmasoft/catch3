@@ -396,8 +396,7 @@ set_target_properties(Catch3 PROPERTIES
   SOVERSION ${PROJECT_VERSION}
 )
 
-# Code that includes the engine's headers needs C++14, and the other
-# Progmasoft/ headers C++20; the library itself, with the runner, is built as C++20.
+# The library, and the code that includes its headers, need C++17.
 target_compile_features(Catch3 PUBLIC cxx_std_17)
 
 configure_file(
@@ -489,7 +488,7 @@ if(CATCH3_BUILD_EXAMPLES OR CATCH3_BUILD_EXTRA_TESTS)
       Catch3Pugixml
   )
   # These targets compile the library's sources themselves, the runner's
-  # among them, which need C++20.
+  # among them, which need C++17.
   target_compile_features(Catch3_buildall_interface INTERFACE cxx_std_17)
 endif()
 

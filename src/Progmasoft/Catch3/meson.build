@@ -347,8 +347,7 @@ if ((host_machine.system() == 'android') or
   catch3_dependencies += log_dep
 endif
 
-# Code that includes the engine's headers needs C++14, and the other
-# Progmasoft/ headers C++20; the library itself, with the runner, is built as C++20.
+# The library, and the code that includes its headers, need C++17.
 catch3 = static_library(
   'Catch3',
   sources,
@@ -368,7 +367,7 @@ if get_option('install')
   pkg.generate(
     catch3,
     filebase: 'catch3',
-    description: 'A C++ test framework with a Catch2-compatible API; headers need C++14 and above',
+    description: 'A C++ test framework with a Catch2-compatible API; headers need C++17 and above',
     url: 'https://github.com/Progmasoft/catch3',
   )
 endif

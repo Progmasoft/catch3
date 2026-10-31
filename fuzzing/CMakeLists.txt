@@ -7,7 +7,7 @@
 add_library(fuzzhelper NullOStream.h NullOStream.cpp)
 target_link_libraries(fuzzhelper PUBLIC Catch3::Catch3)
 
-# The runner fuzzers include its C++20 headers.
+# The runner fuzzers include its headers, which need C++17.
 target_compile_features(fuzzhelper PUBLIC cxx_std_17)
 
 # This should be possible to set from the outside to be oss-fuzz compatible,

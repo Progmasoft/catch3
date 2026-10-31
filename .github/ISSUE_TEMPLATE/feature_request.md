@@ -15,7 +15,7 @@ What testing task is difficult today? Include a concrete example from a real tes
 
 ### Proposed behavior
 
-Describe the user-facing API or runner behavior, with a short C++20 example if useful. Explain how failures should be reported and reproduced.
+Describe the user-facing API or runner behavior, with a short C++17 example if useful. Explain how failures should be reported and reproduced.
 
 ### Ownership and compatibility
 

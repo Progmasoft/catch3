@@ -28,11 +28,11 @@ Checks: >-
   -modernize-concat-nested-namespaces,
   -modernize-use-nodiscard,
   -modernize-use-default-member-init,
-  -modernize-type-traits,# we need to support C++14,
+  -modernize-type-traits,# the engine spells these out,
   -modernize-deprecated-headers,
   ,# There's a lot of these and most of them are probably not useful,
   -modernize-pass-by-value,
-  -modernize-use-string-view, # We support C++14,
+  -modernize-use-string-view, # the engine has its own StringRef,
 
   performance-*,
   performance-enum-size,

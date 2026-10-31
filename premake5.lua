@@ -33,12 +33,11 @@ workspace "Catch3"
     filter {}
 
 -- The Catch2-compatible engine, the Catch3 runner, property testing and
--- snapshots; the library is C++20, the engine's headers need only C++14 in
--- the code that includes them.
+-- snapshots; the library and the code that includes it need C++17.
 project "Catch3"
     kind "StaticLib"
     language "C++"
-    cppdialect "C++20"
+    cppdialect "C++17"
     targetdir "build/premake/bin/%{cfg.buildcfg}"
     objdir "build/premake/obj/Catch3/%{cfg.buildcfg}"
     files {
@@ -64,7 +63,7 @@ project "Catch3"
 project "Catch3WithMain"
     kind "StaticLib"
     language "C++"
-    cppdialect "C++14"
+    cppdialect "C++17"
     -- Visual Studio injects UNICODE for Windows projects, which would select
     -- Catch2's wmain entry point instead of the normal console main.
     defines { "DO_NOT_USE_WMAIN" }
@@ -77,7 +76,7 @@ project "Catch3WithMain"
 project "ProgmasoftPropertyTests"
     kind "ConsoleApp"
     language "C++"
-    cppdialect "C++20"
+    cppdialect "C++17"
     targetdir "build/premake/bin/%{cfg.buildcfg}"
     objdir "build/premake/obj/ProgmasoftPropertyTests/%{cfg.buildcfg}"
     files {
