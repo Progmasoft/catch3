@@ -1,5 +1,5 @@
 -- Copyright (c) 2026 Progmasoft.
--- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+-- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 local repository_root = path.getabsolute(".")
 local generated_include = path.join(repository_root, "build", "premake", "generated")

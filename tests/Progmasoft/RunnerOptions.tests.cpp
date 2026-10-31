@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 // Every option of the runner's command line: how it is spelled, what it
 // sets and how a wrong value is explained.

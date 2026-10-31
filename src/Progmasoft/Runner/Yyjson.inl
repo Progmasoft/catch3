@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 // yyjson, compiled into Json.cpp and nowhere else. Every function of its API
 // is static here, so the library adds no symbol to Catch3 and cannot collide

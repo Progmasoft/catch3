@@ -5,7 +5,7 @@ title: "[Bug] "
 ---
 
 <!-- SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com> -->
-<!-- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1 -->
+<!-- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0 -->
 
 Before filing, check the latest code and [current limitations](https://github.com/Progmasoft/catch3/blob/devel/docs/why-catch3.md). Catch3 is an independent project, not an official Catch2 release. Please do not post credentials or private test data. Send security vulnerabilities privately to support@progmasoft.com.
 

@@ -5,7 +5,7 @@ title: "[Feature] "
 ---
 
 <!-- SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com> -->
-<!-- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1 -->
+<!-- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0 -->
 
 Read [Catch3's scope and compatibility policy](https://github.com/Progmasoft/catch3/blob/devel/docs/why-catch3.md) before proposing a change. Catch3 additions and changes to the Catch2-compatible engine have different ownership and compatibility constraints.
 
