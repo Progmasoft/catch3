@@ -96,11 +96,16 @@ TEST_CASE( "Vector shrinking offers a bounded number of candidates",
 TEST_CASE( "Vector properties shrink to a small counterexample",
            "[progmasoft][property][vector]" ) {
     const auto result = CheckProperty(
-        Vector( Integer<int>( 0, 100 ), 0, 20 ),
-        []( const std::vector<int>& values ) {
+        Vector(Integer<int>(0, 100), 0, 20),
+        [](const std::vector<int> &values) {
             return std::accumulate( values.begin(), values.end(), 0 ) < 10;
         },
-        PropertyOptions{ .Trials = 200, .Seed = 0xF00D } );
+        [&] {
+            PropertyOptions made;
+            made.Trials = 200;
+            made.Seed = 0xF00D;
+            return made;
+        }());
 
     REQUIRE( result.Status == PropertyStatus::kFailed );
     REQUIRE( result.Failure.has_value() );
@@ -113,10 +118,15 @@ TEST_CASE( "Vector<bool> values generate, shrink and print",
     const auto generator = Vector( Progmasoft::Catch3::Boolean(), 0, 8 );
     const auto result = CheckProperty(
         generator,
-        []( const std::vector<bool>& flags ) {
+        [](const std::vector<bool> &flags) {
             return std::count( flags.begin(), flags.end(), true ) < 2;
         },
-        PropertyOptions{ .Trials = 300, .Seed = 0xB001 } );
+        [&] {
+            PropertyOptions made;
+            made.Trials = 300;
+            made.Seed = 0xB001;
+            return made;
+        }());
     REQUIRE( result.Status == PropertyStatus::kFailed );
     REQUIRE( result.Failure.has_value() );
     CHECK( result.Failure->Counterexample == "{ true, true }" );
@@ -167,11 +177,16 @@ TEST_CASE( "Tuple shrinking changes one component at a time, first to last",
 TEST_CASE( "Tuple properties minimize every component",
            "[progmasoft][property][tuple]" ) {
     const auto result = CheckProperty(
-        Tuple( Integer<int>( 0, 1000 ), Integer<int>( 0, 1000 ) ),
-        []( const std::tuple<int, int>& value ) {
+        Tuple(Integer<int>(0, 1000), Integer<int>(0, 1000)),
+        [](const std::tuple<int, int> &value) {
             return std::get<0>( value ) < 50 || std::get<1>( value ) < 50;
         },
-        PropertyOptions{ .Trials = 500, .Seed = 0x7007 } );
+        [&] {
+            PropertyOptions made;
+            made.Trials = 500;
+            made.Seed = 0x7007;
+            return made;
+        }());
 
     REQUIRE( result.Status == PropertyStatus::kFailed );
     REQUIRE( result.Failure.has_value() );
@@ -234,11 +249,16 @@ TEST_CASE( "Text generators stay inside their alphabet and length range",
 TEST_CASE( "Text properties shrink to the shortest simplest string",
            "[progmasoft][property][text]" ) {
     const auto result = CheckProperty(
-        Text( "abcxyz", 0, 24 ),
-        []( const std::string& value ) {
+        Text("abcxyz", 0, 24),
+        [](const std::string &value) {
             return value.find( 'x' ) == std::string::npos;
         },
-        PropertyOptions{ .Trials = 300, .Seed = 0x7E47 } );
+        [&] {
+            PropertyOptions made;
+            made.Trials = 300;
+            made.Seed = 0x7E47;
+            return made;
+        }());
 
     REQUIRE( result.Status == PropertyStatus::kFailed );
     REQUIRE( result.Failure.has_value() );
@@ -260,8 +280,12 @@ TEST_CASE( "A reported replay seed reproduces exactly that trial",
                    std::get<1>( value ).size() < 2;
         };
 
-    const auto original = CheckProperty(
-        generator, predicate, PropertyOptions{ .Trials = 500, .Seed = 0x5EED } );
+    const auto original = CheckProperty(generator, predicate, [&] {
+        PropertyOptions made;
+        made.Trials = 500;
+        made.Seed = 0x5EED;
+        return made;
+    }());
     REQUIRE( original.Status == PropertyStatus::kFailed );
     REQUIRE( original.Failure.has_value() );
     // The failure was not on the first trial, so replay skips real work.
@@ -273,12 +297,13 @@ TEST_CASE( "A reported replay seed reproduces exactly that trial",
 
     // A different root seed and trial count prove that only the replay seed
     // decides what runs.
-    const auto replayed = CheckProperty(
-        generator,
-        predicate,
-        PropertyOptions{ .Trials = 3,
-                         .Seed = 1,
-                         .ReplayTrialSeed = original.Failure->TrialSeed } );
+    const auto replayed = CheckProperty(generator, predicate, [&] {
+        PropertyOptions made;
+        made.Trials = 3;
+        made.Seed = 1;
+        made.ReplayTrialSeed = original.Failure->TrialSeed;
+        return made;
+    }());
     REQUIRE( replayed.Status == PropertyStatus::kFailed );
     REQUIRE( replayed.Failure.has_value() );
     CHECK( replayed.TrialsRun == 1 );
@@ -290,9 +315,16 @@ TEST_CASE( "A reported replay seed reproduces exactly that trial",
 
     // Replaying a seed whose trial passes reports one passing trial.
     const auto passing = CheckProperty(
-        Integer<int>( 0, 10 ),
-        []( int value ) { return value <= 10; },
-        PropertyOptions{ .Trials = 50, .ReplayTrialSeed = 12345 } );
+        Integer<int>(0, 10),
+        [](int value) {
+            return value <= 10;
+        },
+        [&] {
+            PropertyOptions made;
+            made.Trials = 50;
+            made.ReplayTrialSeed = 12345;
+            return made;
+        }());
     CHECK( passing.Succeeded() );
     CHECK( passing.TrialsRun == 1 );
 }

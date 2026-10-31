@@ -41,7 +41,7 @@ as needed later.
 
 The bundled Catch2-compatible engine provides no ABI stability guarantee.
 Its C++ interfaces should be compiled with a consistent compiler and build
-configuration. The Progmasoft C++20 extension library does not currently
+configuration. The Progmasoft C++17 extension library does not currently
 promise a stable binary ABI either.
 
 Catch2 is not designed to be distributed as dynamic library, and you

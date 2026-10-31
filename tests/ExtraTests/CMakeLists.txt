@@ -431,7 +431,7 @@ add_executable(AmalgamatedTestCompilation
 )
 target_include_directories(AmalgamatedTestCompilation PRIVATE ${CATCH_DIR}/extras)
 # The amalgamated files hold the runner, which needs C++20.
-target_compile_features(AmalgamatedTestCompilation PRIVATE cxx_std_20)
+target_compile_features(AmalgamatedTestCompilation PRIVATE cxx_std_17)
 
 add_test(NAME AmalgamatedFileTest COMMAND AmalgamatedTestCompilation --no-history)
 set_tests_properties(AmalgamatedFileTest

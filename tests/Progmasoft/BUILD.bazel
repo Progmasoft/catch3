@@ -24,8 +24,8 @@ cc_test(
         "Strategy.tests.cpp",
     ],
     copts = select({
-        "@platforms//os:windows": ["/std:c++20"],
-        "//conditions:default": ["-std=c++20"],
+        "@platforms//os:windows": ["/std:c++17"],
+        "//conditions:default": ["-std=c++17"],
     }),
     args = ["--no-history"],
     data = [":runner_fixture"],
@@ -41,8 +41,8 @@ cc_binary(
     name = "runner_fixture",
     srcs = ["RunnerFixture.cpp"],
     copts = select({
-        "@platforms//os:windows": ["/std:c++20"],
-        "//conditions:default": ["-std=c++20"],
+        "@platforms//os:windows": ["/std:c++17"],
+        "//conditions:default": ["-std=c++17"],
     }),
     deps = [
         "//:catch3",

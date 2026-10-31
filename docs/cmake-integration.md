@@ -16,8 +16,8 @@
 Catch3's CMake package is `Catch3`. It exports two targets:
 
 1. `Catch3::Catch3`, the library: the Catch2-compatible engine, the Catch3
-   runner, property testing and snapshots. It is built as C++20; code that
-   includes only the engine's headers needs C++14.
+   runner, property testing and snapshots. It is C++17, and its headers
+   work in C++17 and later.
 2. `Catch3::Catch3WithMain`, the library with the default `main`.
 
 `Catch3.cmake` registers each `TEST_CASE` with CTest.

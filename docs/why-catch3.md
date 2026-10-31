@@ -17,7 +17,7 @@ Catch2's runner with [its own](progmasoft-runner.md#top).
 | --- | --- | --- |
 | Test execution | Catch2's test registration, `RunContext` and listeners | The Catch3 runner: parallel worker processes, retries, flaky-test detection, quarantine, history, selection, sharding and its own command line and reports; `CATCH3_CHECK_FOR_ALL` and `CATCH3_CHECK_PROPERTY` report property outcomes through Catch2's assertion path |
 | Public include path | The engine's headers moved to `Progmasoft/Catch3/...` with Progmasoft names, such as `TestMacros.hpp` | `Progmasoft/Catch3.hpp` and the other `Progmasoft/Catch3/...` headers |
-| C++ baseline | Code that includes the engine's headers needs C++14; the library, which holds the runner, is built as C++20 | The added property API requires C++20 |
+| C++ baseline | C++17; the headers work in C++17 and later | The same |
 | Randomness | Catch2's existing behavior is unchanged | A specified SplitMix64 sequence provides deterministic trial seeds and unbiased bounded integer sampling |
 | Generated values | No change to existing Catch2 generators | Strategies for numbers, text, collections and structures with `Map`, `Filter` and `FlatMap`; shrinking of recorded choices, so every combination shrinks; replay tokens and an example database; state machines, `Classify`/`Cover` statistics, targeted search, and differential and metamorphic oracles |
 | Build identity | One library: the `Catch3` CMake package with `Catch3::Catch3` and `Catch3::Catch3WithMain`, `//:catch3` in Bazel, `catch3` in Meson and pkg-config | The same library |
@@ -41,7 +41,7 @@ continuity with the included Catch2 3.16.1 base; this is not a promise that ever
 future Catch2 upstream change will be adopted unchanged or that all downstream
 projects have already been validated.
 
-The engine, the runner and the Progmasoft additions are one compiled C++20
+The engine, the runner and the Progmasoft additions are one compiled C++17
 library. Template-based generators and call-site assertion macros remain in
 headers; snapshot I/O, result aggregation, and XML serialization are compiled
 implementations.

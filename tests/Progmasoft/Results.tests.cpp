@@ -207,7 +207,7 @@ TEST_CASE("JUnit XML keeps every attempt and marks flaky tests",
     CHECK(xml.find("<property name=\"random-seed\" value=\"42\" />") !=
           std::string::npos);
     CHECK(xml.find("time=\"0.263500\"") != std::string::npos);
-    CHECK(xml.ends_with("</testsuites>\n"));
+    CHECK(xml.rfind("</testsuites>\n") == xml.size() - 14U);
 }
 
 TEST_CASE("JUnit XML replaces malformed UTF-8 and forbidden XML controls",

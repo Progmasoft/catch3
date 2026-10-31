@@ -6,7 +6,7 @@
 
 An independently maintained C++ test framework: Catch3 keeps the practical,
 expressive test-writing model that developers expect, while adding a separately
-owned C++20 library for property checks, snapshots, structured results, and XML
+owned C++17 library for property checks, snapshots, structured results, and XML
 serialization.
 
 > Catch3 is not an official Catch2 release and is not endorsed by Catch2's
@@ -33,7 +33,7 @@ serialization.
 - **Structured results and XML output.** The runner's result model, with
   every attempt, and its deterministic JUnit XML writer are public.
 - **A compiled library, not a header-only package.** Snapshot I/O and result/XML
-  serialization are compiled C++20 implementations; templates and assertion
+  serialization are compiled C++17 implementations; templates and assertion
   macros remain in headers where needed.
 
 Catch3 is in an early development stage. Catch2's command line and reporters
@@ -87,8 +87,8 @@ target_link_libraries(MyTests PRIVATE Catch3::Catch3WithMain)
 `Catch3::Catch3` is the library: the engine, the runner, property testing and
 snapshots; `Catch3::Catch3WithMain` adds the default `main`. Tests include
 `<Progmasoft/Catch3/TestMacros.hpp>` and the other `Progmasoft/Catch3/`
-headers. The library is built as C++20; code that includes only the engine's
-headers needs C++14. Catch3 and Catch2 can be installed side by side, as
+headers. The library is C++17, and its headers work in C++17
+and later. Catch3 and Catch2 can be installed side by side, as
 their package, target, header and pkg-config names differ.
 
 ## Documentation

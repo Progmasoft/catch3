@@ -116,15 +116,23 @@ TEST_CASE( "Integer strategies respect every kind of range",
 TEST_CASE( "Float strategies stay finite and in range unless allowed",
            "[progmasoft][strategy]" ) {
     using Progmasoft::Catch3::FloatOptions;
-    const auto bounded = Gen::Floats<double>(
-        FloatOptions{ .Minimum = -2.5, .Maximum = 1000.0 } );
+    const auto bounded = Gen::Floats<double>([&] {
+        FloatOptions made;
+        made.Minimum = -2.5;
+        made.Maximum = 1000.0;
+        return made;
+    }());
     for ( double value : Sample( bounded, 3000, 6 ) ) {
         CHECK( std::isfinite( value ) );
         CHECK( value >= -2.5 );
         CHECK( value <= 1000.0 );
     }
-    const auto everything = Gen::Floats<double>(
-        FloatOptions{ .AllowNaN = true, .AllowInfinity = true } );
+    const auto everything = Gen::Floats<double>([&] {
+        FloatOptions made;
+        made.AllowNaN = true;
+        made.AllowInfinity = true;
+        return made;
+    }());
     const auto values = Sample( everything, 3000, 7 );
     CHECK( std::any_of( values.begin(), values.end(), []( double value ) {
         return std::isnan( value );
@@ -132,14 +140,22 @@ TEST_CASE( "Float strategies stay finite and in range unless allowed",
     CHECK( std::any_of( values.begin(), values.end(), []( double value ) {
         return std::isinf( value );
     } ) );
-    const auto positive = Gen::Floats<float>(
-        FloatOptions{ .Minimum = 1.0, .Maximum = 2.0 } );
+    const auto positive = Gen::Floats<float>([&] {
+        FloatOptions made;
+        made.Minimum = 1.0;
+        made.Maximum = 2.0;
+        return made;
+    }());
     const std::vector<std::uint64_t> zeros;
     ChoiceSource simplest( zeros, 0 );
     CHECK( positive.Draw( simplest ) == 1.0F );
-    CHECK_THROWS_AS( Gen::Floats<double>( FloatOptions{ .Minimum = 2.0,
-                                                        .Maximum = 1.0 } ),
-                     std::invalid_argument );
+    CHECK_THROWS_AS(Gen::Floats<double>([&] {
+                        FloatOptions made;
+                        made.Minimum = 2.0;
+                        made.Maximum = 1.0;
+                        return made;
+                    }()),
+                    std::invalid_argument);
 }
 
 TEST_CASE( "Collection strategies respect their size ranges",

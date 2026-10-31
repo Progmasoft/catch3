@@ -89,7 +89,7 @@ progmasoft_property_tests = executable(
   ],
   include_directories: '../src',
   dependencies: [catch3_with_main_dep],
-  override_options: ['cpp_std=c++20'],
+  override_options: ['cpp_std=c++17'],
 )
 
 # Tests that misbehave on purpose, for the runner's integration tests.
@@ -98,7 +98,7 @@ runner_fixture = executable(
   'Progmasoft/RunnerFixture.cpp',
   include_directories: '../src',
   dependencies: [catch3_with_main_dep],
-  override_options: ['cpp_std=c++20'],
+  override_options: ['cpp_std=c++17'],
 )
 
 test(

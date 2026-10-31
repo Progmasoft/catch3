@@ -148,7 +148,27 @@ namespace Progmasoft::Catch3
 
         template<typename Type>
         inline constexpr bool kIsPropertyOptions
-            = std::is_same_v<std::remove_cvref_t<Type>, PropertyOptions>;
+            = std::is_same_v<RemoveCvRef<Type>, PropertyOptions>;
+
+        template<typename Arguments, std::size_t... Index>
+        [[nodiscard]] PropertyResult
+        ForAllWithOptions(Arguments &all, std::index_sequence<Index...>)
+        {
+            constexpr std::size_t kCount = std::tuple_size_v<Arguments>;
+            return ForAllWith(std::get<0>(all),
+                              std::get<kCount - 1U>(all),
+                              std::get<Index + 1U>(all)...);
+        }
+
+        template<typename Arguments, std::size_t... Index>
+        [[nodiscard]] PropertyResult
+        ForAllWithDefaults(Arguments &all, std::index_sequence<Index...>)
+        {
+            constexpr std::size_t kCount = std::tuple_size_v<Arguments>;
+            return ForAllWith(PropertyOptions{},
+                              std::get<kCount - 1U>(all),
+                              std::get<Index>(all)...);
+        }
 
     } // namespace Detail
 
@@ -172,19 +192,15 @@ namespace Progmasoft::Catch3
         using First = std::tuple_element_t<0, std::tuple<Arguments...>>;
         if constexpr (Detail::kIsPropertyOptions<First>)
         {
-            return [&]<std::size_t... Index>(std::index_sequence<Index...>) {
-                return Detail::ForAllWith(std::get<0>(all),
-                                          std::get<kCount - 1U>(all),
-                                          std::get<Index + 1U>(all)...);
-            }(std::make_index_sequence<kCount - 2U>{});
+            return Detail::ForAllWithOptions(
+                all,
+                std::make_index_sequence<kCount - 2U>{});
         }
         else
         {
-            return [&]<std::size_t... Index>(std::index_sequence<Index...>) {
-                return Detail::ForAllWith(PropertyOptions{},
-                                          std::get<kCount - 1U>(all),
-                                          std::get<Index>(all)...);
-            }(std::make_index_sequence<kCount - 1U>{});
+            return Detail::ForAllWithDefaults(
+                all,
+                std::make_index_sequence<kCount - 1U>{});
         }
     }
 

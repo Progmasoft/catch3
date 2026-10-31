@@ -42,10 +42,11 @@ TEST_CASE( "Snapshot comparison does not write during ordinary runs",
     using Progmasoft::Catch3::SnapshotStatus;
 
     const TemporarySnapshotDirectory directory;
-    const auto result =
-        CompareSnapshot( "greeting",
-                         "hello\nworld\n",
-                         SnapshotOptions{ .Directory = directory.Path } );
+    const auto result = CompareSnapshot("greeting", "hello\nworld\n", [&] {
+        SnapshotOptions made;
+        made.Directory = directory.Path;
+        return made;
+    }());
 
     CHECK( result.Status == SnapshotStatus::kMismatched );
     CHECK_FALSE( result.Succeeded() );
@@ -62,10 +63,12 @@ TEST_CASE( "Snapshots normalize line endings and report precise differences",
     using Progmasoft::Catch3::SnapshotUpdateMode;
 
     const TemporarySnapshotDirectory directory;
-    const SnapshotOptions createOptions{
-        .Directory = directory.Path,
-        .UpdateMode = SnapshotUpdateMode::kCreateMissing,
-    };
+    const SnapshotOptions createOptions = [&] {
+        SnapshotOptions made;
+        made.Directory = directory.Path;
+        made.UpdateMode = SnapshotUpdateMode::kCreateMissing;
+        return made;
+    }();
     const auto created =
         CompareSnapshot( "multiline", "one\ntwo\n", createOptions );
     REQUIRE( created.Status == SnapshotStatus::kCreated );
@@ -76,10 +79,11 @@ TEST_CASE( "Snapshots normalize line endings and report precise differences",
     CHECK( normalized.Status == SnapshotStatus::kMatched );
     CHECK( normalized.Expected == "one\ntwo\n" );
 
-    const auto mismatch =
-        CompareSnapshot( "multiline",
-                         "one\ntoo\n",
-                         SnapshotOptions{ .Directory = directory.Path } );
+    const auto mismatch = CompareSnapshot("multiline", "one\ntoo\n", [&] {
+        SnapshotOptions made;
+        made.Directory = directory.Path;
+        return made;
+    }());
     CHECK( mismatch.Status == SnapshotStatus::kMismatched );
     CHECK( mismatch.DifferenceLine == 2 );
     CHECK( mismatch.DifferenceColumn == 2 );
@@ -94,10 +98,12 @@ TEST_CASE( "Snapshot creation and replacement require explicit update modes",
     using Progmasoft::Catch3::SnapshotUpdateMode;
 
     const TemporarySnapshotDirectory directory;
-    const SnapshotOptions createMissing{
-        .Directory = directory.Path,
-        .UpdateMode = SnapshotUpdateMode::kCreateMissing,
-    };
+    const SnapshotOptions createMissing = [&] {
+        SnapshotOptions made;
+        made.Directory = directory.Path;
+        made.UpdateMode = SnapshotUpdateMode::kCreateMissing;
+        return made;
+    }();
     REQUIRE( CompareSnapshot( "answer", "first", createMissing ).Succeeded() );
 
     const auto protectedMismatch =
@@ -105,10 +111,12 @@ TEST_CASE( "Snapshot creation and replacement require explicit update modes",
     CHECK( protectedMismatch.Status == SnapshotStatus::kMismatched );
     CHECK( protectedMismatch.Expected == "first" );
 
-    const SnapshotOptions updateEverything{
-        .Directory = directory.Path,
-        .UpdateMode = SnapshotUpdateMode::kAlways,
-    };
+    const SnapshotOptions updateEverything = [&] {
+        SnapshotOptions made;
+        made.Directory = directory.Path;
+        made.UpdateMode = SnapshotUpdateMode::kAlways;
+        return made;
+    }();
     const auto updated =
         CompareSnapshot( "answer", "second", updateEverything );
     REQUIRE( updated.Status == SnapshotStatus::kUpdated );
@@ -125,7 +133,11 @@ TEST_CASE( "Snapshot names and I/O failures are returned as structured errors",
     using Progmasoft::Catch3::SnapshotUpdateMode;
 
     const TemporarySnapshotDirectory directory;
-    const SnapshotOptions options{ .Directory = directory.Path };
+    const SnapshotOptions options = [&] {
+        SnapshotOptions made;
+        made.Directory = directory.Path;
+        return made;
+    }();
     CHECK( CompareSnapshot( "../outside", "text", options ).Status ==
            SnapshotStatus::kInvalidName );
     CHECK( CompareSnapshot( "nested/name", "text", options ).Status ==
@@ -141,11 +153,12 @@ TEST_CASE( "Snapshot names and I/O failures are returned as structured errors",
         REQUIRE( output.good() );
         output << "file";
     }
-    const auto ioFailure = CompareSnapshot(
-        "snapshot",
-        "text",
-        SnapshotOptions{ .Directory = blockingFile,
-                         .UpdateMode = SnapshotUpdateMode::kCreateMissing } );
+    const auto ioFailure = CompareSnapshot("snapshot", "text", [&] {
+        SnapshotOptions made;
+        made.Directory = blockingFile;
+        made.UpdateMode = SnapshotUpdateMode::kCreateMissing;
+        return made;
+    }());
     CHECK( ioFailure.Status == SnapshotStatus::kIoError );
     CHECK_FALSE( ioFailure.Message.empty() );
 }
@@ -156,9 +169,11 @@ TEST_CASE( "Snapshot assertion macro reports successful explicit updates",
     CATCH3_CHECK_SNAPSHOT(
         "macro",
         "stable value",
-        ( Progmasoft::Catch3::SnapshotOptions{
-            .Directory = directory.Path,
-            .UpdateMode =
-                Progmasoft::Catch3::SnapshotUpdateMode::kCreateMissing,
-        } ) );
+        ([&] {
+            Progmasoft::Catch3::SnapshotOptions made;
+            made.Directory = directory.Path;
+            made.UpdateMode
+                = Progmasoft::Catch3::SnapshotUpdateMode::kCreateMissing;
+            return made;
+        }()));
 }
