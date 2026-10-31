@@ -14,6 +14,12 @@ based on Catch2 3.16.1; Catch2's own history is in
 
 ## 0.3.0 (unreleased)
 
+### Language and license
+
+Catch3 is C++17, and its headers work in C++17 and later. Progmasoft-authored
+files move to the Progmasoft Linking Exception, Version 2.0; Catch2-derived code
+keeps the Boost Software License.
+
 ### The Catch3 runner
 
 Catch3 keeps Catch2's API for writing tests and replaces its session, command
