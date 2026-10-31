@@ -14,7 +14,7 @@
 //
 //  The parts that come from src/Progmasoft, the Catch3 runner, keep
 //  their own copyright and license lines (MPL-2.0 WITH
-//  AdditionRef-Progmasoft-Exception-1.1). The runner needs C++17.
+//  AdditionRef-Progmasoft-Exception-2.0). The runner needs C++17.
 //  ----------------------------------------------------------
 
 #include "catch_amalgamated.hpp"
@@ -38,13 +38,13 @@
 #endif // defined(CATCH_PLATFORM_WINDOWS)
 
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <cassert>
 #include <optional>
@@ -216,10 +216,10 @@ namespace Progmasoft::Catch3::Runner
                    const std::filesystem::path &right);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <cstddef>
 #include <cstdint>
@@ -505,7 +505,7 @@ namespace Progmasoft::Catch3
 #include <vector>
 
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 #include <cstdint>
@@ -836,10 +836,10 @@ namespace Progmasoft::Catch3::Runner
                 const std::string &binaryName);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <chrono>
 #include <cstddef>
@@ -945,7 +945,7 @@ namespace Progmasoft::Catch3::Runner
     };
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 #include <chrono>
@@ -1245,7 +1245,7 @@ namespace Progmasoft::Catch3::Runner
     QuoteTestSpec(const std::string &name);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 
@@ -1305,7 +1305,7 @@ namespace Progmasoft::Catch3::Runner
     TraceJson(const RunResult &run);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <functional>
 #include <memory>
@@ -1365,7 +1365,7 @@ namespace Progmasoft::Catch3::Runner
     RunWorker(const Options &options, const std::string &programName);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 #include <chrono>
@@ -1421,7 +1421,7 @@ namespace Progmasoft::Catch3::Runner
     UniqueName();
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 #include <array>
@@ -1480,7 +1480,7 @@ namespace Progmasoft::Catch3::Runner
     ToHex(std::uint64_t value);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <chrono>
 #include <cstdint>
@@ -1740,7 +1740,7 @@ namespace Progmasoft::Catch3::Runner
     WriteStandardError(std::string_view text) noexcept;
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <filesystem>
 #include <optional>
@@ -1781,7 +1781,7 @@ namespace Progmasoft::Catch3::Runner
                      const std::filesystem::path &workingDirectory);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 #include <mutex>
@@ -1854,7 +1854,7 @@ namespace Progmasoft::Catch3::Runner
     Message(std::string_view kind);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 
@@ -1902,7 +1902,7 @@ namespace Progmasoft::Catch3::Runner
     RunResultFromJson(const JsonValue &value);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 
@@ -1950,7 +1950,7 @@ namespace Progmasoft::Catch3::Runner
             const SchedulerEvents &events);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 // The state the scheduler keeps of jobs, workers and tests.
 
@@ -2110,7 +2110,7 @@ namespace Progmasoft::Catch3::Runner::Scheduling
     };
 } // namespace Progmasoft::Catch3::Runner::Scheduling
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <array>
 #include <optional>
@@ -2138,7 +2138,7 @@ namespace Progmasoft::Catch3::Runner
     };
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <filesystem>
 #include <string>
@@ -2170,7 +2170,7 @@ namespace Progmasoft::Catch3
     TestTemporaryDirectory();
 } // namespace Progmasoft::Catch3
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 namespace Progmasoft::Catch3
 {
@@ -2178,7 +2178,7 @@ namespace Progmasoft::Catch3
     inline constexpr const char *kVersion = "0.3.0";
 } // namespace Progmasoft::Catch3
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <iosfwd>
 #include <string>
@@ -8692,7 +8692,7 @@ namespace Catch {
     } // namespace Detail
 } // namespace Catch
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <array>
 #include <string_view>
@@ -9027,7 +9027,7 @@ namespace Progmasoft::Catch3
     }
 } // namespace Progmasoft::Catch3
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include "catch_amalgamated_third_party.hpp"
 
@@ -9353,7 +9353,7 @@ namespace Progmasoft::Catch3
     }
 } // namespace Progmasoft::Catch3
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 #include <algorithm>
@@ -9716,7 +9716,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 #include <algorithm>
 #include <cmath>
 #include <iterator>
@@ -10001,7 +10001,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 #include <algorithm>
 #include <cstdio>
 #include <set>
@@ -10517,7 +10517,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -11099,7 +11099,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 #if defined(_WIN32)
@@ -11301,7 +11301,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 #include <algorithm>
@@ -11471,7 +11471,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <cstring>
 #include <fstream>
@@ -11688,7 +11688,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 #include <algorithm>
 #include <cmath>
 #include <system_error>
@@ -12184,7 +12184,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 #include <cmath>
@@ -12692,7 +12692,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 #include <algorithm>
 #include <clocale>
@@ -13856,7 +13856,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 #include <algorithm>
@@ -14472,7 +14472,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -15770,7 +15770,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -16315,7 +16315,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -16378,7 +16378,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -16776,7 +16776,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -17652,7 +17652,7 @@ namespace Progmasoft::Catch3
     }
 } // namespace Progmasoft::Catch3
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
@@ -19082,7 +19082,7 @@ namespace Progmasoft::Catch3::Runner
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 
 

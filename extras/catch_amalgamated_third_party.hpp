@@ -6,7 +6,7 @@
 // third_party/. You probably shouldn't edit it directly.
 //
 // yyjson and pugixml keep their MIT licenses, stated in their text below;
-// the rest is MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1. Only
+// the rest is MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0. Only
 // catch_amalgamated.cpp includes this file.
 // ----------------------------------------------------------
 #pragma once

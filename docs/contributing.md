@@ -66,7 +66,7 @@ Code that includes its headers needs C++17 or later.
 
 `src/Progmasoft` holds what Progmasoft adds: the runner, the results model,
 property testing and snapshots. It is licensed `MPL-2.0 WITH
-AdditionRef-Progmasoft-Exception-1.1`, follows the
+AdditionRef-Progmasoft-Exception-2.0`, follows the
 [Progmasoft C++ Style](https://github.com/Progmasoft/progmasoft-cpp), is
 C++17, reports recoverable errors with `Expected` rather than exceptions, and
 is formatted with the `.clang-format` beside it.
