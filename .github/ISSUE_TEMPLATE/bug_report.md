@@ -26,7 +26,7 @@ Describe the expected behavior and the contract or documentation that supports i
 
 ### Minimal reproduction
 
-Provide a small C++20 test, the command used to build and run it, and the test-runner arguments. For a property failure, include the root seed, replay seed, trial number, and minimized counterexample when available. For a snapshot failure, describe the snapshot mode and file location without pasting private content.
+Provide a small C++17 test, the command used to build and run it, and the test-runner arguments. For a property failure, include the root seed, replay seed, trial number, and minimized counterexample when available. For a snapshot failure, describe the snapshot mode and file location without pasting private content.
 
 ### Environment
 

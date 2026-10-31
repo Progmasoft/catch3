@@ -7,7 +7,7 @@
 v3 is the next major version of Catch2 and brings three significant changes:
  * Catch2 is now split into multiple headers
  * Catch2 is now compiled as a static library
- * C++14 is the minimum required C++ version
+ * C++17 is the minimum required C++ version
 
 There are many reasons why we decided to go from the old single-header
 distribution model to a more standard library distribution model. The

@@ -128,7 +128,7 @@
 namespace Catch {
 
     namespace Detail {
-        // This was added in C++20, but we require only C++14 for now.
+        // This was added in C++20, but we require only C++17.
         template <typename T>
         using RemoveCVRef_t = std::remove_cv_t<std::remove_reference_t<T>>;
     }

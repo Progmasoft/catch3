@@ -71,8 +71,7 @@ line and reporters with [a runner of its own](progmasoft-runner.md#top):
 * Catch2's command line, reporters, `CATCH_REGISTER_REPORTER` and listing
   were removed; see [the command line](command-line.md#top) and
   [reports](reporters.md#top). Listeners keep working.
-* The library is compiled as C++20; code that includes only the engine's
-  headers still needs C++14.
+* C++17 is the minimum, for the library and for the code that uses it.
 * The results model in `Progmasoft/Catch3/Results.hpp` was rewritten around
   tests and attempts.
 * Conan packaging was dropped.

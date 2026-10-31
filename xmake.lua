@@ -3,7 +3,7 @@
 
 set_project("Catch3")
 set_version("0.3.0")
-set_languages("cxx14")
+set_languages("cxx17")
 set_warnings("all")
 
 local repository_root = os.projectdir()
@@ -15,11 +15,9 @@ includes("third_party/yyjson", "third_party/pugixml")
 
 -- The Catch2-compatible engine, the Catch3 runner, which replaced Catch2's
 -- session, command line and reporters, property testing and snapshots. The
--- library is C++20; the engine's headers still need only C++14 in the code
--- that includes them.
+-- library and the code that includes it need C++17.
 target("catch3")
     set_kind("static")
-    set_languages("cxx20")
     on_load(function(target)
         -- File I/O is restricted to Xmake's script domain, so generate here
         -- rather than while the declarative project file is being evaluated.
@@ -46,14 +44,12 @@ target("catch3")
 
 target("catch3_main")
     set_kind("static")
-    set_languages("cxx14")
     add_files("src/Progmasoft/Catch3/Internal/Main.cpp")
     add_deps("catch3")
     add_includedirs("src", generated_include, {public = true})
 
 target("ProgmasoftPropertyTests")
     set_kind("binary")
-    set_languages("cxx20")
     add_files(
         "tests/Progmasoft/Generators.tests.cpp",
         "tests/Progmasoft/Property.tests.cpp",

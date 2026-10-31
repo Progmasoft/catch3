@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch3 v0.3.0, on the Catch2 v3.16.1 engine
-//  Generated: 2026-10-31 20:20:20.604513
+//  Generated: 2026-11-01 00:25:29.668428
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -5942,7 +5942,7 @@ namespace Detail {
 namespace Catch {
 
     namespace Detail {
-        // This was added in C++20, but we require only C++14 for now.
+        // This was added in C++20, but we require only C++17.
         template <typename T>
         using RemoveCVRef_t = std::remove_cv_t<std::remove_reference_t<T>>;
     }
