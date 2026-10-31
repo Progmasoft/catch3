@@ -7,14 +7,14 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch3 v0.3.0, on the Catch2 v3.16.1 engine
-//  Generated: 2026-10-29 19:30:41.164140
+//  Generated: 2026-10-31 13:33:37.220554
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
 //
 //  The parts that come from src/Progmasoft, the Catch3 runner, keep
 //  their own copyright and license lines (MPL-2.0 WITH
-//  AdditionRef-Progmasoft-Exception-1.1). The runner needs C++20.
+//  AdditionRef-Progmasoft-Exception-1.1). The runner needs C++17.
 //  ----------------------------------------------------------
 #ifndef CATCH_AMALGAMATED_HPP_INCLUDED
 #define CATCH_AMALGAMATED_HPP_INCLUDED

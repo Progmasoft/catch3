@@ -7,14 +7,14 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch3 v0.3.0, on the Catch2 v3.16.1 engine
-//  Generated: 2026-10-29 19:30:41.305371
+//  Generated: 2026-10-31 13:33:37.309963
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
 //
 //  The parts that come from src/Progmasoft, the Catch3 runner, keep
 //  their own copyright and license lines (MPL-2.0 WITH
-//  AdditionRef-Progmasoft-Exception-1.1). The runner needs C++20.
+//  AdditionRef-Progmasoft-Exception-1.1). The runner needs C++17.
 //  ----------------------------------------------------------
 
 #include "catch_amalgamated.hpp"
@@ -14663,18 +14663,22 @@ namespace Progmasoft::Catch3::Runner
             for (const auto &[name, value] : additions)
             {
                 const std::wstring wideName = Widen(name);
-                std::erase_if(entries, [&](const std::wstring &entry) {
-                    // A leading '=' marks the hidden per-drive variables.
-                    const auto equals = entry.find(L'=', 1);
-                    return equals == wideName.size()
-                           && CompareStringOrdinal(
-                                  entry.data(),
-                                  static_cast<int>(equals),
-                                  wideName.data(),
-                                  static_cast<int>(wideName.size()),
-                                  TRUE)
-                                  == CSTR_EQUAL;
-                });
+                const auto removed = std::remove_if(
+                    entries.begin(),
+                    entries.end(),
+                    [&](const std::wstring &entry) {
+                        // A leading '=' marks the hidden per-drive variables.
+                        const auto equals = entry.find(L'=', 1);
+                        return equals == wideName.size()
+                               && CompareStringOrdinal(
+                                      entry.data(),
+                                      static_cast<int>(equals),
+                                      wideName.data(),
+                                      static_cast<int>(wideName.size()),
+                                      TRUE)
+                                      == CSTR_EQUAL;
+                    });
+                entries.erase(removed, entries.end());
                 entries.push_back(wideName + L"=" + Widen(value));
             }
             std::wstring block;
@@ -15429,11 +15433,17 @@ namespace Progmasoft::Catch3::Runner
         }
         for (const auto &[name, value] : options.environment)
         {
-            std::erase_if(environmentStorage, [&](const std::string &entry) {
-                return entry.size() > name.size()
-                       && entry.compare(0, name.size(), name) == 0
-                       && entry[name.size()] == '=';
-            });
+            // A lambda cannot capture a structured binding in C++17.
+            const std::string &variable = name;
+            const auto removed = std::remove_if(
+                environmentStorage.begin(),
+                environmentStorage.end(),
+                [&](const std::string &entry) {
+                    return entry.size() > variable.size()
+                           && entry.compare(0, variable.size(), variable) == 0
+                           && entry[variable.size()] == '=';
+                });
+            environmentStorage.erase(removed, environmentStorage.end());
             environmentStorage.push_back(name + "=" + value);
         }
         std::vector<char *> environment;

@@ -961,13 +961,15 @@ namespace Progmasoft::Catch3::Runner
         }
         for (const auto &[name, value] : options.environment)
         {
+            // A lambda cannot capture a structured binding in C++17.
+            const std::string &variable = name;
             const auto removed = std::remove_if(
                 environmentStorage.begin(),
                 environmentStorage.end(),
                 [&](const std::string &entry) {
-                    return entry.size() > name.size()
-                           && entry.compare(0, name.size(), name) == 0
-                           && entry[name.size()] == '=';
+                    return entry.size() > variable.size()
+                           && entry.compare(0, variable.size(), variable) == 0
+                           && entry[variable.size()] == '=';
                 });
             environmentStorage.erase(removed, environmentStorage.end());
             environmentStorage.push_back(name + "=" + value);
