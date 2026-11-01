@@ -32,6 +32,7 @@ target("catch3")
         "src/Progmasoft/Results.cpp",
         "src/Progmasoft/XmlWriter.cpp",
         "src/Progmasoft/ChoiceShrinker.cpp",
+        "src/Progmasoft/Mock.cpp",
         "src/Progmasoft/StrategyContext.cpp",
         "src/Progmasoft/PropertyEngine.cpp",
         "src/Progmasoft/Snapshot.cpp"

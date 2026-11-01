@@ -73,6 +73,7 @@ progmasoft_property_tests = executable(
   'ProgmasoftPropertyTests',
   [
     'Progmasoft/Generators.tests.cpp',
+    'Progmasoft/Mock.tests.cpp',
     'Progmasoft/Property.tests.cpp',
     'Progmasoft/ForAll.tests.cpp',
     'Progmasoft/Results.tests.cpp',

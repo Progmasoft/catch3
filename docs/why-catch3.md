@@ -20,13 +20,14 @@ Catch2's runner with [its own](progmasoft-runner.md#top).
 | C++ baseline | C++17; the headers work in C++17 and later | The same |
 | Randomness | Catch2's existing behavior is unchanged | A specified SplitMix64 sequence provides deterministic trial seeds and unbiased bounded integer sampling |
 | Generated values | No change to existing Catch2 generators | Strategies for numbers, text, collections and structures with `Map`, `Filter` and `FlatMap`; shrinking of recorded choices, so every combination shrinks; replay tokens and an example database; state machines, `Classify`/`Cover` statistics, targeted search, and differential and metamorphic oracles |
+| Mocks | None | [`CATCH3_MOCK_METHOD`, `CATCH3_EXPECT_CALL`](progmasoft-mocking.md#top) and `Sequence`, reporting through the assertion path |
 | Build identity | One library: the `Catch3` CMake package with `Catch3::Catch3` and `Catch3::Catch3WithMain`, `//:catch3` in Bazel, `catch3` in Meson and pkg-config | The same library |
 | Source terms | Catch2-originated source retains its upstream BSL-1.0 terms | Progmasoft-authored additions state their own SPDX license in each file |
 
 Properties take any number of generated values. Shrinking is deterministic and
 bounded, but local rather than globally minimal. Parallel trials do not
 exist yet; [the roadmap](progmasoft-roadmap.md#top)
-orders them with mocking, per-test coverage, test selection, mutation testing
+orders them with per-test coverage, test selection, mutation testing
 and test generation.
 
 ## Compatibility policy

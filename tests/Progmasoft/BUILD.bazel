@@ -9,6 +9,7 @@ cc_test(
     srcs = [
         "ForAll.tests.cpp",
         "Generators.tests.cpp",
+        "Mock.tests.cpp",
         "Property.tests.cpp",
         "Results.tests.cpp",
         "Runner.tests.cpp",
