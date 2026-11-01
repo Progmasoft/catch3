@@ -47,13 +47,28 @@ Meson, Xmake and Premake builds exist as well and are checked in CI.
 Before you push, run the repository checks:
 
 ```
-python tools/scripts/checkLicense.py
-python tools/scripts/checkConvenienceHeaders.py
-python tools/scripts/checkDuplicateFilenames.py
+bazelisk run //tools:check
 ```
 
-A change to anything under `src/` also regenerates the single-file
-distribution with `python tools/scripts/generateAmalgamatedFiles.py`.
+It checks licenses, convenience headers, header guards, file names, that every
+place states the same version, and that the single-file distribution is up to
+date. A change to anything under `src/` regenerates that distribution:
+
+```
+bazelisk run //tools:amalgamate
+```
+
+The tools in `tools/` are C++17 and run through Bazel, with arguments after
+`--`:
+
+| Tool | Does |
+| --- | --- |
+| `//tools:amalgamate` | writes the single-file distribution; `-- --check` only compares it |
+| `//tools:check` | runs the repository checks |
+| `//tools:third-party` | `-- --check` compares `third_party/` with the archives `MODULE.bazel` pins, `-- --update` writes it |
+| `//tools:version` | prints the version; `-- --next` or `-- <version>` moves every place that states it, and the distribution |
+| `//tools:release-notes` | prints a section of the release notes, of `-- <version>` or the current one |
+| `//tools:repo-info` | reports the checkout and the tools on `PATH`; `-- --json` writes it as JSON |
 
 
 ## Two parts, two sets of rules
@@ -71,8 +86,7 @@ AdditionRef-Progmasoft-Exception-2.0`, follows the
 C++17, reports recoverable errors with `Expected` rather than exceptions, and
 is formatted with the `.clang-format` beside it.
 
-`tools/scripts/checkLicense.py` checks that every source file carries the
-header of its part.
+`//tools:check` checks that every source file carries the header of its part.
 
 
 ## Tests
@@ -88,7 +102,7 @@ comes with a test that fails without it.
 
 User documentation lives in `docs/`. A new page is linked from
 [the documentation index](Readme.md#top), and a page with sections gets a table
-of contents; `python tools/scripts/updateDocumentToC.py` keeps them current.
+of contents.
 A user-visible change gets a line in [the release notes](release-notes.md#top).
 
 

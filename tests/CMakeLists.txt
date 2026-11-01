@@ -33,7 +33,7 @@ if(CATCH3_BUILD_SURROGATES)
   function(ExtractCatch3Headers OutArg)
     # The engine's headers are the ones that come from Catch2; the surrogates
     # check them at the language level of the build.
-    file(STRINGS "${CATCH_DIR}/tools/scripts/upstreamFiles.txt" upstreamFiles REGEX "^src/")
+    file(STRINGS "${CATCH_DIR}/tools/upstreamFiles.txt" upstreamFiles REGEX "^src/")
     get_target_property(targetSources Catch3 SOURCES)
     foreach(Source ${targetSources})
       string(REGEX MATCH "^.*\\.hpp$" isHeader ${Source})
@@ -364,15 +364,6 @@ set_tests_properties(TestsInFile::InvalidTestNames-1
 add_test(NAME TagAlias COMMAND $<TARGET_FILE:SelfTest> [@tricky] --list)
 set_tests_properties(TagAlias PROPERTIES
   PASS_REGULAR_EXPRESSION "[1-9][0-9]* matching test\\(s\\)"
-)
-
-add_test(NAME CheckConvenienceHeaders
-  COMMAND
-    Python3::Interpreter ${CATCH_DIR}/tools/scripts/checkConvenienceHeaders.py
-)
-set_tests_properties(CheckConvenienceHeaders
-  PROPERTIES
-    LABELS "uses-python"
 )
 
 add_test(NAME "Benchmarking::SkipBenchmarkMacros"

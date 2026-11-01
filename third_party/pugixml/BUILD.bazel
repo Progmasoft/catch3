@@ -4,7 +4,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 # pugixml (MIT), the XML writer of the reports.
-# The version is pinned in tools/scripts/updateThirdParty.py. Catch3
+# The version is pinned in MODULE.bazel. Catch3
 # compiles the library into one of its own translation units with
 # internal linkage, so this target only provides the files.
 cc_library(
