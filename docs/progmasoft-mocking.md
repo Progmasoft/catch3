@@ -43,6 +43,8 @@ a skip, the expectations it did not reach are not reported on top of it.
 `Verify()` checks the expectations earlier and forgets them, for a test case
 that goes on with new ones.
 
+With the amalgamated files, `catch_amalgamated.hpp` holds all of this.
+
 ## Declaring mocks
 
 `CATCH3_MOCK_METHOD(result, name, (types), specifiers)` declares the member
