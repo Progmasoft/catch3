@@ -48,7 +48,7 @@
 
   // third_party/ holds copies of release archives, which MODULE.bazel pins by
   // version and sha256. Renovate changes the version; the pull request then
-  // needs the new digest and //tools:third-party -- --update, which the
+  // needs the new digest and //tools:third_party -- --update, which the
   // third_party check of CI asks for.
   customManagers: [
     {

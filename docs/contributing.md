@@ -65,10 +65,10 @@ The tools in `tools/` are C++17 and run through Bazel, with arguments after
 | --- | --- |
 | `//tools:amalgamate` | writes the single-file distribution; `-- --check` only compares it |
 | `//tools:check` | runs the repository checks |
-| `//tools:third-party` | `-- --check` compares `third_party/` with the archives `MODULE.bazel` pins, `-- --update` writes it |
+| `//tools:third_party` | `-- --check` compares `third_party/` with the archives `MODULE.bazel` pins, `-- --update` writes it |
 | `//tools:version` | prints the version; `-- --next` or `-- <version>` moves every place that states it, and the distribution |
-| `//tools:release-notes` | prints a section of the release notes, of `-- <version>` or the current one |
-| `//tools:repo-info` | reports the checkout and the tools on `PATH`; `-- --json` writes it as JSON |
+| `//tools:release_notes` | prints a section of the release notes, of `-- <version>` or the current one |
+| `//tools:repo_info` | reports the checkout and the tools on `PATH`; `-- --json` writes it as JSON |
 
 
 ## Two parts, two sets of rules

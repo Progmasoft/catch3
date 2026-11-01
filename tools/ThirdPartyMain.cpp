@@ -1,8 +1,8 @@
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
-// bazelisk run //tools:third-party -- --check
-// bazelisk run //tools:third-party -- --update
+// bazelisk run //tools:third_party -- --check
+// bazelisk run //tools:third_party -- --update
 //
 // Keeps third_party/ equal to the archives MODULE.bazel pins by version and
 // sha256. BUILD.bazel passes each file as <vendored path>=<runfile>.
@@ -43,7 +43,7 @@ main(int argc, char **argv)
     }
     if (mode.empty())
     {
-        std::cerr << "usage: bazelisk run //tools:third-party -- "
+        std::cerr << "usage: bazelisk run //tools:third_party -- "
                      "--check|--update\n";
         return 2;
     }
@@ -76,7 +76,7 @@ main(int argc, char **argv)
             {
                 problems.push_back(std::string{ vendored }
                                    + " differs from its pinned archive: run "
-                                     "bazelisk run //tools:third-party -- "
+                                     "bazelisk run //tools:third_party -- "
                                      "--update");
             }
         }

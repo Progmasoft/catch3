@@ -46,14 +46,14 @@ cc_binary(
 )
 
 cc_binary(
-    name = "release-notes",
+    name = "release_notes",
     srcs = ["ReleaseNotesMain.cpp"],
     copts = CPP17,
     deps = [":library"],
 )
 
 cc_binary(
-    name = "repo-info",
+    name = "repo_info",
     srcs = ["RepoInfoMain.cpp"],
     copts = CPP17,
     deps = [":library"],
@@ -67,7 +67,7 @@ cc_binary(
 )
 
 cc_binary(
-    name = "third-party",
+    name = "third_party",
     srcs = ["ThirdPartyMain.cpp"],
     args = [
         "third_party/yyjson/yyjson.c=$(rlocationpath @yyjson_archive//:src/yyjson.c)",

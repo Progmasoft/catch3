@@ -7,7 +7,7 @@ bazel_dep(name = "platforms", version = "1.0.0")
 
 # The archives third_party/ holds copies of. Renovate changes a version; the
 # pull request then needs the digest of the new archive and
-# `bazelisk run //tools:third-party -- --update`, which CI asks for.
+# `bazelisk run //tools:third_party -- --update`, which CI asks for.
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # renovate: datasource=github-tags depName=ibireme/yyjson

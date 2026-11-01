@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
-// bazelisk run //tools:release-notes -- [version]
+// bazelisk run //tools:release_notes -- [version]
 //
 // Prints a section of docs/release-notes.md, of the current version without
 // an argument, for the text of a GitHub release.
@@ -19,7 +19,7 @@ main(int argc, char **argv)
 
     if (argc > 2)
     {
-        std::cerr << "usage: bazelisk run //tools:release-notes -- [version]\n";
+        std::cerr << "usage: bazelisk run //tools:release_notes -- [version]\n";
         return 2;
     }
     const auto root = RepositoryRoot();

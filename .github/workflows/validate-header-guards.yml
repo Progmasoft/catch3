@@ -36,6 +36,6 @@ jobs:
 
       # third_party/ must be the pinned release archives, byte for byte.
       - name: Check that third_party matches its pinned archives
-        run: bazel run //tools:third-party -- --check
+        run: bazel run //tools:third_party -- --check
         env:
           CC: clang
