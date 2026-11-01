@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <exception>
 #include <filesystem>
+#include <iterator>
 #include <map>
 #include <random>
 #include <system_error>
@@ -34,6 +35,7 @@
 #include "Planner.hpp"
 #include "Process.hpp"
 #include "ProjectConfig.hpp"
+#include "ResultImport.hpp"
 #include "ResultsJson.hpp"
 #include "Scheduler.hpp"
 
@@ -514,6 +516,225 @@ namespace Progmasoft::Catch3
                 .count();
         }
 
+        /// Writes the reports that were asked for. One that is missing would
+        /// let a build server miss the run, so it fails the run.
+        bool
+        WriteReports(const Runner::Options &options, const RunResult &run)
+        {
+            bool written = true;
+            const auto write = [&](const std::string &path,
+                                   const std::string &contents) {
+                if (auto status = Runner::WriteFileAtomically(path, contents);
+                    !status)
+                {
+                    PrintError(status.GetError().Message());
+                    written = false;
+                }
+            };
+            if (!options.junitPath.empty())
+            {
+                write(options.junitPath, JUnitXmlWriter::ToString(run));
+            }
+            if (!options.jsonPath.empty())
+            {
+                write(options.jsonPath, Runner::ToJson(run).ToPrettyString());
+            }
+            if (!options.tracePath.empty())
+            {
+                write(options.tracePath, Runner::TraceJson(run));
+            }
+            return written;
+        }
+
+        void
+        SaveHistory(const std::filesystem::path &file,
+                    const RunResult &run,
+                    const std::string &commit,
+                    const std::string &binaryFingerprint,
+                    const std::map<std::string, std::string> &fingerprints)
+        {
+            if (run.tests.empty())
+            {
+                return;
+            }
+            Runner::RunRecord record;
+            record.unixMilliseconds = run.startUnixMilliseconds;
+            record.commit = commit;
+            record.binaryFingerprint = binaryFingerprint;
+            record.seed = run.seed;
+            record.tests = run.tests.size();
+            record.wallMicroseconds = run.wallMicroseconds;
+            for (const auto &test : run.tests)
+            {
+                record.failed += test.FailsRun() ? 1 : 0;
+            }
+            auto committed = Runner::History::Commit(file,
+                                                     run,
+                                                     record,
+                                                     fingerprints,
+                                                     {});
+            if (!committed)
+            {
+                std::fprintf(stderr,
+                             "warning: the history was not saved: %s\n",
+                             committed.GetError().Message().c_str());
+            }
+        }
+
+        int
+        ExitCodeOf(const Runner::Options &options,
+                   const RunResult &run,
+                   bool reportMissing)
+        {
+            const bool quarantineCounts
+                = options.quarantine == Runner::QuarantineMode::kReport;
+            bool failed = false;
+            std::size_t ran = 0;
+            std::size_t skipped = 0;
+            for (const auto &test : run.tests)
+            {
+                if (test.outcome != Outcome::kUpToDate)
+                {
+                    ++ran;
+                }
+                skipped += test.outcome == Outcome::kSkipped ? 1 : 0;
+                failed = failed || test.FailsRun()
+                         || (quarantineCounts && test.quarantined
+                             && IsFailure(test.outcome));
+            }
+            if (failed)
+            {
+                return Catch::TestFailureExitCode;
+            }
+            if (reportMissing)
+            {
+                return Catch::UnspecifiedErrorExitCode;
+            }
+            if (run.tests.empty() && !options.allowNoTests)
+            {
+                return Catch::NoTestsRunExitCode;
+            }
+            if (ran > 0 && skipped == ran && !options.allowNoTests)
+            {
+                return Catch::AllTestsSkippedExitCode;
+            }
+            return 0;
+        }
+
+        /// The file results are remembered in.
+        std::filesystem::path
+        HistoryFileOf(const Runner::Options &options,
+                      const std::filesystem::path &program,
+                      const std::string &programName)
+        {
+            std::string name = programName;
+            if (options.mode == Runner::Mode::kImport
+                || (options.mode == Runner::Mode::kAnalytics
+                    && !options.importName.empty()))
+            {
+                name = options.importName.empty() ? "imported"
+                                                  : options.importName;
+            }
+            return Runner::HistoryFile(HistoryDirectory(options, program),
+                                       name);
+        }
+
+        /// Reports of other frameworks: `--import`. What they say goes
+        /// through the analysis, the history and the reports of a run.
+        int
+        Import(const Runner::Options &options,
+               const std::filesystem::path &program,
+               const std::string &programName)
+        {
+            std::vector<TestResult> imported;
+            for (const auto &file : options.importFiles)
+            {
+                auto text = Runner::ReadFile(file);
+                if (!text)
+                {
+                    PrintError(text.GetError().Message());
+                    return Catch::UnspecifiedErrorExitCode;
+                }
+                auto tests = Runner::ParseImport(
+                    *text,
+                    options.importFormat,
+                    std::filesystem::path{ file }.generic_string());
+                if (!tests)
+                {
+                    PrintError(tests.GetError().Context(file).Message());
+                    return Catch::UnspecifiedErrorExitCode;
+                }
+                imported.insert(imported.end(),
+                                std::make_move_iterator(tests->begin()),
+                                std::make_move_iterator(tests->end()));
+            }
+
+            const std::filesystem::path historyFile
+                = HistoryFileOf(options, program, programName);
+            Runner::History history;
+            RunResult run;
+            run.binary = options.importName.empty() ? "imported"
+                                                    : options.importName;
+            if (options.historyEnabled)
+            {
+                auto loaded = Runner::History::Load(historyFile);
+                if (loaded)
+                {
+                    history = std::move(*loaded);
+                }
+                else
+                {
+                    run.notes.push_back("the history could not be read: "
+                                        + loaded.GetError().Message());
+                }
+            }
+
+            run.tests = Runner::MergeImported(std::move(imported));
+            run.candidates = run.tests.size();
+            run.startUnixMilliseconds = UnixMilliseconds();
+            std::error_code here;
+            const std::string revision
+                = options.importRevision.empty()
+                      ? Runner::CurrentCommit(
+                            std::filesystem::current_path(here))
+                      : options.importRevision;
+            // Only the person importing knows that two reports tested the
+            // same thing: a checkout can have edits, or be another one.
+            std::map<std::string, std::string> fingerprints;
+            for (auto &test : run.tests)
+            {
+                run.wallMicroseconds += test.DurationMicroseconds();
+                if (!options.importRevision.empty())
+                {
+                    fingerprints[test.id] = options.importRevision;
+                }
+                const Runner::TestHistory *past = history.Find(test.id);
+                test.quarantined
+                    = options.quarantine != Runner::QuarantineMode::kOff
+                      && past != nullptr && past->quarantine.has_value();
+            }
+
+            Runner::AnalysisInputs analysis;
+            analysis.history = options.historyEnabled ? &history : nullptr;
+            Runner::Analyze(run, analysis);
+
+            Runner::ConsoleReport console{ options, stdout };
+            console.ImportStarting(run.tests.size(),
+                                   options.importFiles.size());
+            for (const auto &test : run.tests)
+            {
+                console.TestFinished(test);
+            }
+            console.RunEnded(run);
+
+            const bool reportMissing = !WriteReports(options, run);
+            if (options.historyEnabled)
+            {
+                SaveHistory(historyFile, run, revision, {}, fingerprints);
+            }
+            return ExitCodeOf(options, run, reportMissing);
+        }
+
         int
         Run(const std::vector<std::string> &arguments)
         {
@@ -546,6 +767,11 @@ namespace Progmasoft::Catch3
             {
                 std::printf("Catch3 %s\n", kVersion);
                 return 0;
+            }
+            // Importing does not touch the tests of this binary.
+            if (options.mode == Runner::Mode::kImport)
+            {
+                return Import(options, program, programName);
             }
             if (ReportStartupErrors())
             {
@@ -626,8 +852,7 @@ namespace Progmasoft::Catch3
             }
 
             const std::filesystem::path historyFile
-                = Runner::HistoryFile(HistoryDirectory(options, program),
-                                      programName);
+                = HistoryFileOf(options, program, programName);
             Runner::History history;
             if (options.historyEnabled
                 || options.mode == Runner::Mode::kAnalytics)
@@ -778,66 +1003,14 @@ namespace Progmasoft::Catch3
             Runner::Analyze(run, analysis);
             console.RunEnded(run);
 
-            // A report that was asked for and is missing would let a build
-            // server miss the run, so it fails the run.
-            bool reportMissing = false;
-            if (!options.junitPath.empty())
+            const bool reportMissing = !WriteReports(options, run);
+            if (options.historyEnabled)
             {
-                if (auto status = Runner::WriteFileAtomically(
-                        options.junitPath,
-                        JUnitXmlWriter::ToString(run));
-                    !status)
-                {
-                    PrintError(status.GetError().Message());
-                    reportMissing = true;
-                }
-            }
-            if (!options.jsonPath.empty())
-            {
-                if (auto status = Runner::WriteFileAtomically(
-                        options.jsonPath,
-                        Runner::ToJson(run).ToPrettyString());
-                    !status)
-                {
-                    PrintError(status.GetError().Message());
-                    reportMissing = true;
-                }
-            }
-            if (!options.tracePath.empty())
-            {
-                if (auto status
-                    = Runner::WriteFileAtomically(options.tracePath,
-                                                  Runner::TraceJson(run));
-                    !status)
-                {
-                    PrintError(status.GetError().Message());
-                    reportMissing = true;
-                }
-            }
-            if (options.historyEnabled && !run.tests.empty())
-            {
-                Runner::RunRecord record;
-                record.unixMilliseconds = run.startUnixMilliseconds;
-                record.commit = changes ? changes->commit : std::string{};
-                record.binaryFingerprint = binaryFingerprint;
-                record.seed = run.seed;
-                record.tests = run.tests.size();
-                record.wallMicroseconds = run.wallMicroseconds;
-                for (const auto &test : run.tests)
-                {
-                    record.failed += test.FailsRun() ? 1 : 0;
-                }
-                auto committed = Runner::History::Commit(historyFile,
-                                                         run,
-                                                         record,
-                                                         plan->fingerprints,
-                                                         {});
-                if (!committed)
-                {
-                    std::fprintf(stderr,
-                                 "warning: the history was not saved: %s\n",
-                                 committed.GetError().Message().c_str());
-                }
+                SaveHistory(historyFile,
+                            run,
+                            changes ? changes->commit : std::string{},
+                            binaryFingerprint,
+                            plan->fingerprints);
             }
             if (!guard.empty())
             {
@@ -853,39 +1026,7 @@ namespace Progmasoft::Catch3
             {
                 return Catch::UnmatchedTestSpecExitCode;
             }
-            const bool quarantineCounts
-                = options.quarantine == Runner::QuarantineMode::kReport;
-            bool failed = false;
-            std::size_t ran = 0;
-            std::size_t skipped = 0;
-            for (const auto &test : run.tests)
-            {
-                if (test.outcome != Outcome::kUpToDate)
-                {
-                    ++ran;
-                }
-                skipped += test.outcome == Outcome::kSkipped ? 1 : 0;
-                failed = failed || test.FailsRun()
-                         || (quarantineCounts && test.quarantined
-                             && IsFailure(test.outcome));
-            }
-            if (failed)
-            {
-                return Catch::TestFailureExitCode;
-            }
-            if (reportMissing)
-            {
-                return Catch::UnspecifiedErrorExitCode;
-            }
-            if (run.tests.empty() && !options.allowNoTests)
-            {
-                return Catch::NoTestsRunExitCode;
-            }
-            if (ran > 0 && skipped == ran && !options.allowNoTests)
-            {
-                return Catch::AllTestsSkippedExitCode;
-            }
-            return 0;
+            return ExitCodeOf(options, run, reportMissing);
         }
     } // namespace
 

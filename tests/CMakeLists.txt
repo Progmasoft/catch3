@@ -164,6 +164,7 @@ add_executable(ProgmasoftSelfTest
   Progmasoft/RunnerOptions.tests.cpp
   Progmasoft/RunnerConfig.tests.cpp
   Progmasoft/RunnerAnalysis.tests.cpp
+  Progmasoft/RunnerImport.tests.cpp
   Progmasoft/RunnerOutput.tests.cpp
   Progmasoft/Snapshot.tests.cpp
   Progmasoft/Stateful.tests.cpp

@@ -7,9 +7,20 @@ based on Catch2 3.16.1; Catch2's own history is in
 [its release notes](https://github.com/catchorg/Catch2/blob/devel/docs/release-notes.md).
 
 **Contents**<br>
+[Unreleased](#unreleased)<br>
 [0.3.0](#030)<br>
 [0.2.0](#020)<br>
 [0.1.0](#010)<br>
+
+
+## Unreleased
+
+### The Catch3 runner
+
+* `--import=FILE` reads the reports of other test frameworks instead of running
+  tests: JUnit, xUnit, TRX, TAP, CTRF, Catch3's own, and a small JSON Lines
+  format for anything else. Their tests get the history, flaky detection,
+  quarantine, analytics and reports of a run.
 
 
 ## 0.3.0

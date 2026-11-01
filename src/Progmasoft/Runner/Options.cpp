@@ -683,6 +683,59 @@ namespace Progmasoft::Catch3::Runner
                      options.replayFailures = true;
                      return Status::Ok();
                  }},
+                {"import",
+                 '\0',
+                 Takes::kValue,
+                 "FILE",
+                 "Importing results",
+                 "read a report of another framework instead of running tests "
+                 "(repeatable)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.mode = Mode::kImport;
+                     options.importFiles.push_back(*value);
+                     return Status::Ok();
+                 }},
+                {"import-format",
+                 '\0',
+                 Takes::kValue,
+                 "FORMAT",
+                 "Importing results",
+                 "auto (default), catch3, junit, xunit, trx, tap or ctrf",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     return ReadChoice<ImportFormat>(
+                         value,
+                         "import-format",
+                         {{"auto", ImportFormat::kAuto},
+                          {"catch3", ImportFormat::kCatch3},
+                          {"junit", ImportFormat::kJUnit},
+                          {"xunit", ImportFormat::kXUnit},
+                          {"trx", ImportFormat::kTrx},
+                          {"tap", ImportFormat::kTap},
+                          {"ctrf", ImportFormat::kCtrf}},
+                         options.importFormat);
+                 }},
+                {"import-name",
+                 '\0',
+                 Takes::kValue,
+                 "NAME",
+                 "Importing results",
+                 "the history imported results go to (default: imported); "
+                 "--analytics reads it too",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.importName = *value;
+                     return Status::Ok();
+                 }},
+                {"import-revision",
+                 '\0',
+                 Takes::kValue,
+                 "REVISION",
+                 "Importing results",
+                 "what the reports tested; a verdict that changes on one "
+                 "revision counts as flaky",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.importRevision = *value;
+                     return Status::Ok();
+                 }},
                 {"analytics",
                  '\0',
                  Takes::kOptionalValue,

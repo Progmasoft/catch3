@@ -350,6 +350,11 @@ namespace Progmasoft::Catch3::Runner
             test.analysis.insert(
                 test.analysis.end(), findings.begin(), findings.end());
 
+            // An imported failure ran somewhere else.
+            if (inputs.program.empty())
+            {
+                continue;
+            }
             std::string replay = QuoteArgument(inputs.program) + " " +
                                  QuoteArgument(QuoteTestSpec(test.name)) +
                                  " --seed=" + std::to_string(failure->seed);

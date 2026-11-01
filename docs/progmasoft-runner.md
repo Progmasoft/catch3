@@ -5,6 +5,7 @@
 [How a run works](#how-a-run-works)<br>
 [Retries, flaky tests and order dependence](#retries-flaky-tests-and-order-dependence)<br>
 [History, quarantine and analytics](#history-quarantine-and-analytics)<br>
+[Importing the results of other frameworks](#importing-the-results-of-other-frameworks)<br>
 [Choosing and ordering tests](#choosing-and-ordering-tests)<br>
 [Tags the runner reads](#tags-the-runner-reads)<br>
 [Time limits](#time-limits)<br>
@@ -131,6 +132,73 @@ The history drives several features:
 
 Under `bazel test` there is no history unless `CATCH3_HISTORY` names a
 directory that outlives the sandbox.
+
+
+## Importing the results of other frameworks
+
+`--import=FILE` reads the report of another test framework instead of running
+tests, so that tests Catch3 does not run get the same history, flaky detection,
+quarantine and analytics. Any Catch3 test binary can do it, and the option can
+be repeated:
+
+```sh
+./tests --import=results/pytest.xml --import=results/vitest.ctrf.json \
+        --import-name=web --junit=merged.xml
+```
+
+| `--import-format=` | Reads |
+| --- | --- |
+| `auto` | whichever the contents show (the default) |
+| `catch3` | a `--json` report of Catch3, or [`catch3-results`](#the-catch3-results-format) |
+| `junit` | JUnit XML, with Surefire's reruns; Gradle, pytest, Jest, GoogleTest and most others write it |
+| `xunit` | xUnit.net v2 XML |
+| `trx` | Visual Studio's TRX, with data-driven rows |
+| `tap` | TAP 12, 13 and 14, with subtests and YAML diagnostics |
+| `ctrf` | [CTRF](https://ctrf.io) JSON, with retries |
+
+The results go into a history of their own, named by `--import-name` and
+`imported` by default; `--analytics --import-name=NAME` reads it. The console,
+`--junit`, `--json`, `--trace`, `--quarantine`, `--history` and the exit code
+work as they do for a run. Reports that were read count as one run.
+
+A test is identified by its class and its name. Results with the same
+identifier, in one report or in several, are attempts at one test: a test that
+both failed and passed is flaky, passes and is remembered as flaky, which is how
+a report of a rerun is imported. A failure stays a failure when a later report
+skips the test. Reports of the same tests on different platforms are not reruns
+of each other: import each with an `--import-name` of its own, or a failure on one
+reads as flakiness.
+
+TAP names tests only within one stream, so the path given to `--import` is the
+class of its tests: keep it the same from run to run for the history to follow
+them. A name that comes back in one stream is another test and gets a number.
+
+`--import-revision=REVISION` names what the reports tested, and a verdict that
+changes on one revision then counts as flaky too. Without it only retries in the
+reports do, because a working directory can have edits or be another checkout.
+
+Nothing is run, so an imported failure has no replay command, and only what the
+report says is known: it has no order, seed or sections. A TAP stream that bails
+out or reports fewer tests than it planned adds a failed test called
+`the TAP stream`, so that it does not read as a run that passed.
+
+### The catch3-results format
+
+For a framework without a report of these kinds, `catch3-results` is the
+smallest thing to write: JSON Lines with one test per line, after a line that
+names the format.
+
+```json
+{"format": "catch3-results", "version": 1}
+{"name": "parses a date", "className": "Dates", "outcome": "passed", "durationMicroseconds": 1200}
+{"name": "rounds down", "outcome": "failed", "message": "1.5 != 2", "details": "at Dates.rounds:12"}
+```
+
+`name` or `id`, and `outcome`, are required; `outcome` is a name from the JSON
+report, such as `passed`, `failed`, `skipped`, `crashed` or `timed-out`. The other
+members are `id`, `className`, `file`, `line`, `tags`, `category`, `message`,
+`details`, `standardOutput` and `standardError`. A line can give `attempts`
+instead, as the JSON report does.
 
 
 ## Choosing and ordering tests
@@ -265,6 +333,8 @@ version.
   `quarantined`, `resources`, `dependsOn`, `timeoutSeconds` and `retries`.
   CMake's `catch3_discover_tests` reads it.
 * **Run report**, `--json`: `"format": "catch3-run"`, version 1.
+* **Imported results**, `--import`: `"format": "catch3-results"`, version 1;
+  see [its format](#the-catch3-results-format).
 * **Analytics**, `--analytics=json`: `"format": "catch3-analytics"`,
   version 1.
 * **History**: `"format": "catch3-history"`, version 1. It is the runner's

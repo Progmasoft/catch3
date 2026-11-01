@@ -1,8 +1,8 @@
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
-// pugixml, compiled header-only into XmlWriter.cpp and nowhere else. Its
-// namespace is renamed, so Catch3 cannot collide with a copy of pugixml that
+// pugixml, compiled header-only into XmlWriter.cpp and ResultImportXml.cpp
+// and nowhere else. Its namespace is renamed, so Catch3 cannot collide with a copy of pugixml that
 // the tests themselves link. It is vendored code: it is read as a system
 // header, outside the warnings Catch3 builds with.
 #if defined(__GNUC__) || defined(__clang__)
