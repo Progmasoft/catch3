@@ -436,7 +436,7 @@ target_compile_features(AmalgamatedTestCompilation PRIVATE cxx_std_17)
 add_test(NAME AmalgamatedFileTest COMMAND AmalgamatedTestCompilation --no-history)
 set_tests_properties(AmalgamatedFileTest
   PROPERTIES
-    PASS_REGULAR_EXPRESSION "3 test\\(s\\): 3 passed[\r\n]+14 assertion\\(s\\)"
+    PASS_REGULAR_EXPRESSION "4 test\\(s\\): 4 passed[\r\n]+16 assertion\\(s\\)"
 )
 
 add_executable(ThreadSafetyTests

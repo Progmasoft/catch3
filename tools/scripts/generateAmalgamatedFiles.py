@@ -155,6 +155,8 @@ def generate_header():
         header.write('#ifndef CATCH_AMALGAMATED_HPP_INCLUDED\n')
         header.write('#define CATCH_AMALGAMATED_HPP_INCLUDED\n')
         print('Concatenated {} headers'.format(concatenate_file(header, starting_header, True)))
+        # Mocks are Progmasoft's own, and tests use them through this header.
+        concatenate_file(header, os.path.join(root_path, 'Progmasoft', 'Catch3', 'Mock.hpp'), True)
         header.write('#endif // CATCH_AMALGAMATED_HPP_INCLUDED\n')
 
 # The runner's files include each other as <Progmasoft/...> or, inside one
@@ -259,7 +261,8 @@ def generate_cpp():
     runner_headers = sorted(glob(os.path.join(root_path, 'Progmasoft', 'Runner', '*.hpp'))) + [
         os.path.join(root_path, 'Progmasoft', 'Catch3', name)
         for name in ('Results.hpp', 'Runner.hpp', 'Version.hpp', 'XmlWriter.hpp')]
-    runner_files = [os.path.join(root_path, 'Progmasoft', 'Results.cpp'),
+    runner_files = [os.path.join(root_path, 'Progmasoft', 'Mock.cpp'),
+                    os.path.join(root_path, 'Progmasoft', 'Results.cpp'),
                     os.path.join(root_path, 'Progmasoft', 'XmlWriter.cpp')] + \
         sorted(glob(os.path.join(root_path, 'Progmasoft', 'Runner', '*.cpp')))
     with open(output_cpp, mode='w', encoding='utf-8') as cpp:

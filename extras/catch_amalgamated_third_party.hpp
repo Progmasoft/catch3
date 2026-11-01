@@ -1,5 +1,5 @@
 // Catch3 v0.3.0.1: yyjson and pugixml for catch_amalgamated.cpp
-// Generated: 2026-11-01 20:05:03.275425
+// Generated: 2026-11-01 22:03:50.777818
 // ----------------------------------------------------------
 // This file is an amalgamation of src/Progmasoft/Runner/Yyjson.inl,
 // src/Progmasoft/PugiXml.inl and the libraries they include from
