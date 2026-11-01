@@ -7,13 +7,17 @@ based on Catch2 3.16.1; Catch2's own history is in
 [its release notes](https://github.com/catchorg/Catch2/blob/devel/docs/release-notes.md).
 
 **Contents**<br>
-[Unreleased](#unreleased)<br>
+[0.3.0.1](#0301)<br>
 [0.3.0](#030)<br>
 [0.2.0](#020)<br>
 [0.1.0](#010)<br>
 
 
-## Unreleased
+## 0.3.0.1
+
+Released 2026-11-01.
+
+Versions of Catch3 have four numbers from this release on.
 
 ### The Catch3 runner
 
