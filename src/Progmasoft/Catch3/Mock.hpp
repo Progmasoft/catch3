@@ -373,8 +373,8 @@ namespace Progmasoft::Catch3
             }
             else if constexpr (std::is_copy_constructible_v<Result>)
             {
-                return Does([held = Result(std::forward<Value>(value))](
-                                Arguments...) -> Result {
+                return Does([held = static_cast<Result>(std::forward<Value>(
+                                 value))](Arguments...) -> Result {
                     return held;
                 });
             }
@@ -925,7 +925,8 @@ namespace Progmasoft::Catch3
         field,                                                                 \
         arguments,                                                             \
         CATCH3_INTERNAL_MOCK_EXPAND(CATCH3_INTERNAL_MOCK_COUNT arguments),     \
-        CATCH3_INTERNAL_MOCK_EXPAND(CATCH3_INTERNAL_MOCK_FIRST(__VA_ARGS__))))
+        CATCH3_INTERNAL_MOCK_EXPAND(                                           \
+            CATCH3_INTERNAL_MOCK_FIRST(__VA_ARGS__, ))))
 
 /// Declares the member `name` of a mock class and, beside it, the mock
 /// `name##Mock` that `CATCH3_EXPECT_CALL` takes. The parenthesized list of

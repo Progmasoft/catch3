@@ -93,8 +93,9 @@ namespace Progmasoft::Catch3::Detail
     std::unique_lock<std::recursive_mutex>
     LockMocks()
     {
-        static std::recursive_mutex mutex;
-        return std::unique_lock<std::recursive_mutex>{ mutex };
+        // Never destroyed: a mock of static lifetime can go after it would.
+        static auto *mutex = new std::recursive_mutex;
+        return std::unique_lock<std::recursive_mutex>{ *mutex };
     }
 
     void

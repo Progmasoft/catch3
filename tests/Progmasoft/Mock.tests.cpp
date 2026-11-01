@@ -69,15 +69,27 @@ namespace
         CATCH3_MOCK_METHOD(std::unique_ptr<int>, Take, (), override);
     };
 
-    /// Production code with a seam for a free function.
-    std::function<long()> clockSeam = [] {
-        return 0L;
+    /// A mock with no base class, and so nothing after its parameters.
+    class MockCounter final
+    {
+    public:
+        CATCH3_MOCK_METHOD(int, Twice, (int));
     };
+
+    /// A seam production code calls a free function through.
+    std::function<long()> &
+    ClockSeam()
+    {
+        static auto *seam = new std::function<long()>{ [] {
+            return 0L;
+        } };
+        return *seam;
+    }
 
     long
     SecondsSince(long start)
     {
-        return clockSeam() - start;
+        return ClockSeam()() - start;
     }
 
     long (*pointerSeam)() = nullptr;
@@ -101,6 +113,14 @@ TEST_CASE("A mock method answers as its expectation says", "[progmasoft][mock]")
     CHECK(reading.Get("bc") == 2);
     writing.Put("a", 1);
     writing.Put(Scores{ { "a", 1 } });
+}
+
+TEST_CASE("A mock method needs nothing after its parameters",
+          "[progmasoft][mock]")
+{
+    MockCounter counter;
+    CATCH3_EXPECT_CALL(counter.TwiceMock)(2).Returns(4);
+    CHECK(counter.Twice(2) == 4);
 }
 
 TEST_CASE("Every parameter reaches an action", "[progmasoft][mock]")
@@ -248,7 +268,7 @@ TEST_CASE("A mock stands in for a free function behind a seam",
     CATCH3_MOCK_FUNCTION(clock, long());
     CATCH3_EXPECT_CALL(clock)().Returns(50L);
     {
-        const ScopedSeam seam(clockSeam, clock.AsFunction());
+        const ScopedSeam seam(ClockSeam(), clock.AsFunction());
         CHECK(SecondsSince(20) == 30);
     }
     CHECK(SecondsSince(0) == 0);
