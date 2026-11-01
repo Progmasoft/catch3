@@ -7,12 +7,16 @@ based on Catch2 3.16.1; Catch2's own history is in
 [its release notes](https://github.com/catchorg/Catch2/blob/devel/docs/release-notes.md).
 
 **Contents**<br>
-[0.3.0 (unreleased)](#030-unreleased)<br>
+[0.3.0](#030)<br>
 [0.2.0](#020)<br>
 [0.1.0](#010)<br>
 
 
-## 0.3.0 (unreleased)
+## 0.3.0
+
+Released 2026-11-01.
+
+Tags of Catch3 are `catch3-<version>` from this release on.
 
 ### Language and license
 
