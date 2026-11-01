@@ -21,8 +21,12 @@ namespace Progmasoft::Catch3::Runner
 
     /// The results a report holds, in its order. A test the report names
     /// twice comes back twice; `MergeImported` makes one test of them.
+    /// `source` names the report, for a format whose tests have no identity
+    /// of their own.
     [[nodiscard]] Expected<std::vector<TestResult>>
-    ParseImport(std::string_view text, ImportFormat format);
+    ParseImport(std::string_view text,
+                ImportFormat format,
+                const std::string &source = {});
 
     /// One test per identifier: results that share one are attempts at that
     /// test, in the order given, and the verdict is worked out over them. A
@@ -75,8 +79,10 @@ namespace Progmasoft::Catch3::Runner
     [[nodiscard]] Expected<std::vector<TestResult>>
     ParseCtrf(std::string_view text);
 
+    /// `source` becomes the class of its tests: TAP names them only within
+    /// one stream.
     [[nodiscard]] Expected<std::vector<TestResult>>
-    ParseTap(std::string_view text);
+    ParseTap(std::string_view text, const std::string &source);
 
     [[nodiscard]] Expected<std::vector<TestResult>>
     ParseJUnit(std::string_view text);

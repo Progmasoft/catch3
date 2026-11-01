@@ -156,7 +156,9 @@ namespace Progmasoft::Catch3::Runner
     }
 
     Expected<std::vector<TestResult>>
-    ParseImport(std::string_view text, ImportFormat format)
+    ParseImport(std::string_view text,
+                ImportFormat format,
+                const std::string &source)
     {
         const std::string_view contents = ImportText::Contents(text);
         switch (format)
@@ -172,7 +174,7 @@ namespace Progmasoft::Catch3::Runner
             case ImportFormat::kTrx:
                 return ParseTrx(contents);
             case ImportFormat::kTap:
-                return ParseTap(contents);
+                return ParseTap(contents, source);
             case ImportFormat::kCtrf:
                 return ParseCtrf(contents);
         }
@@ -182,7 +184,7 @@ namespace Progmasoft::Catch3::Runner
             return Error{ "its format is not one Catch3 knows; "
                           "--import-format names it" };
         }
-        return ParseImport(contents, *detected);
+        return ParseImport(contents, *detected, source);
     }
 
     std::vector<TestResult>
@@ -224,8 +226,18 @@ namespace Progmasoft::Catch3::Runner
             {
                 continue;
             }
-            test.outcome = test.attempts.back().outcome;
-            test.category = test.attempts.back().category;
+            // A report of a skip says nothing about an earlier failure.
+            const auto verdict
+                = std::find_if(test.attempts.rbegin(),
+                               test.attempts.rend(),
+                               [](const Attempt &attempt) {
+                                   return IsFailure(attempt.outcome);
+                               });
+            const Attempt &last = verdict != test.attempts.rend()
+                                      ? *verdict
+                                      : test.attempts.back();
+            test.outcome = last.outcome;
+            test.category = last.category;
             if (passes > 0 && failures > 0)
             {
                 test.outcome = Outcome::kPassed;

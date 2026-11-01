@@ -113,15 +113,20 @@ namespace Progmasoft::Catch3::Runner
                 {
                     const std::string_view rest
                         = ImportTrim(text.substr(directive + 1));
-                    const std::string word = Lowered(rest.substr(0, 4));
-                    if (word == "skip" || word == "todo")
+                    const auto end = rest.find_first_of(" \t:");
+                    const std::string word = Lowered(rest.substr(0, end));
+                    // Harnesses take the longer spellings of SKIP, and only
+                    // the word TODO.
+                    if (word == "skip" || word == "skipped"
+                        || word == "skipping" || word == "todo")
                     {
-                        line.directive = word;
-                        const auto space = rest.find_first_of(" \t");
-                        line.reason = space == std::string_view::npos
-                                          ? std::string{}
-                                          : std::string{ ImportTrim(
-                                                rest.substr(space)) };
+                        line.directive = word.substr(0, 4);
+                        if (end != std::string_view::npos)
+                        {
+                            std::string_view reason = rest.substr(end);
+                            reason.remove_prefix(reason.front() == ':' ? 1 : 0);
+                            line.reason = std::string{ ImportTrim(reason) };
+                        }
                     }
                 }
                 return line;
@@ -184,7 +189,7 @@ namespace Progmasoft::Catch3::Runner
             }
 
             Expected<std::vector<TestResult>>
-            Parse(std::string_view text)
+            Parse(std::string_view text, const std::string &source)
             {
                 std::vector<TestResult> tests;
                 std::vector<std::string> subtests;
@@ -265,7 +270,7 @@ namespace Progmasoft::Catch3::Runner
                     }
                     anything = true;
                     topLevel += depth == 0 ? 1 : 0;
-                    std::string parent;
+                    std::string parent = source;
                     for (std::size_t level = 0;
                          level < std::min(depth, subtests.size());
                          ++level)
@@ -310,7 +315,7 @@ namespace Progmasoft::Catch3::Runner
                 }
                 if (!incomplete.empty())
                 {
-                    TestResult test = ImportedTest("the TAP stream", {});
+                    TestResult test = ImportedTest("the TAP stream", source);
                     test.attempts.push_back(
                         ImportedAttempt(Outcome::kFailed,
                                         0,
@@ -331,8 +336,8 @@ namespace Progmasoft::Catch3::Runner
     }
 
     Expected<std::vector<TestResult>>
-    ParseTap(std::string_view text)
+    ParseTap(std::string_view text, const std::string &source)
     {
-        return ImportTap::Parse(text);
+        return ImportTap::Parse(text, source);
     }
 } // namespace Progmasoft::Catch3::Runner

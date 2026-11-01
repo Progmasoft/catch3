@@ -627,11 +627,13 @@ namespace Progmasoft::Catch3
                       const std::filesystem::path &program,
                       const std::string &programName)
         {
-            std::string name = options.importName;
-            if (name.empty())
+            std::string name = programName;
+            if (options.mode == Runner::Mode::kImport
+                || (options.mode == Runner::Mode::kAnalytics
+                    && !options.importName.empty()))
             {
-                name = options.mode == Runner::Mode::kImport ? "imported"
-                                                             : programName;
+                name = options.importName.empty() ? "imported"
+                                                  : options.importName;
             }
             return Runner::HistoryFile(HistoryDirectory(options, program),
                                        name);
@@ -653,7 +655,10 @@ namespace Progmasoft::Catch3
                     PrintError(text.GetError().Message());
                     return Catch::UnspecifiedErrorExitCode;
                 }
-                auto tests = Runner::ParseImport(*text, options.importFormat);
+                auto tests = Runner::ParseImport(
+                    *text,
+                    options.importFormat,
+                    std::filesystem::path{ file }.generic_string());
                 if (!tests)
                 {
                     PrintError(tests.GetError().Context(file).Message());
@@ -693,11 +698,16 @@ namespace Progmasoft::Catch3
                       ? Runner::CurrentCommit(
                             std::filesystem::current_path(here))
                       : options.importRevision;
+            // Only the person importing knows that two reports tested the
+            // same thing: a checkout can have edits, or be another one.
             std::map<std::string, std::string> fingerprints;
             for (auto &test : run.tests)
             {
                 run.wallMicroseconds += test.DurationMicroseconds();
-                fingerprints[test.id] = revision;
+                if (!options.importRevision.empty())
+                {
+                    fingerprints[test.id] = options.importRevision;
+                }
                 const Runner::TestHistory *past = history.Find(test.id);
                 test.quarantined
                     = options.quarantine != Runner::QuarantineMode::kOff
@@ -758,6 +768,11 @@ namespace Progmasoft::Catch3
                 std::printf("Catch3 %s\n", kVersion);
                 return 0;
             }
+            // Importing does not touch the tests of this binary.
+            if (options.mode == Runner::Mode::kImport)
+            {
+                return Import(options, program, programName);
+            }
             if (ReportStartupErrors())
             {
                 return Catch::UnspecifiedErrorExitCode;
@@ -771,10 +786,6 @@ namespace Progmasoft::Catch3
             if (options.mode == Runner::Mode::kWorker)
             {
                 return Runner::RunWorker(options, programName);
-            }
-            if (options.mode == Runner::Mode::kImport)
-            {
-                return Import(options, program, programName);
             }
 
             std::vector<std::string> notes;

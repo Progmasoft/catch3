@@ -244,14 +244,9 @@ namespace Progmasoft::Catch3::Runner
                     {
                         test.attempts.push_back(CtrfAttempt(retry));
                     }
-                    // The retries may or may not list the last attempt, which
-                    // is the test itself.
-                    Attempt last = CtrfAttempt(item);
-                    if (test.attempts.empty()
-                        || test.attempts.back().outcome != last.outcome)
-                    {
-                        test.attempts.push_back(std::move(last));
-                    }
+                    // The retries end before the last attempt, which is the
+                    // test itself.
+                    test.attempts.push_back(CtrfAttempt(item));
                     results.push_back(std::move(test));
                 }
                 return results;

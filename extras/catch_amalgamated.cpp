@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch3 v0.3.0, on the Catch2 v3.16.1 engine
-//  Generated: 2026-11-01 14:22:22.249604
+//  Generated: 2026-11-01 14:47:44.734580
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -1122,8 +1122,8 @@ namespace Progmasoft::Catch3::Runner
         ImportFormat importFormat = ImportFormat::kAuto;
         /// The history they go to; "imported" when empty.
         std::string importName;
-        /// What was tested, so that a verdict that changes on one revision
-        /// counts as flaky; the Git commit here when empty.
+        /// What was tested: a verdict that changes on one revision counts
+        /// as flaky. Without it, only retries in the reports do.
         std::string importRevision;
 
         // Output.
@@ -1900,8 +1900,12 @@ namespace Progmasoft::Catch3::Runner
 
     /// The results a report holds, in its order. A test the report names
     /// twice comes back twice; `MergeImported` makes one test of them.
+    /// `source` names the report, for a format whose tests have no identity
+    /// of their own.
     [[nodiscard]] Expected<std::vector<TestResult>>
-    ParseImport(std::string_view text, ImportFormat format);
+    ParseImport(std::string_view text,
+                ImportFormat format,
+                const std::string &source = {});
 
     /// One test per identifier: results that share one are attempts at that
     /// test, in the order given, and the verdict is worked out over them. A
@@ -1954,8 +1958,10 @@ namespace Progmasoft::Catch3::Runner
     [[nodiscard]] Expected<std::vector<TestResult>>
     ParseCtrf(std::string_view text);
 
+    /// `source` becomes the class of its tests: TAP names them only within
+    /// one stream.
     [[nodiscard]] Expected<std::vector<TestResult>>
-    ParseTap(std::string_view text);
+    ParseTap(std::string_view text, const std::string &source);
 
     [[nodiscard]] Expected<std::vector<TestResult>>
     ParseJUnit(std::string_view text);
@@ -13555,7 +13561,8 @@ namespace Progmasoft::Catch3::Runner
                  Takes::kValue,
                  "REVISION",
                  "Importing results",
-                 "what the reports tested (default: the Git commit here)",
+                 "what the reports tested; a verdict that changes on one "
+                 "revision counts as flaky",
                  [](Options &options, const std::optional<std::string> &value) {
                      options.importRevision = *value;
                      return Status::Ok();
@@ -16721,7 +16728,9 @@ namespace Progmasoft::Catch3::Runner
     }
 
     Expected<std::vector<TestResult>>
-    ParseImport(std::string_view text, ImportFormat format)
+    ParseImport(std::string_view text,
+                ImportFormat format,
+                const std::string &source)
     {
         const std::string_view contents = ImportText::Contents(text);
         switch (format)
@@ -16737,7 +16746,7 @@ namespace Progmasoft::Catch3::Runner
             case ImportFormat::kTrx:
                 return ParseTrx(contents);
             case ImportFormat::kTap:
-                return ParseTap(contents);
+                return ParseTap(contents, source);
             case ImportFormat::kCtrf:
                 return ParseCtrf(contents);
         }
@@ -16747,7 +16756,7 @@ namespace Progmasoft::Catch3::Runner
             return Error{ "its format is not one Catch3 knows; "
                           "--import-format names it" };
         }
-        return ParseImport(contents, *detected);
+        return ParseImport(contents, *detected, source);
     }
 
     std::vector<TestResult>
@@ -16789,8 +16798,18 @@ namespace Progmasoft::Catch3::Runner
             {
                 continue;
             }
-            test.outcome = test.attempts.back().outcome;
-            test.category = test.attempts.back().category;
+            // A report of a skip says nothing about an earlier failure.
+            const auto verdict
+                = std::find_if(test.attempts.rbegin(),
+                               test.attempts.rend(),
+                               [](const Attempt &attempt) {
+                                   return IsFailure(attempt.outcome);
+                               });
+            const Attempt &last = verdict != test.attempts.rend()
+                                      ? *verdict
+                                      : test.attempts.back();
+            test.outcome = last.outcome;
+            test.category = last.category;
             if (passes > 0 && failures > 0)
             {
                 test.outcome = Outcome::kPassed;
@@ -17111,14 +17130,9 @@ namespace Progmasoft::Catch3::Runner
                     {
                         test.attempts.push_back(CtrfAttempt(retry));
                     }
-                    // The retries may or may not list the last attempt, which
-                    // is the test itself.
-                    Attempt last = CtrfAttempt(item);
-                    if (test.attempts.empty()
-                        || test.attempts.back().outcome != last.outcome)
-                    {
-                        test.attempts.push_back(std::move(last));
-                    }
+                    // The retries end before the last attempt, which is the
+                    // test itself.
+                    test.attempts.push_back(CtrfAttempt(item));
                     results.push_back(std::move(test));
                 }
                 return results;
@@ -17258,15 +17272,20 @@ namespace Progmasoft::Catch3::Runner
                 {
                     const std::string_view rest
                         = ImportTrim(text.substr(directive + 1));
-                    const std::string word = Lowered(rest.substr(0, 4));
-                    if (word == "skip" || word == "todo")
+                    const auto end = rest.find_first_of(" \t:");
+                    const std::string word = Lowered(rest.substr(0, end));
+                    // Harnesses take the longer spellings of SKIP, and only
+                    // the word TODO.
+                    if (word == "skip" || word == "skipped"
+                        || word == "skipping" || word == "todo")
                     {
-                        line.directive = word;
-                        const auto space = rest.find_first_of(" \t");
-                        line.reason = space == std::string_view::npos
-                                          ? std::string{}
-                                          : std::string{ ImportTrim(
-                                                rest.substr(space)) };
+                        line.directive = word.substr(0, 4);
+                        if (end != std::string_view::npos)
+                        {
+                            std::string_view reason = rest.substr(end);
+                            reason.remove_prefix(reason.front() == ':' ? 1 : 0);
+                            line.reason = std::string{ ImportTrim(reason) };
+                        }
                     }
                 }
                 return line;
@@ -17329,7 +17348,7 @@ namespace Progmasoft::Catch3::Runner
             }
 
             Expected<std::vector<TestResult>>
-            Parse(std::string_view text)
+            Parse(std::string_view text, const std::string &source)
             {
                 std::vector<TestResult> tests;
                 std::vector<std::string> subtests;
@@ -17410,7 +17429,7 @@ namespace Progmasoft::Catch3::Runner
                     }
                     anything = true;
                     topLevel += depth == 0 ? 1 : 0;
-                    std::string parent;
+                    std::string parent = source;
                     for (std::size_t level = 0;
                          level < std::min(depth, subtests.size());
                          ++level)
@@ -17455,7 +17474,7 @@ namespace Progmasoft::Catch3::Runner
                 }
                 if (!incomplete.empty())
                 {
-                    TestResult test = ImportedTest("the TAP stream", {});
+                    TestResult test = ImportedTest("the TAP stream", source);
                     test.attempts.push_back(
                         ImportedAttempt(Outcome::kFailed,
                                         0,
@@ -17476,9 +17495,9 @@ namespace Progmasoft::Catch3::Runner
     }
 
     Expected<std::vector<TestResult>>
-    ParseTap(std::string_view text)
+    ParseTap(std::string_view text, const std::string &source)
     {
-        return ImportTap::Parse(text);
+        return ImportTap::Parse(text, source);
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
@@ -18985,11 +19004,13 @@ namespace Progmasoft::Catch3
                       const std::filesystem::path &program,
                       const std::string &programName)
         {
-            std::string name = options.importName;
-            if (name.empty())
+            std::string name = programName;
+            if (options.mode == Runner::Mode::kImport
+                || (options.mode == Runner::Mode::kAnalytics
+                    && !options.importName.empty()))
             {
-                name = options.mode == Runner::Mode::kImport ? "imported"
-                                                             : programName;
+                name = options.importName.empty() ? "imported"
+                                                  : options.importName;
             }
             return Runner::HistoryFile(HistoryDirectory(options, program),
                                        name);
@@ -19011,7 +19032,10 @@ namespace Progmasoft::Catch3
                     PrintError(text.GetError().Message());
                     return Catch::UnspecifiedErrorExitCode;
                 }
-                auto tests = Runner::ParseImport(*text, options.importFormat);
+                auto tests = Runner::ParseImport(
+                    *text,
+                    options.importFormat,
+                    std::filesystem::path{ file }.generic_string());
                 if (!tests)
                 {
                     PrintError(tests.GetError().Context(file).Message());
@@ -19051,11 +19075,16 @@ namespace Progmasoft::Catch3
                       ? Runner::CurrentCommit(
                             std::filesystem::current_path(here))
                       : options.importRevision;
+            // Only the person importing knows that two reports tested the
+            // same thing: a checkout can have edits, or be another one.
             std::map<std::string, std::string> fingerprints;
             for (auto &test : run.tests)
             {
                 run.wallMicroseconds += test.DurationMicroseconds();
-                fingerprints[test.id] = revision;
+                if (!options.importRevision.empty())
+                {
+                    fingerprints[test.id] = options.importRevision;
+                }
                 const Runner::TestHistory *past = history.Find(test.id);
                 test.quarantined
                     = options.quarantine != Runner::QuarantineMode::kOff
@@ -19116,6 +19145,11 @@ namespace Progmasoft::Catch3
                 std::printf("Catch3 %s\n", kVersion);
                 return 0;
             }
+            // Importing does not touch the tests of this binary.
+            if (options.mode == Runner::Mode::kImport)
+            {
+                return Import(options, program, programName);
+            }
             if (ReportStartupErrors())
             {
                 return Catch::UnspecifiedErrorExitCode;
@@ -19129,10 +19163,6 @@ namespace Progmasoft::Catch3
             if (options.mode == Runner::Mode::kWorker)
             {
                 return Runner::RunWorker(options, programName);
-            }
-            if (options.mode == Runner::Mode::kImport)
-            {
-                return Import(options, program, programName);
             }
 
             std::vector<std::string> notes;

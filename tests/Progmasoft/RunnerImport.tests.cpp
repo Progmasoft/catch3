@@ -160,8 +160,8 @@ ok 6 - parses
       { "name": "later", "status": "pending" },
       { "name": "retried", "status": "passed", "flaky": true, "retries": 1,
         "retryAttempts": [ { "attempt": 1, "status": "failed", "message": "first" } ] },
-      { "name": "listed", "status": "passed",
-        "retryAttempts": [ { "status": "failed" }, { "status": "passed" } ] }
+      { "name": "repeated", "status": "failed", "message": "second", "retries": 1,
+        "retryAttempts": [ { "attempt": 1, "status": "failed", "message": "first" } ] }
     ]
   }
 })";
@@ -399,6 +399,44 @@ TEST_CASE("TAP keeps escaped hashes in descriptions",
     CHECK(tests.front().outcome == Outcome::kSkipped);
 }
 
+TEST_CASE("TAP directives are whole words", "[progmasoft][runner][import]")
+{
+    CHECK(Import("not ok 1 - a # TODOING\n").front().outcome
+          == Outcome::kFailed);
+    CHECK(Import("not ok 1 - a # skipper\n").front().outcome
+          == Outcome::kFailed);
+    CHECK(Import("not ok 1 - a # TODO: later\n").front().outcome
+          == Outcome::kFailedAsExpected);
+    CHECK(Import("not ok 1 - a # SKIPPED on Windows\n").front().outcome
+          == Outcome::kSkipped);
+    CHECK(Import("ok 1 - a # skipping\n").front().outcome == Outcome::kSkipped);
+    CHECK(Import("ok 1 - a # Skip: not today\n")
+              .front()
+              .attempts.front()
+              .standardOutput
+          == "not today");
+}
+
+TEST_CASE("TAP tests belong to their stream", "[progmasoft][runner][import]")
+{
+    auto first = Runner::ParseImport("not ok 1\n",
+                                     Runner::ImportFormat::kTap,
+                                     "linux.tap");
+    auto second = Runner::ParseImport("ok 1\n",
+                                      Runner::ImportFormat::kTap,
+                                      "windows.tap");
+    REQUIRE(first);
+    REQUIRE(second);
+    std::vector<TestResult> all = *first;
+    all.insert(all.end(), second->begin(), second->end());
+
+    const auto tests = Runner::MergeImported(std::move(all));
+    REQUIRE(tests.size() == 2);
+    CHECK(tests.front().id == "linux.tap::test 1");
+    CHECK(tests.front().outcome == Outcome::kFailed);
+    CHECK_FALSE(tests.front().flaky);
+}
+
 TEST_CASE("A TAP stream that ends early fails", "[progmasoft][runner][import]")
 {
     const auto bailed = Import("1..2\nok 1 - a\nBail out! no database\n");
@@ -446,8 +484,11 @@ TEST_CASE("CTRF reports are imported", "[progmasoft][runner][import]")
     CHECK(retried.outcome == Outcome::kPassed);
     CHECK(retried.attempts.size() == 2);
 
-    // A list of attempts that holds the last one does not count it twice.
-    CHECK(Named(tests, "listed").attempts.size() == 2);
+    // The retries end before the last attempt, whatever its outcome.
+    const auto &repeated = Named(tests, "repeated");
+    CHECK(repeated.outcome == Outcome::kFailed);
+    REQUIRE(repeated.attempts.size() == 2);
+    CHECK(repeated.attempts.back().assertions.front().message == "second");
 }
 
 TEST_CASE("catch3-results lines are imported", "[progmasoft][runner][import]")
@@ -514,6 +555,23 @@ TEST_CASE("Results that share an identifier are attempts",
     CHECK_FALSE(tests.back().flaky);
 }
 
+TEST_CASE("A failure is not lost to a later skip",
+          "[progmasoft][runner][import]")
+{
+    const auto tests = Import(R"(<testsuite>
+        <testcase name="a"><failure message="no"/></testcase>
+        <testcase name="a"><skipped/></testcase>
+        <testcase name="b" status="notrun"/>
+        <testcase name="b"><error message="no"/></testcase>
+        <testcase name="b" status="notrun"/>
+    </testsuite>)");
+    REQUIRE(tests.size() == 2);
+    CHECK(tests.front().outcome == Outcome::kFailed);
+    CHECK(tests.front().category == FailureCategory::kAssertion);
+    CHECK(tests.back().category == FailureCategory::kUnexpectedException);
+    CHECK_FALSE(tests.front().flaky);
+}
+
 TEST_CASE("Durations that make no sense count as zero",
           "[progmasoft][runner][import]")
 {
@@ -575,6 +633,61 @@ TEST_CASE("Importing goes through the history and the reports of a run",
                                     history });
     INFO(third.output);
     CHECK_THAT(third.Analysis("t"), ContainsSubstring("intermittent"));
+}
+
+TEST_CASE("Verdicts count as flaky only on a named revision",
+          "[progmasoft][runner][import]")
+{
+    const Scratch scratch;
+    const auto failing = scratch.Path() / "failing.xml";
+    const auto passing = scratch.Path() / "passing.xml";
+    REQUIRE(Runner::WriteFileAtomically(
+        failing,
+        "<testsuite><testcase name=\"t\"><failure/></testcase></testsuite>"));
+    REQUIRE(Runner::WriteFileAtomically(
+        passing,
+        "<testsuite><testcase name=\"t\"/></testsuite>"));
+    const std::string history = "--history=" + (scratch.Path() / "h").string();
+    for (const auto &report : { failing, passing })
+    {
+        const auto run
+            = RunFixture(scratch, { "--import=" + report.string(), history });
+        INFO(run.output);
+    }
+    const auto last
+        = RunFixture(scratch, { "--import=" + failing.string(), history });
+    INFO(last.output);
+    CHECK_THAT(last.Analysis("t"), !ContainsSubstring("intermittent"));
+}
+
+TEST_CASE("Two TAP streams with the same numbers stay apart",
+          "[progmasoft][runner][import]")
+{
+    const Scratch scratch;
+    const auto failing = scratch.Path() / "failing.tap";
+    const auto passing = scratch.Path() / "passing.tap";
+    REQUIRE(Runner::WriteFileAtomically(failing, "1..1\nnot ok 1\n"));
+    REQUIRE(Runner::WriteFileAtomically(passing, "1..1\nok 1\n"));
+    const auto run = RunFixture(scratch,
+                                { "--import=" + failing.string(),
+                                  "--import=" + passing.string(),
+                                  "--no-history" });
+    INFO(run.output);
+    CHECK(ExitCode(run) == 42);
+    CHECK(run.report["tests"].Items().size() == 2);
+}
+
+TEST_CASE("A run of tests keeps its own history beside an import name",
+          "[progmasoft][runner][import]")
+{
+    const Scratch scratch;
+    const auto directory = scratch.Path() / "h";
+    const auto run = RunFixture(
+        scratch,
+        { "--history=" + directory.string(), "--import-name=web", "[pass]" });
+    INFO(run.output);
+    CHECK(ExitCode(run) == 0);
+    CHECK_FALSE(std::filesystem::exists(directory / "web.history.json"));
 }
 
 TEST_CASE("Importing a file that is not a report fails",

@@ -178,8 +178,8 @@ namespace Progmasoft::Catch3::Runner
         ImportFormat importFormat = ImportFormat::kAuto;
         /// The history they go to; "imported" when empty.
         std::string importName;
-        /// What was tested, so that a verdict that changes on one revision
-        /// counts as flaky; the Git commit here when empty.
+        /// What was tested: a verdict that changes on one revision counts
+        /// as flaky. Without it, only retries in the reports do.
         std::string importRevision;
 
         // Output.

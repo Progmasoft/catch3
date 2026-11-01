@@ -730,7 +730,8 @@ namespace Progmasoft::Catch3::Runner
                  Takes::kValue,
                  "REVISION",
                  "Importing results",
-                 "what the reports tested (default: the Git commit here)",
+                 "what the reports tested; a verdict that changes on one "
+                 "revision counts as flaky",
                  [](Options &options, const std::optional<std::string> &value) {
                      options.importRevision = *value;
                      return Status::Ok();

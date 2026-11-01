@@ -164,12 +164,18 @@ work as they do for a run. Reports that were read count as one run.
 A test is identified by its class and its name. Results with the same
 identifier, in one report or in several, are attempts at one test: a test that
 both failed and passed is flaky, passes and is remembered as flaky, which is how
-a report of a rerun is imported. TAP has no retries, so a name that comes back
-in one stream is another test and gets a number.
+a report of a rerun is imported. A failure stays a failure when a later report
+skips the test. Reports of the same tests on different platforms are not reruns
+of each other: import each with an `--import-name` of its own, or a failure on one
+reads as flakiness.
 
-A verdict that changes on one revision also counts as flaky.
-`--import-revision=REVISION` names what the reports tested; it defaults to the
-Git commit of the working directory.
+TAP names tests only within one stream, so the path given to `--import` is the
+class of its tests: keep it the same from run to run for the history to follow
+them. A name that comes back in one stream is another test and gets a number.
+
+`--import-revision=REVISION` names what the reports tested, and a verdict that
+changes on one revision then counts as flaky too. Without it only retries in the
+reports do, because a working directory can have edits or be another checkout.
 
 Nothing is run, so an imported failure has no replay command, and only what the
 report says is known: it has no order, seed or sections. A TAP stream that bails
