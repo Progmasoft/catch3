@@ -3,6 +3,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -27,12 +28,14 @@ namespace Progmasoft::Catch3::Tools
         std::string EngineVersion;
         std::string Branch;
         std::string Revision;
-        bool Dirty = false;
+        // Empty when Git could not say.
+        std::optional<bool> Dirty;
         std::string GitError;
         std::vector<ToolInfo> Tools;
     };
 
-    /// Reads the checkout at `root`, without changing anything.
+    /// Reads the checkout at `root`, without changing anything in it. It
+    /// leaves the process in `root`.
     [[nodiscard]] RepositoryReport
     CollectRepositoryReport(const std::filesystem::path &root);
 

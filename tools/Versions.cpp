@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <utility>
+#include <vector>
 
 #include "tools/Versions.hpp"
 
@@ -176,15 +178,32 @@ namespace Progmasoft::Catch3::Tools
                const std::string &version,
                Problems &problems)
     {
+        std::vector<std::pair<std::filesystem::path, std::string>> writes;
         for (const auto &site : VersionSites())
         {
             const auto path = root / site.File;
-            const auto text
+            auto text
                 = WriteVersionSite(ReadOrReport(path, problems), site, version);
-            if (!text || !WriteText(path, *text))
+            if (text)
+            {
+                writes.emplace_back(path, *std::move(text));
+            }
+            else
             {
                 problems.push_back("cannot set the version in "
                                    + std::string{ site.File });
+            }
+        }
+        // All of them or none, so that the places never disagree.
+        if (!problems.empty())
+        {
+            return;
+        }
+        for (const auto &[path, text] : writes)
+        {
+            if (!WriteText(path, text))
+            {
+                problems.push_back("cannot write " + path.generic_string());
             }
         }
     }
@@ -192,8 +211,17 @@ namespace Progmasoft::Catch3::Tools
     std::optional<std::string>
     ReleaseNotesOf(std::string_view notes, std::string_view version)
     {
-        const auto heading = "\n## " + std::string{ version } + "\n";
-        const auto found = notes.find(heading);
+        auto heading = "\n## " + std::string{ version } + "\n";
+        auto found = notes.find(heading);
+        // A release with D = 0 may be headed by its three numbers.
+        const auto parsed = ParseVersion(version);
+        if (found == std::string_view::npos && parsed && (*parsed)[3] == 0)
+        {
+            heading = "\n## " + std::to_string((*parsed)[0]) + "."
+                      + std::to_string((*parsed)[1]) + "."
+                      + std::to_string((*parsed)[2]) + "\n";
+            found = notes.find(heading);
+        }
         if (found == std::string_view::npos)
         {
             return std::nullopt;

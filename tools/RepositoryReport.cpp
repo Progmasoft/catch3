@@ -10,6 +10,10 @@
 #include <string_view>
 #include <system_error>
 
+#if !defined(_WIN32)
+#    include <unistd.h>
+#endif
+
 #include "tools/Amalgamation.hpp"
 #include "tools/Repository.hpp"
 #include "tools/RepositoryReport.hpp"
@@ -70,6 +74,22 @@ namespace Progmasoft::Catch3::Tools
 #endif
         }
 
+        /// Whether `file` can be started, which only POSIX says of a file.
+        [[nodiscard]] bool
+        IsProgram(const fs::path &file)
+        {
+            std::error_code error;
+            if (!fs::is_regular_file(file, error))
+            {
+                return false;
+            }
+#if defined(_WIN32)
+            return true;
+#else
+            return access(file.c_str(), X_OK) == 0;
+#endif
+        }
+
         [[nodiscard]] ToolInfo
         Find(std::string_view name, std::string_view searchPath)
         {
@@ -92,8 +112,7 @@ namespace Progmasoft::Catch3::Tools
                     const auto file
                         = directory
                           / (std::string{ name } + std::string{ extension });
-                    std::error_code error;
-                    if (fs::is_regular_file(file, error))
+                    if (IsProgram(file))
                     {
                         tool.Path = file.string();
                         tool.Available = true;
@@ -104,13 +123,13 @@ namespace Progmasoft::Catch3::Tools
             return tool;
         }
 
-        /// What `git <arguments>` writes in `root`, or nothing when it fails.
+        /// What `git <arguments>` writes in the current directory, or nothing
+        /// when it fails. A shell reads the command, so it never holds a path.
         [[nodiscard]] std::optional<std::string>
-        Git(const fs::path &root, std::string_view arguments)
+        Git(std::string_view arguments)
         {
-            const auto command = "git -C \"" + root.string() + "\" "
-                                 + std::string{ arguments }
-                                 + std::string{ kNoErrors };
+            const auto command
+                = "git " + std::string{ arguments } + std::string{ kNoErrors };
 #if defined(_WIN32)
             auto *pipe = _popen(command.c_str(), "r");
 #else
@@ -197,11 +216,12 @@ namespace Progmasoft::Catch3::Tools
             report.Tools.push_back(Find(name, searchPath));
         }
 
-        const auto branch = Git(root, "branch --show-current");
-        const auto revision = Git(root, "rev-parse HEAD");
-        const auto status
-            = Git(root, "status --porcelain --untracked-files=no");
-        if (branch && revision && status)
+        std::error_code error;
+        fs::current_path(root, error);
+        const auto branch = Git("branch --show-current");
+        const auto revision = Git("rev-parse HEAD");
+        const auto status = Git("status --porcelain --untracked-files=no");
+        if (!error && branch && revision && status)
         {
             report.Branch = *branch;
             report.Revision = *revision;
@@ -224,7 +244,10 @@ namespace Progmasoft::Catch3::Tools
         text += "Branch: " + report.Branch + "\n";
         text += "Revision: " + report.Revision + "\n";
         text += std::string{ "Tracked changes: " }
-                + (report.Dirty ? "true" : "false") + "\n";
+                + (!report.Dirty   ? "unknown"
+                   : *report.Dirty ? "true"
+                                   : "false")
+                + "\n";
         if (!report.GitError.empty())
         {
             text += report.GitError + "\n";
@@ -254,7 +277,14 @@ namespace Progmasoft::Catch3::Tools
         AddText(document, root, "engineVersion", report.EngineVersion);
         AddText(document, root, "branch", report.Branch);
         AddText(document, root, "revision", report.Revision);
-        yyjson_mut_obj_add_bool(document, root, "dirty", report.Dirty);
+        if (report.Dirty)
+        {
+            yyjson_mut_obj_add_bool(document, root, "dirty", *report.Dirty);
+        }
+        else
+        {
+            yyjson_mut_obj_add_null(document, root, "dirty");
+        }
         AddText(document, root, "gitError", report.GitError);
         auto *tools = yyjson_mut_obj_add_arr(document, root, "tools");
         for (const auto &tool : report.Tools)

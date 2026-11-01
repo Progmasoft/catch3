@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
+#include <Progmasoft/Catch3/Matchers/String.hpp>
 #include <Progmasoft/Catch3/TestMacros.hpp>
 #include <string>
 
@@ -10,6 +11,7 @@
 #include "tools/Versions.hpp"
 
 using namespace Progmasoft::Catch3::Tools;
+using Catch::Matchers::ContainsSubstring;
 
 TEST_CASE("Versions have three or four numbers", "[tools]")
 {
@@ -53,6 +55,25 @@ TEST_CASE("Release notes are found by their heading", "[tools]")
     CHECK(ReleaseNotesOf(notes, "0.2") == "New.\n\n### Part\n\n* One.\n");
     CHECK(ReleaseNotesOf(notes, "0.1") == "Old.\n");
     CHECK_FALSE(ReleaseNotesOf(notes, "0.3"));
+}
+
+TEST_CASE("A release with D = 0 may be headed by three numbers", "[tools]")
+{
+    const std::string notes = "# Notes\n\n## 0.4.0\n\nThree.\n";
+    CHECK(ReleaseNotesOf(notes, "0.4.0") == "Three.\n");
+    CHECK(ReleaseNotesOf(notes, "0.4.0.0") == "Three.\n");
+    CHECK_FALSE(ReleaseNotesOf(notes, "0.4.0.1"));
+}
+
+TEST_CASE("Git that could not say is not a clean checkout", "[tools]")
+{
+    RepositoryReport report;
+    report.GitError = "unreadable";
+    CHECK_THAT(ReportToJson(report), ContainsSubstring("\"dirty\": null"));
+    CHECK_THAT(FormatReport(report),
+               ContainsSubstring("Tracked changes: unknown"));
+    report.Dirty = false;
+    CHECK_THAT(ReportToJson(report), ContainsSubstring("\"dirty\": false"));
 }
 
 TEST_CASE("Includes are read as they are written", "[tools]")

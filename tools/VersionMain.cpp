@@ -54,12 +54,19 @@ main(int argc, char **argv)
     }
     const auto version
         = FormatVersion(argument == "--next" ? NextVersion(*parsed) : *parsed);
-    SetVersion(*root, version, problems);
+    // The sources have to make a distribution before anything is changed.
+    (void)GenerateAmalgamation(*root, problems);
     if (problems.empty())
     {
-        WriteAmalgamation(*root,
-                          GenerateAmalgamation(*root, problems),
-                          problems);
+        SetVersion(*root, version, problems);
+    }
+    if (problems.empty())
+    {
+        const auto amalgamation = GenerateAmalgamation(*root, problems);
+        if (problems.empty())
+        {
+            WriteAmalgamation(*root, amalgamation, problems);
+        }
     }
     if (problems.empty())
     {

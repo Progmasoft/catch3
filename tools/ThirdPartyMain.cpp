@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "rules_cc/cc/runfiles/runfiles.h"
@@ -24,11 +25,13 @@ main(int argc, char **argv)
 
     std::vector<std::string_view> files;
     std::string_view mode;
+    bool usable = true;
     for (int index = 1; index < argc; ++index)
     {
         const std::string_view argument{ argv[index] };
         if (argument == "--check" || argument == "--update")
         {
+            usable = usable && mode.empty();
             mode = argument;
         }
         else if (argument.find('=') != std::string_view::npos)
@@ -37,11 +40,10 @@ main(int argc, char **argv)
         }
         else
         {
-            mode = {};
-            break;
+            usable = false;
         }
     }
-    if (mode.empty())
+    if (!usable || mode.empty())
     {
         std::cerr << "usage: bazelisk run //tools:third_party -- "
                      "--check|--update\n";
@@ -63,16 +65,25 @@ main(int argc, char **argv)
         return 2;
     }
     Problems problems;
+    // Every archive is read before any file changes.
+    std::vector<std::pair<std::string_view, std::string>> archived;
     for (const auto file : files)
     {
         const auto separator = file.find('=');
-        const auto vendored = file.substr(0, separator);
-        const auto archived = ReadOrReport(
-            runfiles->Rlocation(std::string{ file.substr(separator + 1) }),
-            problems);
+        archived.emplace_back(file.substr(0, separator),
+                              ReadOrReport(runfiles->Rlocation(std::string{
+                                               file.substr(separator + 1) }),
+                                           problems));
+    }
+    if (!problems.empty())
+    {
+        return Finish(problems);
+    }
+    for (const auto &[vendored, text] : archived)
+    {
         if (mode == "--check")
         {
-            if (ReadText(*root / vendored) != archived)
+            if (ReadText(*root / vendored) != text)
             {
                 problems.push_back(std::string{ vendored }
                                    + " differs from its pinned archive: run "
@@ -80,7 +91,7 @@ main(int argc, char **argv)
                                      "--update");
             }
         }
-        else if (!WriteText(*root / vendored, archived))
+        else if (!WriteText(*root / vendored, text))
         {
             problems.push_back("cannot write " + std::string{ vendored });
         }
