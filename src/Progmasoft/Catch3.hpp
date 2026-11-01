@@ -14,6 +14,7 @@
 #include <Progmasoft/Catch3/Generators/Text.hpp>
 #include <Progmasoft/Catch3/Generators/Tuple.hpp>
 #include <Progmasoft/Catch3/Generators/Vector.hpp>
+#include <Progmasoft/Catch3/Mock.hpp>
 #include <Progmasoft/Catch3/Property.hpp>
 #include <Progmasoft/Catch3/Random.hpp>
 #include <Progmasoft/Catch3/Relations.hpp>

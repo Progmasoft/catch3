@@ -21,7 +21,7 @@ The steps are ordered by what each one builds on.
 | --- | --- | --- |
 | 1 | Native property testing: choice-sequence shrinking, combinators, state machines, statistics, targeted search, example database, differential and metamorphic oracles | done; see [Native property testing](progmasoft-properties.md#top) |
 | 2 | The Catch3 runner | done; see [The Catch3 runner](progmasoft-runner.md#top) |
-| 3 | Mocking | planned |
+| 3 | Mocking | done; see [Mocking](progmasoft-mocking.md#top) |
 | 4 | Per-test code coverage | planned |
 | 5 | Change-impact test selection and test prioritization | planned |
 | 6 | Mutation testing | planned |
@@ -56,10 +56,11 @@ Catch3 runner replaced Catch2's in every test binary:
 
 ## 3. Mocking
 
-Mocks that report through Catch2's assertion path: expectations with call
-counts, argument matchers built on Catch2's matchers, sequences, and actions,
-for virtual interfaces and for free functions behind a seam. Unexpected calls
-and unmet expectations fail the test case that owns the mock.
+Mocks report through Catch2's assertion path: expectations with call counts,
+argument matchers built on Catch2's matchers, sequences, and actions, for
+virtual interfaces and for free functions behind a seam. Unexpected calls and
+unmet expectations fail the test case that owns the mock. See
+[Mocking](progmasoft-mocking.md#top).
 
 ## 4. Per-test code coverage
 

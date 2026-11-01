@@ -343,6 +343,7 @@ set(PROGMASOFT_RUNNER_FILES
 # Property testing and snapshots.
 set(PROGMASOFT_LIBRARY_FILES
   "${CATCH_DIR}/src/Progmasoft/ChoiceShrinker.cpp"
+  "${CATCH_DIR}/src/Progmasoft/Mock.cpp"
   "${CATCH_DIR}/src/Progmasoft/StrategyContext.cpp"
   "${CATCH_DIR}/src/Progmasoft/PropertyEngine.cpp"
   "${CATCH_DIR}/src/Progmasoft/Snapshot.cpp"

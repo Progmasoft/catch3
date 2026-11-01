@@ -38,6 +38,7 @@ Catch2 release.
 
 **Running:**
 * [The Catch3 runner](progmasoft-runner.md#top)
+* [Mocking](progmasoft-mocking.md#top)
 * [Command line reference](command-line.md#top)
 * [Running specific section/generator](filtering-execution-path.md#top)
 

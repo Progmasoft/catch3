@@ -25,6 +25,9 @@ serialization.
   tests, keeps a history that drives time limits, ordering, incremental runs
   and replay, selects and shards tests, and writes console, JUnit, JSON and
   trace reports.
+- **Mocks.** [Mocks](docs/progmasoft-mocking.md) of virtual interfaces and of
+  free functions behind a seam check call counts, arguments and order, and
+  report through the same assertions as the rest of a test.
 - **Deterministic property testing.** Generate values from a reproducible seed,
   check a predicate over multiple trials, and shrink a failing input to a
   smaller counterexample.
@@ -96,6 +99,7 @@ their package, target, header and pkg-config names differ.
 - [Catch3 additions: properties, snapshots, results, and XML](docs/progmasoft-catch3.md)
 - [Project scope, compatibility policy, and limitations](docs/why-catch3.md)
 - [The Catch3 runner](docs/progmasoft-runner.md)
+- [Mocking](docs/progmasoft-mocking.md)
 - [Tutorial](docs/tutorial.md)
 - [Catch2-compatible API reference](docs/Readme.md)
 - [Catch2 upstream project and source history](https://github.com/catchorg/Catch2)

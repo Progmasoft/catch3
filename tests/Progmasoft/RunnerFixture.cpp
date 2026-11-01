@@ -4,6 +4,7 @@
 // A test binary whose tests misbehave on purpose. The runner's integration
 // tests start it and check what the runner made of each misbehaviour.
 
+#include <Progmasoft/Catch3/Mock.hpp>
 #include <Progmasoft/Catch3/Runner.hpp>
 #include <Progmasoft/Catch3/TestMacros.hpp>
 #include <chrono>
@@ -182,6 +183,72 @@ TEST_CASE("fixture slow four", "[fixture][slow]")
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
     CHECK(true);
+}
+
+TEST_CASE("fixture mock unexpected call", "[fixture][mock]")
+{
+    Progmasoft::Catch3::MockFunction<int(std::string)> get{ "Get" };
+    CATCH3_EXPECT_CALL(get)("a").Returns(1);
+    CHECK(get("a") == 1);
+    CHECK(get("b") == 0);
+}
+
+TEST_CASE("fixture mock with no expectations", "[fixture][mock]")
+{
+    CATCH3_MOCK_FUNCTION(tick, void());
+    tick();
+}
+
+TEST_CASE("fixture mock unmet expectation", "[fixture][mock]")
+{
+    CATCH3_MOCK_FUNCTION(tick, void());
+    CATCH3_EXPECT_CALL(tick)().Times(2);
+    tick();
+}
+
+TEST_CASE("fixture mock too many calls", "[fixture][mock]")
+{
+    CATCH3_MOCK_FUNCTION(tick, void());
+    CATCH3_EXPECT_CALL(tick)();
+    tick();
+    tick();
+}
+
+TEST_CASE("fixture mock out of order", "[fixture][mock]")
+{
+    Progmasoft::Catch3::Sequence order;
+    CATCH3_MOCK_FUNCTION(first, void());
+    CATCH3_MOCK_FUNCTION(second, void());
+    CATCH3_EXPECT_CALL(first)().InSequence(order);
+    CATCH3_EXPECT_CALL(second)().InSequence(order);
+    second();
+}
+
+TEST_CASE("fixture mock past its step", "[fixture][mock]")
+{
+    Progmasoft::Catch3::Sequence order;
+    CATCH3_MOCK_FUNCTION(first, void());
+    CATCH3_MOCK_FUNCTION(second, void());
+    CATCH3_EXPECT_CALL(first)().AtLeast(1).InSequence(order);
+    CATCH3_EXPECT_CALL(second)().InSequence(order);
+    first();
+    second();
+    first();
+}
+
+TEST_CASE("fixture mock with nothing to return", "[fixture][mock]")
+{
+    CATCH3_MOCK_FUNCTION(name, std::string & ());
+    CATCH3_EXPECT_CALL(name)();
+    name();
+    FAIL("the call above leaves the test case");
+}
+
+TEST_CASE("fixture mock left by a failure", "[fixture][mock]")
+{
+    CATCH3_MOCK_FUNCTION(tick, void());
+    CATCH3_EXPECT_CALL(tick)();
+    FAIL("the test's own failure");
 }
 
 TEST_CASE("fixture skips", "[fixture][skip]")
