@@ -52,6 +52,19 @@ jobs:
     - name: Test
       run: ctest --test-dir build -j
 
+    - name: Install, and find the installed package
+      run: |
+        cmake --install build --prefix "$RUNNER_TEMP/catch3"
+        mkdir "$RUNNER_TEMP/consumer"
+        cat > "$RUNNER_TEMP/consumer/CMakeLists.txt" <<'EOF'
+        cmake_minimum_required(VERSION 3.16)
+        project(Consumer CXX)
+        find_package(Catch3 REQUIRED)
+        EOF
+        cmake -S "$RUNNER_TEMP/consumer" -B "$RUNNER_TEMP/consumer/build" \
+              -GNinja -DCMAKE_CXX_COMPILER=clang++ \
+              -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/catch3"
+
   thread-sanitizer:
     name: Ubuntu 26.04, C++17, ThreadSanitizer and UBSan
     runs-on: ubuntu-26.04
