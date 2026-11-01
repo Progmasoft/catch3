@@ -27,6 +27,12 @@ TEST_CASE("Just a dummy test") {
                  }));
 }
 
+TEST_CASE("Mocks are in the amalgamated files") {
+    CATCH3_MOCK_FUNCTION(twice, int(int));
+    CATCH3_EXPECT_CALL(twice)(2).Returns(4);
+    CHECK(twice(2) == 4);
+}
+
 TEMPLATE_TEST_CASE("Trivial template test case", "", char, short) {
     STATIC_REQUIRE(sizeof(TestType) <= sizeof(int));
 }

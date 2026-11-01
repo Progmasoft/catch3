@@ -164,7 +164,6 @@ if(NOT_SUBPROJECT)
     # Install CMake scripts
     install(
       FILES
-        "extras/ParseAndAddCatchTests.cmake"
         "extras/Catch3.cmake"
         "extras/Catch3AddTests.cmake"
         "extras/Catch3ShardTests.cmake"

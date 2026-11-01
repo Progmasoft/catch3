@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch3 v0.3.0.2, on the Catch2 v3.16.1 engine
-//  Generated: 2026-11-01 21:41:33.806849
+//  Generated: 2026-11-01 23:05:23.688401
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -8815,6 +8815,198 @@ namespace Catch {
         }
     } // namespace Detail
 } // namespace Catch
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+
+#include <algorithm>
+#include <cstdio>
+#include <cstdlib>
+
+namespace Progmasoft::Catch3::Detail
+{
+    namespace
+    {
+        constexpr auto kMacro = "CATCH3_EXPECT_CALL";
+
+        /// Whether a test case is running that a report can belong to.
+        [[nodiscard]] bool
+        InTestCase()
+        {
+            const auto *capture = Catch::getCurrentContext().getResultCapture();
+            return capture != nullptr && !capture->getCurrentTestName().empty();
+        }
+
+        void
+        Report(const Catch::SourceLineInfo &line,
+               const std::string &mock,
+               Catch::ResultWas::OfType result,
+               std::string message,
+               Catch::ResultDisposition::Flags disposition)
+        {
+            Catch::AssertionHandler handler(kMacro, line, mock, disposition);
+            handler.handleMessage(result, std::move(message));
+            handler.complete();
+        }
+
+        void
+        WriteToStandardError(const Catch::SourceLineInfo &line,
+                             const std::string &mock,
+                             const std::string &message)
+        {
+            std::fprintf(stderr,
+                         "%s:%zu: %s: %s\n",
+                         line.file,
+                         line.line,
+                         mock.c_str(),
+                         message.c_str());
+        }
+    } // namespace
+
+    void
+    MockSequence::Add(const std::shared_ptr<MockExpectationState> &step)
+    {
+        steps.push_back(step);
+    }
+
+    std::string
+    MockSequence::Enter(const MockExpectationState &step)
+    {
+        const auto position
+            = std::find_if(steps.begin() + static_cast<std::ptrdiff_t>(current),
+                           steps.end(),
+                           [&step](const auto &candidate) {
+                               return candidate.lock().get() == &step;
+                           });
+        std::string undone;
+        if (position == steps.end())
+        {
+            return undone;
+        }
+        const auto target = static_cast<std::size_t>(position - steps.begin());
+        for (; current < target; ++current)
+        {
+            const auto earlier = steps[current].lock();
+            if (earlier == nullptr)
+            {
+                continue;
+            }
+            if (!earlier->Satisfied())
+            {
+                undone += (undone.empty() ? "call out of order: " : "\n  and ")
+                          + step.Description + " came before "
+                          + earlier->Description;
+            }
+            earlier->Retired = true;
+        }
+        return undone;
+    }
+
+    std::unique_lock<std::recursive_mutex>
+    LockMocks()
+    {
+        // Never destroyed: a mock of static lifetime can go after it would.
+        static auto *mutex = new std::recursive_mutex;
+        return std::unique_lock<std::recursive_mutex>{ *mutex };
+    }
+
+    void
+    ReportMockFailure(const Catch::SourceLineInfo &line,
+                      const std::string &mock,
+                      std::string message)
+    {
+        if (!InTestCase())
+        {
+            WriteToStandardError(line, mock, message);
+            return;
+        }
+        // An aborting run throws out of any failure. The run still stops, at
+        // its next assertion.
+        CATCH_TRY
+        {
+            Report(line,
+                   mock,
+                   Catch::ResultWas::ExplicitFailure,
+                   std::move(message),
+                   Catch::ResultDisposition::ContinueOnFailure);
+        }
+        CATCH_CATCH_ALL
+        {}
+    }
+
+    void
+    AbortMockCall(const Catch::SourceLineInfo &line,
+                  const std::string &mock,
+                  std::string message)
+    {
+        if (InTestCase())
+        {
+            Report(line,
+                   mock,
+                   Catch::ResultWas::ExplicitFailure,
+                   std::move(message),
+                   Catch::ResultDisposition::Normal);
+        }
+        else
+        {
+            WriteToStandardError(line, mock, message);
+        }
+        std::abort();
+    }
+
+    void
+    ReportMockSuccess(const Catch::SourceLineInfo &line,
+                      const std::string &mock,
+                      std::string message)
+    {
+        if (InTestCase())
+        {
+            Report(line,
+                   mock,
+                   Catch::ResultWas::Ok,
+                   std::move(message),
+                   Catch::ResultDisposition::ContinueOnFailure);
+        }
+    }
+
+    std::string
+    DescribeCalls(std::size_t minimum, std::size_t maximum)
+    {
+        const auto calls = [](std::size_t count) {
+            return std::to_string(count) + (count == 1 ? " call" : " calls");
+        };
+        if (minimum == 0 && maximum == kUnlimitedCalls)
+        {
+            return "any number of calls";
+        }
+        if (minimum == maximum)
+        {
+            return maximum == 0 ? "no calls" : "exactly " + calls(minimum);
+        }
+        if (maximum == kUnlimitedCalls)
+        {
+            return "at least " + calls(minimum);
+        }
+        if (minimum == 0)
+        {
+            return "at most " + calls(maximum);
+        }
+        return std::to_string(minimum) + " to " + calls(maximum);
+    }
+
+    std::string
+    DescribeCount(std::size_t calls)
+    {
+        switch (calls)
+        {
+            case 0:
+                return "never called";
+            case 1:
+                return "called once";
+            default:
+                return "called " + std::to_string(calls) + " times";
+        }
+    }
+} // namespace Progmasoft::Catch3::Detail
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
