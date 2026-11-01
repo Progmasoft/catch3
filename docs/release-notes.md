@@ -7,10 +7,24 @@ based on Catch2 3.16.1; Catch2's own history is in
 [its release notes](https://github.com/catchorg/Catch2/blob/devel/docs/release-notes.md).
 
 **Contents**<br>
+[0.3.0.2](#0302)<br>
 [0.3.0.1](#0301)<br>
 [0.3.0](#030)<br>
 [0.2.0](#020)<br>
 [0.1.0](#010)<br>
+
+
+## 0.3.0.2
+
+Released 2026-11-01.
+
+### Mocks
+
+* `<Progmasoft/Catch3/Mock.hpp>` adds mocks of virtual interfaces and of free
+  functions behind a seam: `CATCH3_MOCK_METHOD`, `CATCH3_EXPECT_CALL`,
+  `Sequence` and `ScopedSeam`. Expectations check call counts, arguments and
+  order, and failures go through the same assertions as the rest of a test.
+  See [Mocking](progmasoft-mocking.md#top).
 
 
 ## 0.3.0.1
