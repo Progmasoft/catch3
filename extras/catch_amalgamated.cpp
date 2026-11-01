@@ -6,8 +6,8 @@
 
 // SPDX-License-Identifier: BSL-1.0
 
-//  Catch3 v0.3.0, on the Catch2 v3.16.1 engine
-//  Generated: 2026-11-01 14:47:44.734580
+//  Catch3 v0.3.0.1, on the Catch2 v3.16.1 engine
+//  Generated: 2026-11-01 16:09:52.594301
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -2294,7 +2294,7 @@ namespace Progmasoft::Catch3
 namespace Progmasoft::Catch3
 {
     /// The version of Catch3: of its runner, its tools and its formats.
-    inline constexpr const char *kVersion = "0.3.0";
+    inline constexpr const char *kVersion = "0.3.0.1";
 } // namespace Progmasoft::Catch3
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
