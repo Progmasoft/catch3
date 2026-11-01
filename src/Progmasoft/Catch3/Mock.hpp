@@ -6,6 +6,7 @@
 #include <Progmasoft/Catch3/Internal/SourceLineInfo.hpp>
 #include <Progmasoft/Catch3/Matchers/Matchers.hpp>
 #include <Progmasoft/Catch3/Matchers/Templated.hpp>
+#include <Progmasoft/Catch3/Matchers/Vector.hpp>
 #include <Progmasoft/Catch3/ToString.hpp>
 #include <cstddef>
 #include <exception>
@@ -13,6 +14,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -87,22 +89,16 @@ namespace Progmasoft::Catch3
         [[nodiscard]] std::unique_lock<std::recursive_mutex>
         LockMocks();
 
-        enum class MockReport : unsigned char
-        {
-            kContinue,
-            kInDestructor,
-        };
-
-        /// Fails the running test case at `line`. Outside of a test case
-        /// the message goes to standard error.
+        /// Fails the running test case at `line` and never throws, since a
+        /// mock can stand in for a `noexcept` function or be in a destructor.
+        /// Outside of a test case the message goes to standard error.
         void
         ReportMockFailure(const Catch::SourceLineInfo &line,
                           const std::string &mock,
-                          std::string message,
-                          MockReport report);
+                          std::string message);
 
         /// Fails the running test case and leaves it, for a call nothing can
-        /// return from.
+        /// return from. In a `noexcept` function that ends the process.
         [[noreturn]] void
         AbortMockCall(const Catch::SourceLineInfo &line,
                       const std::string &mock,
@@ -170,6 +166,66 @@ namespace Progmasoft::Catch3
         {
         };
 
+        /// Catch's vector matchers refer to what they compare with.
+        template<typename T>
+        struct HoldsReference: std::false_type
+        {
+        };
+        template<typename T, typename Alloc>
+        struct HoldsReference<
+            Catch::Matchers::VectorContainsElementMatcher<T, Alloc>>
+            : std::true_type
+        {
+        };
+        template<typename T, typename AllocComp, typename AllocMatch>
+        struct HoldsReference<
+            Catch::Matchers::ContainsMatcher<T, AllocComp, AllocMatch>>
+            : std::true_type
+        {
+        };
+        template<typename T, typename AllocComp, typename AllocMatch>
+        struct HoldsReference<
+            Catch::Matchers::EqualsMatcher<T, AllocComp, AllocMatch>>
+            : std::true_type
+        {
+        };
+        template<typename T, typename AllocComp, typename AllocMatch>
+        struct HoldsReference<
+            Catch::Matchers::ApproxMatcher<T, AllocComp, AllocMatch>>
+            : std::true_type
+        {
+        };
+        template<typename T, typename AllocComp, typename AllocMatch>
+        struct HoldsReference<
+            Catch::Matchers::UnorderedEqualsMatcher<T, AllocComp, AllocMatch>>
+            : std::true_type
+        {
+        };
+
+        /// Whether two integers have the same value, whatever their types.
+        template<typename Left, typename Right>
+        [[nodiscard]] constexpr bool
+        SameInteger(Left left, Right right) noexcept
+        {
+            if constexpr (std::is_signed_v<Left> == std::is_signed_v<Right>)
+            {
+                return left == right;
+            }
+            else if constexpr (std::is_signed_v<Left>)
+            {
+                return left >= 0
+                       && static_cast<std::make_unsigned_t<Left>>(left)
+                              == right;
+            }
+            else
+            {
+                return right >= 0
+                       && left
+                              == static_cast<std::make_unsigned_t<Right>>(
+                                  right);
+            }
+        }
+
         /// How one argument of a call is judged.
         template<typename Argument>
         struct ArgumentMatcher final
@@ -221,6 +277,10 @@ namespace Progmasoft::Catch3
                 static_assert(!IsComposedMatcher<Stored>::value,
                               "A composed matcher refers to temporaries that "
                               "are gone when the mock is called; use Where.");
+                static_assert(!HoldsReference<Stored>::value,
+                              "A vector matcher refers to its vector, which "
+                              "can be gone when the mock is called; use "
+                              "Where.");
                 auto matcher = std::make_shared<Stored>(
                     std::forward<Expected>(expected));
                 auto description = matcher->toString();
@@ -235,6 +295,23 @@ namespace Progmasoft::Catch3
                                                           Argument>)
             {
                 // Strings are compared by value, also as `const char *`.
+                if constexpr (std::is_pointer_v<Stored>)
+                {
+                    if (expected == nullptr)
+                    {
+                        return { []([[maybe_unused]] const Argument &value) {
+                                    if constexpr (std::is_pointer_v<Argument>)
+                                    {
+                                        return value == nullptr;
+                                    }
+                                    else
+                                    {
+                                        return false;
+                                    }
+                                },
+                                 "nullptr" };
+                    }
+                }
                 std::string text{ std::forward<Expected>(expected) };
                 auto description = Catch::Detail::stringify(text);
                 return { [text = std::move(text)](const Argument &value) {
@@ -250,12 +327,14 @@ namespace Progmasoft::Catch3
                          std::move(description) };
             }
             else if constexpr (std::is_integral_v<Argument>
-                               && std::is_integral_v<Stored>)
+                               && std::is_integral_v<Stored>
+                               && !std::is_same_v<Argument, bool>
+                               && !std::is_same_v<Stored, bool>)
             {
                 // A literal is an int, whatever the type of the parameter.
-                const auto value = static_cast<Argument>(expected);
+                const Stored value = expected;
                 return { [value](const Argument &argument) {
-                            return argument == value;
+                            return SameInteger(argument, value);
                         },
                          Catch::Detail::stringify(value) };
             }
@@ -383,6 +462,8 @@ namespace Progmasoft::Catch3
                 auto held
                     = std::make_shared<Result>(std::forward<Value>(value));
                 return Does([held](Arguments...) -> Result {
+                    // Calls can come from several threads.
+                    const auto lock = Detail::LockMocks();
                     return std::move(*held);
                 });
             }
@@ -526,7 +607,7 @@ namespace Progmasoft::Catch3
             // and what it did not get to call says nothing more.
             if (std::uncaught_exceptions() <= exceptions)
             {
-                VerifyAll(Detail::MockReport::kInDestructor);
+                VerifyAll();
             }
         }
 
@@ -541,7 +622,7 @@ namespace Progmasoft::Catch3
         void
         Verify()
         {
-            VerifyAll(Detail::MockReport::kContinue);
+            VerifyAll();
         }
 
         Result
@@ -549,7 +630,7 @@ namespace Progmasoft::Catch3
         {
             const Decision decision = Decide(
                 std::tuple<const std::decay_t<Arguments> &...>{ arguments... });
-            if (decision.line == nullptr)
+            if (!decision.line)
             {
                 return Refuse(decision.message);
             }
@@ -557,8 +638,7 @@ namespace Progmasoft::Catch3
             {
                 Detail::ReportMockFailure(*decision.line,
                                           name,
-                                          decision.message,
-                                          Detail::MockReport::kContinue);
+                                          decision.message);
             }
             if (decision.action != nullptr)
             {
@@ -596,7 +676,7 @@ namespace Progmasoft::Catch3
         struct Decision final
         {
             // Empty when the call is refused.
-            const Catch::SourceLineInfo *line = nullptr;
+            std::optional<Catch::SourceLineInfo> line;
             std::shared_ptr<std::function<Result(Arguments...)>> action;
             std::string message;
         };
@@ -687,7 +767,7 @@ namespace Progmasoft::Catch3
             auto &state = *expectation.state;
             ++state.Calls;
             Decision decision;
-            decision.line = &state.Line;
+            decision.line = state.Line;
             decision.action = expectation.action;
             for (const auto &sequence : state.Sequences)
             {
@@ -732,17 +812,11 @@ namespace Progmasoft::Catch3
             const auto line = FirstLine();
             if constexpr (std::is_void_v<Result>)
             {
-                Detail::ReportMockFailure(line,
-                                          name,
-                                          message,
-                                          Detail::MockReport::kContinue);
+                Detail::ReportMockFailure(line, name, message);
             }
             else if constexpr (std::is_default_constructible_v<Result>)
             {
-                Detail::ReportMockFailure(line,
-                                          name,
-                                          message,
-                                          Detail::MockReport::kContinue);
+                Detail::ReportMockFailure(line, name, message);
                 return Result{};
             }
             else
@@ -762,7 +836,7 @@ namespace Progmasoft::Catch3
         }
 
         void
-        VerifyAll(Detail::MockReport report)
+        VerifyAll()
         {
             std::vector<std::unique_ptr<Expectation>> checked;
             {
@@ -786,8 +860,7 @@ namespace Progmasoft::Catch3
                         "unmet expectation: " + state.Description + " needs "
                             + Detail::DescribeCalls(state.Minimum,
                                                     state.Maximum)
-                            + ", " + Detail::DescribeCount(state.Calls),
-                        report);
+                            + ", " + Detail::DescribeCount(state.Calls));
                 }
             }
         }

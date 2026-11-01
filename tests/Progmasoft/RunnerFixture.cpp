@@ -251,6 +251,15 @@ TEST_CASE("fixture mock left by a failure", "[fixture][mock]")
     FAIL("the test's own failure");
 }
 
+TEST_CASE("fixture mock outlives the run", "[fixture][mock-exit]")
+{
+    static auto *mock = new Progmasoft::Catch3::MockFunction<void()>{ "late" };
+    CATCH3_EXPECT_CALL (*mock)();
+    std::atexit([] {
+        delete mock;
+    });
+}
+
 TEST_CASE("fixture skips", "[fixture][skip]")
 {
     SKIP("not on this machine");

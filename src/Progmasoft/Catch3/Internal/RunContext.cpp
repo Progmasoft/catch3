@@ -356,6 +356,11 @@ namespace Catch {
     RunContext::~RunContext() {
         updateTotalsFromAtomics();
         m_reporter->testRunEnded(TestRunStats(m_runInfo, m_totals, aborting()));
+        // What outlives the run, such as a mock of static lifetime, must not
+        // find a capture that is gone.
+        if ( getCurrentContext().getResultCapture() == this ) {
+            getCurrentMutableContext().setResultCapture( nullptr );
+        }
     }
 
     Totals RunContext::runTest(TestCaseHandle const& testCase) {

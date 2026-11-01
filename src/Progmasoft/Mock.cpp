@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <exception>
 
 namespace Progmasoft::Catch3::Detail
 {
@@ -101,16 +100,15 @@ namespace Progmasoft::Catch3::Detail
     void
     ReportMockFailure(const Catch::SourceLineInfo &line,
                       const std::string &mock,
-                      std::string message,
-                      MockReport report)
+                      std::string message)
     {
         if (!InTestCase())
         {
             WriteToStandardError(line, mock, message);
             return;
         }
-        // An aborting run throws out of any failure, and a destructor must
-        // not let that through.
+        // An aborting run throws out of any failure. The run still stops, at
+        // its next assertion.
         CATCH_TRY
         {
             Report(line,
@@ -120,12 +118,7 @@ namespace Progmasoft::Catch3::Detail
                    Catch::ResultDisposition::ContinueOnFailure);
         }
         CATCH_CATCH_ALL
-        {
-            if (report == MockReport::kContinue)
-            {
-                std::rethrow_exception(std::current_exception());
-            }
-        }
+        {}
     }
 
     void

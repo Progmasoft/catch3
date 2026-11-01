@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch3 v0.3.0.1, on the Catch2 v3.16.1 engine
-//  Generated: 2026-11-01 16:09:52.594301
+//  Generated: 2026-11-01 20:05:03.089807
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -5189,6 +5189,11 @@ namespace Catch {
     RunContext::~RunContext() {
         updateTotalsFromAtomics();
         m_reporter->testRunEnded(TestRunStats(m_runInfo, m_totals, aborting()));
+        // What outlives the run, such as a mock of static lifetime, must not
+        // find a capture that is gone.
+        if ( getCurrentContext().getResultCapture() == this ) {
+            getCurrentMutableContext().setResultCapture( nullptr );
+        }
     }
 
     Totals RunContext::runTest(TestCaseHandle const& testCase) {

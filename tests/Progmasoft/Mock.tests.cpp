@@ -5,6 +5,7 @@
 #include <Progmasoft/Catch3/Matchers/String.hpp>
 #include <Progmasoft/Catch3/Mock.hpp>
 #include <Progmasoft/Catch3/TestMacros.hpp>
+#include <atomic>
 #include <functional>
 #include <map>
 #include <memory>
@@ -240,6 +241,80 @@ TEST_CASE("Strings match by value, whatever their type", "[progmasoft][mock]")
     log(text.c_str());
     log(nullptr);
     size(3);
+}
+
+TEST_CASE("A null text expectation accepts only null", "[progmasoft][mock]")
+{
+    const char *const missing = nullptr;
+    CATCH3_MOCK_FUNCTION(pointer, int(const char *));
+    CATCH3_MOCK_FUNCTION(text, int(const std::string &));
+    CATCH3_EXPECT_CALL(pointer)(missing).Returns(1);
+    CATCH3_EXPECT_CALL(pointer)("text").Returns(2);
+    CATCH3_EXPECT_CALL(text)(missing).AnyTimes().Returns(1);
+    CATCH3_EXPECT_CALL(text)(Any).Returns(2);
+
+    CHECK(pointer(nullptr) == 1);
+    CHECK(pointer("text") == 2);
+    CHECK(text("") == 2);
+}
+
+TEST_CASE("Integers match by value, whatever their types", "[progmasoft][mock]")
+{
+    CATCH3_MOCK_FUNCTION(narrow, int(unsigned char));
+    CATCH3_MOCK_FUNCTION(unsignedOne, int(unsigned));
+    CATCH3_MOCK_FUNCTION(signedOne, int(int));
+    CATCH3_MOCK_FUNCTION(flag, int(bool));
+    CATCH3_EXPECT_CALL(narrow)(256).AnyTimes().Returns(1);
+    CATCH3_EXPECT_CALL(narrow)(Any).Returns(2);
+    CATCH3_EXPECT_CALL(unsignedOne)(-1).AnyTimes().Returns(1);
+    CATCH3_EXPECT_CALL(unsignedOne)(7).Returns(2);
+    CATCH3_EXPECT_CALL(unsignedOne)(Any).Returns(3);
+    CATCH3_EXPECT_CALL(signedOne)(4294967295U).AnyTimes().Returns(1);
+    CATCH3_EXPECT_CALL(signedOne)(Any).Returns(2);
+    CATCH3_EXPECT_CALL(flag)(true).Returns(1);
+
+    CHECK(narrow(0) == 2);
+    CHECK(unsignedOne(7U) == 2);
+    CHECK(unsignedOne(4294967295U) == 3);
+    CHECK(signedOne(-1) == 2);
+    CHECK(flag(true) == 1);
+}
+
+TEST_CASE("Calls from other threads share a result that can only move",
+          "[progmasoft][mock]")
+{
+    CATCH3_MOCK_FUNCTION(take, std::unique_ptr<int>());
+    CATCH3_EXPECT_CALL(take)().Times(400).Returns(std::make_unique<int>(1));
+    std::atomic<int> taken{ 0 };
+    std::vector<std::thread> threads;
+    for (int thread = 0; thread < 4; ++thread)
+    {
+        threads.emplace_back([&take, &taken] {
+            for (int call = 0; call < 100; ++call)
+            {
+                if (take() != nullptr)
+                {
+                    ++taken;
+                }
+            }
+        });
+    }
+    for (auto &thread : threads)
+    {
+        thread.join();
+    }
+    CHECK(taken == 1);
+}
+
+TEST_CASE("A mock can outlive the run", "[progmasoft][mock]")
+{
+    const Scratch scratch;
+    const auto run
+        = RunFixture(scratch, { "--no-history", "[mock-exit]", "--jobs=1" });
+    INFO(run.output);
+    CHECK(ExitCode(run) == 0);
+    CHECK(run.Test("fixture mock outlives the run")["outcome"].AsString()
+          == "passed");
 }
 
 TEST_CASE("Calls from other threads are counted", "[progmasoft][mock]")

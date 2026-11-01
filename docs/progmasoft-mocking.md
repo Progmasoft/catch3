@@ -67,14 +67,15 @@ accepts any arguments; otherwise each parameter takes one of these:
 
 | Written as | Accepts |
 | --- | --- |
-| a value | what compares equal to it; strings compare by value, also as `const char *` |
+| a value | what compares equal to it; strings compare by value, also as `const char *`, and integers by value whatever their types, so 256 never accepts an `unsigned char` |
 | a Catch matcher, such as `StartsWith("a")` | what the matcher accepts |
 | `Any` | anything |
 | `Where(predicate, "description")` | what the predicate accepts |
 
 A composition such as `StartsWith("a") && EndsWith("z")` refers to temporaries
-that are gone when the mock is called, so it does not compile here; put it in a
-`Where`.
+that are gone when the mock is called, and Catch's vector matchers, such as
+`Equals(vector)`, refer to their vector. Neither compiles here; put them in a
+`Where`. A matcher of your own has to hold what it compares with.
 
 The result of `CATCH3_EXPECT_CALL` takes these, in any order:
 
@@ -91,7 +92,8 @@ accepts its arguments and can take another call. A call none of them accepts
 fails the test case and returns a value-initialized result. So does a call they
 accept when all of them are used up. When the result cannot be made that way, a
 reference for example, the test case ends there; the same happens to an
-expectation with no `Returns` or `Does`.
+expectation with no `Returns` or `Does`. A `noexcept` function cannot leave the
+test case that way, so such a call ends the process.
 
 A mock with no expectation for a call treats it as a failure. An expectation
 with `AnyTimes()` is how to allow calls that do not matter to the test.
