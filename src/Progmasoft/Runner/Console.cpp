@@ -203,6 +203,21 @@ namespace Progmasoft::Catch3::Runner
     }
 
     void
+    ConsoleReport::ImportStarting(std::size_t tests, std::size_t files)
+    {
+        total_ = tests;
+        if (options_.verbosity == Verbosity::kQuiet)
+        {
+            return;
+        }
+        Write(output_,
+              Paint("Catch3", kBold) + ": " + std::to_string(tests)
+                  + " test(s) imported from " + std::to_string(files)
+                  + " report(s)\n");
+        std::fflush(output_);
+    }
+
+    void
     ConsoleReport::Retrying(const TestResult &test, const Attempt &attempt)
     {
         if (options_.verbosity != Verbosity::kVerbose)

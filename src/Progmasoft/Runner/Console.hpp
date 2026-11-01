@@ -25,6 +25,10 @@ namespace Progmasoft::Catch3::Runner
                     std::uint32_t seed,
                     const std::vector<std::string> &notes);
 
+        /// The start of `--import`: results read from `files` reports.
+        void
+        ImportStarting(std::size_t tests, std::size_t files);
+
         void
         TestFinished(const TestResult &test);
 

@@ -48,6 +48,8 @@ Catch3 runner replaced Catch2's in every test binary:
 - every failure gets a category, a signature and an analysis;
 - reports are console, JUnit XML with flaky and rerun elements, JSON and a
   trace; the discovery listing has a fixed, versioned format;
+- reports of other frameworks are imported, so their tests get the same
+  history, flaky detection, quarantine and analytics;
 - every test gets a temporary directory of its own;
 - its command line is parsed by a hand-written, typed parser, like the other
   Progmasoft tools.

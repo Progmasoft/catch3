@@ -21,6 +21,8 @@ namespace Progmasoft::Catch3::Runner
         kListTests,
         kListTags,
         kAnalytics,
+        /// Read the reports of other test frameworks.
+        kImport,
         kHelp,
         kVersion,
         /// Internal: run tests on behalf of a runner, over the protocol.
@@ -76,6 +78,20 @@ namespace Progmasoft::Catch3::Runner
         /// Quarantine is reported, but failures still fail the run.
         kReport,
         kOff,
+    };
+
+    /// The reports `--import` reads.
+    enum class ImportFormat : std::uint8_t
+    {
+        /// Whichever the contents show.
+        kAuto,
+        /// Catch3's own: `--json` reports and catch3-results JSON Lines.
+        kCatch3,
+        kJUnit,
+        kXUnit,
+        kTrx,
+        kTap,
+        kCtrf,
     };
 
     enum class ColorMode : std::uint8_t
@@ -156,6 +172,15 @@ namespace Progmasoft::Catch3::Runner
         QuarantineMode quarantine = QuarantineMode::kAuto;
         bool replayFailures = false;
         bool analyticsJson = false;
+
+        // Importing the reports of other frameworks.
+        std::vector<std::string> importFiles;
+        ImportFormat importFormat = ImportFormat::kAuto;
+        /// The history they go to; "imported" when empty.
+        std::string importName;
+        /// What was tested, so that a verdict that changes on one revision
+        /// counts as flaky; the Git commit here when empty.
+        std::string importRevision;
 
         // Output.
         Verbosity verbosity = Verbosity::kNormal;

@@ -166,7 +166,7 @@ concatenated_runner_headers = set()
 # files; in the amalgamation they are one header, included where the first
 # of them was.
 third_party_wrappers = ['Runner/Yyjson.inl', 'PugiXml.inl']
-wrapper_include_parser = re.compile(r'\s*#include "([A-Za-z/]+\.inl)".*')
+wrapper_include_parser = re.compile(r'\s*#include "([A-Za-z./]+\.inl)".*')
 third_party_files = {
     'yyjson.c': 'yyjson/yyjson.c',
     'yyjson.h': 'yyjson/yyjson.h',

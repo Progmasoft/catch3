@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch3 v0.3.0, on the Catch2 v3.16.1 engine
-//  Generated: 2026-11-01 00:25:29.768099
+//  Generated: 2026-11-01 14:22:22.249604
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
@@ -965,6 +965,8 @@ namespace Progmasoft::Catch3::Runner
         kListTests,
         kListTags,
         kAnalytics,
+        /// Read the reports of other test frameworks.
+        kImport,
         kHelp,
         kVersion,
         /// Internal: run tests on behalf of a runner, over the protocol.
@@ -1020,6 +1022,20 @@ namespace Progmasoft::Catch3::Runner
         /// Quarantine is reported, but failures still fail the run.
         kReport,
         kOff,
+    };
+
+    /// The reports `--import` reads.
+    enum class ImportFormat : std::uint8_t
+    {
+        /// Whichever the contents show.
+        kAuto,
+        /// Catch3's own: `--json` reports and catch3-results JSON Lines.
+        kCatch3,
+        kJUnit,
+        kXUnit,
+        kTrx,
+        kTap,
+        kCtrf,
     };
 
     enum class ColorMode : std::uint8_t
@@ -1100,6 +1116,15 @@ namespace Progmasoft::Catch3::Runner
         QuarantineMode quarantine = QuarantineMode::kAuto;
         bool replayFailures = false;
         bool analyticsJson = false;
+
+        // Importing the reports of other frameworks.
+        std::vector<std::string> importFiles;
+        ImportFormat importFormat = ImportFormat::kAuto;
+        /// The history they go to; "imported" when empty.
+        std::string importName;
+        /// What was tested, so that a verdict that changes on one revision
+        /// counts as flaky; the Git commit here when empty.
+        std::string importRevision;
 
         // Output.
         Verbosity verbosity = Verbosity::kNormal;
@@ -1267,6 +1292,10 @@ namespace Progmasoft::Catch3::Runner
                     std::size_t workers,
                     std::uint32_t seed,
                     const std::vector<std::string> &notes);
+
+        /// The start of `--import`: results read from `files` reports.
+        void
+        ImportStarting(std::size_t tests, std::size_t files);
 
         void
         TestFinished(const TestResult &test);
@@ -1852,6 +1881,90 @@ namespace Progmasoft::Catch3::Runner
     /// A message of kind `kind` with no other members yet.
     [[nodiscard]] JsonValue
     Message(std::string_view kind);
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
+
+
+namespace Progmasoft::Catch3::Runner
+{
+    /// The format of a report, from its contents; nothing when none fits.
+    [[nodiscard]] std::optional<ImportFormat>
+    DetectImportFormat(std::string_view text);
+
+    /// The results a report holds, in its order. A test the report names
+    /// twice comes back twice; `MergeImported` makes one test of them.
+    [[nodiscard]] Expected<std::vector<TestResult>>
+    ParseImport(std::string_view text, ImportFormat format);
+
+    /// One test per identifier: results that share one are attempts at that
+    /// test, in the order given, and the verdict is worked out over them. A
+    /// test that both failed and passed is flaky, as it is in a run of the
+    /// runner.
+    [[nodiscard]] std::vector<TestResult>
+    MergeImported(std::vector<TestResult> results);
+
+    /// A result without attempts yet.
+    [[nodiscard]] TestResult
+    ImportedTest(std::string name, std::string className);
+
+    /// One attempt as a report describes it. A failure gets an assertion
+    /// record with `message` and `details`, so the analysis treats it as it
+    /// treats a failure of Catch3's own; `category` defaults by outcome.
+    [[nodiscard]] Attempt
+    ImportedAttempt(Outcome outcome,
+                    std::int64_t durationMicroseconds,
+                    std::string message = {},
+                    std::string details = {},
+                    FailureCategory category = FailureCategory::kNone);
+
+    /// Seconds as a report gives them; what makes no sense as a duration
+    /// counts as zero.
+    [[nodiscard]] std::int64_t
+    ImportedMicroseconds(double seconds);
+
+    [[nodiscard]] std::string_view
+    ImportTrim(std::string_view text);
+
+    [[nodiscard]] bool
+    ImportStartsWith(std::string_view text, std::string_view prefix);
+
+    /// The lines of a text, without their line endings.
+    [[nodiscard]] std::vector<std::string_view>
+    ImportLines(std::string_view text);
+
+    /// A format of Catch3's own or CTRF, from a parsed document.
+    [[nodiscard]] std::optional<ImportFormat>
+    ImportJsonFormat(const JsonValue &value);
+
+    /// Whether a line reports a test in TAP.
+    [[nodiscard]] bool
+    IsTapTestLine(std::string_view line);
+
+    /// A `--json` report or catch3-results lines.
+    [[nodiscard]] Expected<std::vector<TestResult>>
+    ParseCatch3Report(std::string_view text);
+
+    [[nodiscard]] Expected<std::vector<TestResult>>
+    ParseCtrf(std::string_view text);
+
+    [[nodiscard]] Expected<std::vector<TestResult>>
+    ParseTap(std::string_view text);
+
+    [[nodiscard]] Expected<std::vector<TestResult>>
+    ParseJUnit(std::string_view text);
+
+    [[nodiscard]] Expected<std::vector<TestResult>>
+    ParseXUnit(std::string_view text);
+
+    [[nodiscard]] Expected<std::vector<TestResult>>
+    ParseTrx(std::string_view text);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
@@ -9702,6 +9815,11 @@ namespace Progmasoft::Catch3::Runner
             test.analysis.insert(
                 test.analysis.end(), findings.begin(), findings.end());
 
+            // An imported failure ran somewhere else.
+            if (inputs.program.empty())
+            {
+                continue;
+            }
             std::string replay = QuoteArgument(inputs.program) + " " +
                                  QuoteArgument(QuoteTestSpec(test.name)) +
                                  " --seed=" + std::to_string(failure->seed);
@@ -10198,6 +10316,21 @@ namespace Progmasoft::Catch3::Runner
             text += Paint("note: ", kCyan) + note + "\n";
         }
         Write(output_, text);
+        std::fflush(output_);
+    }
+
+    void
+    ConsoleReport::ImportStarting(std::size_t tests, std::size_t files)
+    {
+        total_ = tests;
+        if (options_.verbosity == Verbosity::kQuiet)
+        {
+            return;
+        }
+        Write(output_,
+              Paint("Catch3", kBold) + ": " + std::to_string(tests)
+                  + " test(s) imported from " + std::to_string(files)
+                  + " report(s)\n");
         std::fflush(output_);
     }
 
@@ -13375,6 +13508,58 @@ namespace Progmasoft::Catch3::Runner
                      options.replayFailures = true;
                      return Status::Ok();
                  }},
+                {"import",
+                 '\0',
+                 Takes::kValue,
+                 "FILE",
+                 "Importing results",
+                 "read a report of another framework instead of running tests "
+                 "(repeatable)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.mode = Mode::kImport;
+                     options.importFiles.push_back(*value);
+                     return Status::Ok();
+                 }},
+                {"import-format",
+                 '\0',
+                 Takes::kValue,
+                 "FORMAT",
+                 "Importing results",
+                 "auto (default), catch3, junit, xunit, trx, tap or ctrf",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     return ReadChoice<ImportFormat>(
+                         value,
+                         "import-format",
+                         {{"auto", ImportFormat::kAuto},
+                          {"catch3", ImportFormat::kCatch3},
+                          {"junit", ImportFormat::kJUnit},
+                          {"xunit", ImportFormat::kXUnit},
+                          {"trx", ImportFormat::kTrx},
+                          {"tap", ImportFormat::kTap},
+                          {"ctrf", ImportFormat::kCtrf}},
+                         options.importFormat);
+                 }},
+                {"import-name",
+                 '\0',
+                 Takes::kValue,
+                 "NAME",
+                 "Importing results",
+                 "the history imported results go to (default: imported); "
+                 "--analytics reads it too",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.importName = *value;
+                     return Status::Ok();
+                 }},
+                {"import-revision",
+                 '\0',
+                 Takes::kValue,
+                 "REVISION",
+                 "Importing results",
+                 "what the reports tested (default: the Git commit here)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.importRevision = *value;
+                     return Status::Ok();
+                 }},
                 {"analytics",
                  '\0',
                  Takes::kOptionalValue,
@@ -15881,6 +16066,10 @@ namespace Progmasoft::Catch3::Runner
             "break",
             "replay",
             "analytics",
+            "import",
+            "import-format",
+            "import-name",
+            "import-revision",
             "verbose",
             "quiet",
             "premature-exit-guard-file",
@@ -16379,6 +16568,1426 @@ namespace Progmasoft::Catch3::Runner
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <iterator>
+#include <map>
+#include <utility>
+
+namespace Progmasoft::Catch3::Runner
+{
+    std::string_view
+    ImportTrim(std::string_view text)
+    {
+        const auto blank = [](char character) {
+            return std::isspace(static_cast<unsigned char>(character)) != 0;
+        };
+        while (!text.empty() && blank(text.front()))
+        {
+            text.remove_prefix(1);
+        }
+        while (!text.empty() && blank(text.back()))
+        {
+            text.remove_suffix(1);
+        }
+        return text;
+    }
+
+    bool
+    ImportStartsWith(std::string_view text, std::string_view prefix)
+    {
+        return text.substr(0, prefix.size()) == prefix;
+    }
+
+    std::vector<std::string_view>
+    ImportLines(std::string_view text)
+    {
+        std::vector<std::string_view> lines;
+        while (!text.empty())
+        {
+            const auto end = text.find('\n');
+            auto line = text.substr(0, end);
+            if (!line.empty() && line.back() == '\r')
+            {
+                line.remove_suffix(1);
+            }
+            lines.push_back(line);
+            if (end == std::string_view::npos)
+            {
+                break;
+            }
+            text.remove_prefix(end + 1);
+        }
+        return lines;
+    }
+
+    namespace
+    {
+        namespace ImportText
+        {
+            /// Without a byte order mark and the white space before the
+            /// first character that counts.
+            std::string_view
+            Contents(std::string_view text)
+            {
+                if (ImportStartsWith(text, "\xEF\xBB\xBF"))
+                {
+                    text.remove_prefix(3);
+                }
+                return ImportTrim(text);
+            }
+
+            /// The name of the root element of an XML document.
+            std::string_view
+            RootElement(std::string_view text)
+            {
+                while (!text.empty())
+                {
+                    const auto open = text.find('<');
+                    if (open == std::string_view::npos
+                        || open + 1 >= text.size())
+                    {
+                        return {};
+                    }
+                    text.remove_prefix(open + 1);
+                    if (text.front() == '?' || text.front() == '!')
+                    {
+                        const auto close = text.find('>');
+                        if (close == std::string_view::npos)
+                        {
+                            return {};
+                        }
+                        text.remove_prefix(close + 1);
+                        continue;
+                    }
+                    return text.substr(0, text.find_first_of(" \t\r\n/>"));
+                }
+                return {};
+            }
+        } // namespace ImportText
+    } // namespace
+
+    std::optional<ImportFormat>
+    DetectImportFormat(std::string_view text)
+    {
+        const std::string_view contents = ImportText::Contents(text);
+        if (contents.empty())
+        {
+            return std::nullopt;
+        }
+        if (contents.front() == '<')
+        {
+            const std::string_view root = ImportText::RootElement(contents);
+            if (root == "testsuites" || root == "testsuite")
+            {
+                return ImportFormat::kJUnit;
+            }
+            if (root == "assemblies" || root == "assembly")
+            {
+                return ImportFormat::kXUnit;
+            }
+            if (root == "TestRun")
+            {
+                return ImportFormat::kTrx;
+            }
+            return std::nullopt;
+        }
+        if (contents.front() == '{')
+        {
+            auto whole = ParseJson(contents);
+            if (!whole)
+            {
+                // JSON Lines: the first line says what the others are.
+                whole = ParseJson(contents.substr(0, contents.find('\n')));
+            }
+            return whole ? ImportJsonFormat(*whole) : std::nullopt;
+        }
+        for (const auto raw : ImportLines(contents))
+        {
+            const std::string_view line = ImportTrim(raw);
+            if (line.empty() || line.front() == '#')
+            {
+                continue;
+            }
+            if (ImportStartsWith(line, "TAP version")
+                || ImportStartsWith(line, "1..") || IsTapTestLine(line))
+            {
+                return ImportFormat::kTap;
+            }
+            break;
+        }
+        return std::nullopt;
+    }
+
+    Expected<std::vector<TestResult>>
+    ParseImport(std::string_view text, ImportFormat format)
+    {
+        const std::string_view contents = ImportText::Contents(text);
+        switch (format)
+        {
+            case ImportFormat::kAuto:
+                break;
+            case ImportFormat::kCatch3:
+                return ParseCatch3Report(contents);
+            case ImportFormat::kJUnit:
+                return ParseJUnit(contents);
+            case ImportFormat::kXUnit:
+                return ParseXUnit(contents);
+            case ImportFormat::kTrx:
+                return ParseTrx(contents);
+            case ImportFormat::kTap:
+                return ParseTap(contents);
+            case ImportFormat::kCtrf:
+                return ParseCtrf(contents);
+        }
+        const auto detected = DetectImportFormat(contents);
+        if (!detected)
+        {
+            return Error{ "its format is not one Catch3 knows; "
+                          "--import-format names it" };
+        }
+        return ParseImport(contents, *detected);
+    }
+
+    std::vector<TestResult>
+    MergeImported(std::vector<TestResult> results)
+    {
+        std::vector<TestResult> tests;
+        std::map<std::string, std::size_t> positions;
+        for (auto &result : results)
+        {
+            if (result.id.empty())
+            {
+                result.id = History::KeyOf(result);
+            }
+            const auto [position, added]
+                = positions.emplace(result.id, tests.size());
+            if (added)
+            {
+                tests.push_back(std::move(result));
+                continue;
+            }
+            TestResult &test = tests[position->second];
+            test.flaky = test.flaky || result.flaky;
+            std::move(result.attempts.begin(),
+                      result.attempts.end(),
+                      std::back_inserter(test.attempts));
+        }
+        for (auto &test : tests)
+        {
+            std::size_t passes = 0;
+            std::size_t failures = 0;
+            for (std::size_t index = 0; index < test.attempts.size(); ++index)
+            {
+                Attempt &attempt = test.attempts[index];
+                attempt.number = index + 1;
+                passes += attempt.outcome == Outcome::kPassed ? 1 : 0;
+                failures += IsFailure(attempt.outcome) ? 1 : 0;
+            }
+            if (test.attempts.empty())
+            {
+                continue;
+            }
+            test.outcome = test.attempts.back().outcome;
+            test.category = test.attempts.back().category;
+            if (passes > 0 && failures > 0)
+            {
+                test.outcome = Outcome::kPassed;
+                test.category = FailureCategory::kNone;
+                test.flaky = true;
+                test.analysis.push_back(
+                    "flaky: failed " + std::to_string(failures) + " of "
+                    + std::to_string(test.attempts.size()) + " attempts");
+            }
+        }
+        return tests;
+    }
+
+    TestResult
+    ImportedTest(std::string name, std::string className)
+    {
+        TestResult test;
+        test.name = std::move(name);
+        test.className = std::move(className);
+        test.id = History::KeyOf(test);
+        return test;
+    }
+
+    Attempt
+    ImportedAttempt(Outcome outcome,
+                    std::int64_t durationMicroseconds,
+                    std::string message,
+                    std::string details,
+                    FailureCategory category)
+    {
+        Attempt attempt;
+        attempt.outcome = outcome;
+        attempt.durationMicroseconds
+            = std::max<std::int64_t>(durationMicroseconds, 0);
+        if (outcome == Outcome::kSkipped)
+        {
+            attempt.standardOutput = std::move(message);
+            return attempt;
+        }
+        if (outcome != Outcome::kFailedAsExpected && !IsFailure(outcome))
+        {
+            return attempt;
+        }
+        if (category == FailureCategory::kNone)
+        {
+            category = outcome == Outcome::kCrashed ? FailureCategory::kCrash
+                       : outcome == Outcome::kTimedOut
+                           ? FailureCategory::kTimeout
+                           : FailureCategory::kAssertion;
+        }
+        if (message.empty())
+        {
+            message = details.substr(0, details.find('\n'));
+        }
+        attempt.category = category;
+        attempt.assertionsFailed = 1;
+        AssertionRecord assertion;
+        assertion.message = std::move(message);
+        assertion.expansion = std::move(details);
+        assertion.category = category;
+        assertion.allowed = outcome == Outcome::kFailedAsExpected;
+        attempt.assertions.push_back(std::move(assertion));
+        return attempt;
+    }
+
+    std::int64_t
+    ImportedMicroseconds(double seconds)
+    {
+        // About thirty years; a longer duration is not a duration.
+        constexpr double kLongest = 1e9;
+        if (!std::isfinite(seconds) || seconds <= 0.0 || seconds > kLongest)
+        {
+            return 0;
+        }
+        return static_cast<std::int64_t>(std::llround(seconds * 1e6));
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+
+// The JSON reports: Catch3's own and CTRF.
+#include <utility>
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        namespace ImportJson
+        {
+            /// A format of Catch3's own or CTRF, from the parsed document.
+            std::optional<ImportFormat>
+            FormatOf(const JsonValue &value)
+            {
+                if (value["format"].AsString() == "catch3-run"
+                    || value["format"].AsString() == "catch3-results")
+                {
+                    return ImportFormat::kCatch3;
+                }
+                if (value["results"]["tests"].IsArray())
+                {
+                    return ImportFormat::kCtrf;
+                }
+                return std::nullopt;
+            }
+
+            /// What a test owes the verdict of an earlier run is worked out
+            /// again here, from this run's point of view.
+            void
+            Forget(TestResult &test)
+            {
+                test.quarantined = false;
+                test.history = FailureHistory::kUnknown;
+                test.selectionReason.clear();
+                test.signature.clear();
+                test.analysis.clear();
+                test.replayCommand.clear();
+                test.predictedDurationMicroseconds = 0;
+                test.predictedFailureProbability = 0.0;
+            }
+
+            Expected<TestResult>
+            ReadLine(const JsonValue &value)
+            {
+                TestResult test = TestResultFromJson(value);
+                Forget(test);
+                if (test.name.empty())
+                {
+                    test.name = test.id;
+                }
+                if (test.name.empty())
+                {
+                    return Error{ "a test needs an 'id' or a 'name'" };
+                }
+                const std::string &outcome = value["outcome"].AsString();
+                if (!OutcomeFromName(outcome))
+                {
+                    return Error{ "'" + test.name + "' has the outcome '"
+                                  + outcome + "'" };
+                }
+                if (test.attempts.empty())
+                {
+                    Attempt attempt = ImportedAttempt(
+                        test.outcome,
+                        value["durationMicroseconds"].AsInteger(),
+                        value["message"].AsString(),
+                        value["details"].AsString(),
+                        test.category);
+                    attempt.standardOutput = value["standardOutput"].AsString();
+                    attempt.standardError = value["standardError"].AsString();
+                    test.attempts.push_back(std::move(attempt));
+                }
+                return test;
+            }
+
+            Expected<std::vector<TestResult>>
+            ParseLines(std::string_view text)
+            {
+                std::vector<TestResult> tests;
+                std::size_t number = 0;
+                bool started = false;
+                for (const auto line : ImportLines(text))
+                {
+                    ++number;
+                    if (ImportTrim(line).empty())
+                    {
+                        continue;
+                    }
+                    const std::string where = "line " + std::to_string(number);
+                    auto value = ParseJson(line);
+                    if (!value)
+                    {
+                        return value.GetError().Context(where);
+                    }
+                    if (!started)
+                    {
+                        started = true;
+                        if ((*value)["format"].AsString() != "catch3-results")
+                        {
+                            return Error{ "the first line must name the format "
+                                          "catch3-results" };
+                        }
+                        if ((*value)["version"].AsInteger()
+                            > kResultsFormatVersion)
+                        {
+                            return Error{ "the format is newer than this "
+                                          "version of Catch3 reads" };
+                        }
+                        continue;
+                    }
+                    auto test = ReadLine(*value);
+                    if (!test)
+                    {
+                        return test.GetError().Context(where);
+                    }
+                    tests.push_back(std::move(*test));
+                }
+                return tests;
+            }
+
+            Expected<std::vector<TestResult>>
+            ParseCatch3(std::string_view text)
+            {
+                auto whole = ParseJson(text);
+                if (!whole)
+                {
+                    return ParseLines(text);
+                }
+                if ((*whole)["format"].AsString() != "catch3-run")
+                {
+                    return ParseLines(text);
+                }
+                auto run = RunResultFromJson(*whole);
+                if (!run)
+                {
+                    return run.GetError();
+                }
+                for (auto &test : run->tests)
+                {
+                    Forget(test);
+                }
+                return std::move(run->tests);
+            }
+
+            std::string
+            TextOf(const JsonValue &value)
+            {
+                if (!value.IsArray())
+                {
+                    return value.AsString();
+                }
+                std::string text;
+                for (const auto &item : value.Items())
+                {
+                    text += item.AsString() + "\n";
+                }
+                return text;
+            }
+
+            Outcome
+            CtrfOutcome(const std::string &status)
+            {
+                if (status == "passed")
+                {
+                    return Outcome::kPassed;
+                }
+                if (status == "failed")
+                {
+                    return Outcome::kFailed;
+                }
+                if (status == "skipped" || status == "pending")
+                {
+                    return Outcome::kSkipped;
+                }
+                return Outcome::kNotRun;
+            }
+
+            /// A test, or one retry of it: the two share these fields.
+            Attempt
+            CtrfAttempt(const JsonValue &value)
+            {
+                Attempt attempt = ImportedAttempt(
+                    CtrfOutcome(value["status"].AsString()),
+                    ImportedMicroseconds(value["duration"].AsNumber() / 1e3),
+                    value["message"].AsString(),
+                    value["trace"].AsString());
+                attempt.standardOutput = TextOf(value["stdout"]);
+                attempt.standardError = TextOf(value["stderr"]);
+                return attempt;
+            }
+
+            std::string
+            CtrfSuite(const JsonValue &suite)
+            {
+                if (!suite.IsArray())
+                {
+                    return suite.AsString();
+                }
+                std::string text;
+                for (const auto &item : suite.Items())
+                {
+                    text += (text.empty() ? "" : " > ") + item.AsString();
+                }
+                return text;
+            }
+
+            Expected<std::vector<TestResult>>
+            ParseCtrf(std::string_view text)
+            {
+                auto document = ParseJson(text);
+                if (!document)
+                {
+                    return document.GetError();
+                }
+                const JsonValue &tests = (*document)["results"]["tests"];
+                if (!tests.IsArray())
+                {
+                    return Error{ "a CTRF report has results.tests" };
+                }
+                std::vector<TestResult> results;
+                for (const auto &item : tests.Items())
+                {
+                    const std::string &name = item["name"].AsString();
+                    if (name.empty())
+                    {
+                        return Error{ "a CTRF test has no name" };
+                    }
+                    TestResult test
+                        = ImportedTest(name, CtrfSuite(item["suite"]));
+                    test.file = item["filePath"].AsString();
+                    test.line
+                        = static_cast<std::size_t>(item["line"].AsUnsigned());
+                    test.flaky = item["flaky"].AsBoolean();
+                    for (const auto &tag : item["tags"].Items())
+                    {
+                        test.tags.push_back(tag.AsString());
+                    }
+                    for (const auto &retry : item["retryAttempts"].Items())
+                    {
+                        test.attempts.push_back(CtrfAttempt(retry));
+                    }
+                    // The retries may or may not list the last attempt, which
+                    // is the test itself.
+                    Attempt last = CtrfAttempt(item);
+                    if (test.attempts.empty()
+                        || test.attempts.back().outcome != last.outcome)
+                    {
+                        test.attempts.push_back(std::move(last));
+                    }
+                    results.push_back(std::move(test));
+                }
+                return results;
+            }
+        } // namespace ImportJson
+    } // namespace
+
+    std::optional<ImportFormat>
+    ImportJsonFormat(const JsonValue &value)
+    {
+        return ImportJson::FormatOf(value);
+    }
+
+    Expected<std::vector<TestResult>>
+    ParseCatch3Report(std::string_view text)
+    {
+        return ImportJson::ParseCatch3(text);
+    }
+
+    Expected<std::vector<TestResult>>
+    ParseCtrf(std::string_view text)
+    {
+        return ImportJson::ParseCtrf(text);
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+
+// The Test Anything Protocol, versions 12 to 14.
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
+#include <map>
+#include <utility>
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        namespace ImportTap
+        {
+            std::string
+            Lowered(std::string_view text)
+            {
+                std::string lowered{ text };
+                std::transform(lowered.begin(),
+                               lowered.end(),
+                               lowered.begin(),
+                               [](unsigned char character) {
+                                   return static_cast<char>(
+                                       std::tolower(character));
+                               });
+                return lowered;
+            }
+
+            struct Line final
+            {
+                bool ok = false;
+                std::string description;
+                std::string directive;
+                std::string reason;
+            };
+
+            /// Where the `#` that starts a directive is: `\#` is part of the
+            /// description.
+            std::size_t
+            DirectiveStart(std::string_view text)
+            {
+                for (std::size_t index = 0; index < text.size(); ++index)
+                {
+                    if (text[index] == '\\')
+                    {
+                        ++index;
+                    }
+                    else if (text[index] == '#')
+                    {
+                        return index;
+                    }
+                }
+                return std::string_view::npos;
+            }
+
+            std::string
+            Unescaped(std::string_view text)
+            {
+                std::string result;
+                for (std::size_t index = 0; index < text.size(); ++index)
+                {
+                    if (text[index] == '\\' && index + 1 < text.size())
+                    {
+                        ++index;
+                    }
+                    result.push_back(text[index]);
+                }
+                return result;
+            }
+
+            /// Reads a test line; nothing when `text` is not one.
+            std::optional<Line>
+            ReadLine(std::string_view text)
+            {
+                Line line;
+                if (ImportStartsWith(text, "not ok"))
+                {
+                    text.remove_prefix(6);
+                }
+                else if (ImportStartsWith(text, "ok"))
+                {
+                    line.ok = true;
+                    text.remove_prefix(2);
+                }
+                else
+                {
+                    return std::nullopt;
+                }
+                if (!text.empty() && text.front() != ' '
+                    && text.front() != '\t')
+                {
+                    return std::nullopt;
+                }
+                text = ImportTrim(text);
+                while (!text.empty()
+                       && std::isdigit(static_cast<unsigned char>(text.front()))
+                              != 0)
+                {
+                    text.remove_prefix(1);
+                }
+                text = ImportTrim(text);
+                if (ImportStartsWith(text, "- "))
+                {
+                    text.remove_prefix(2);
+                }
+                const auto directive = DirectiveStart(text);
+                line.description
+                    = Unescaped(ImportTrim(text.substr(0, directive)));
+                if (directive != std::string_view::npos)
+                {
+                    const std::string_view rest
+                        = ImportTrim(text.substr(directive + 1));
+                    const std::string word = Lowered(rest.substr(0, 4));
+                    if (word == "skip" || word == "todo")
+                    {
+                        line.directive = word;
+                        const auto space = rest.find_first_of(" \t");
+                        line.reason = space == std::string_view::npos
+                                          ? std::string{}
+                                          : std::string{ ImportTrim(
+                                                rest.substr(space)) };
+                    }
+                }
+                return line;
+            }
+
+            Outcome
+            OutcomeOf(const Line &line)
+            {
+                if (line.directive == "skip")
+                {
+                    return Outcome::kSkipped;
+                }
+                if (line.ok)
+                {
+                    return Outcome::kPassed;
+                }
+                return line.directive == "todo" ? Outcome::kFailedAsExpected
+                                                : Outcome::kFailed;
+            }
+
+            std::string
+            Unquoted(std::string_view text)
+            {
+                text = ImportTrim(text);
+                if (text.size() >= 2 && text.front() == text.back()
+                    && (text.front() == '"' || text.front() == '\''))
+                {
+                    text.remove_prefix(1);
+                    text.remove_suffix(1);
+                }
+                return std::string{ text };
+            }
+
+            /// A YAML block after a test: its text goes into the failure, and
+            /// the two keys that tools agree on are read.
+            void
+            ApplyDiagnostics(TestResult &test, const std::string &block)
+            {
+                Attempt &attempt = test.attempts.back();
+                for (const auto raw : ImportLines(block))
+                {
+                    const std::string_view line = ImportTrim(raw);
+                    if (ImportStartsWith(line, "duration_ms:"))
+                    {
+                        const std::string value{ line.substr(12) };
+                        attempt.durationMicroseconds = ImportedMicroseconds(
+                            std::strtod(value.c_str(), nullptr) / 1e3);
+                    }
+                    else if (ImportStartsWith(line, "message:")
+                             && !attempt.assertions.empty())
+                    {
+                        attempt.assertions.front().message
+                            = Unquoted(line.substr(8));
+                    }
+                }
+                if (!attempt.assertions.empty())
+                {
+                    attempt.assertions.front().expansion += block;
+                }
+            }
+
+            Expected<std::vector<TestResult>>
+            Parse(std::string_view text)
+            {
+                std::vector<TestResult> tests;
+                std::vector<std::string> subtests;
+                std::map<std::string, std::size_t> seen;
+                std::optional<std::size_t> planned;
+                std::size_t topLevel = 0;
+                std::string bailOut;
+                bool anything = false;
+                std::optional<std::string> block;
+                for (const auto raw : ImportLines(text))
+                {
+                    const std::string_view line = ImportTrim(raw);
+                    if (block)
+                    {
+                        if (line == "...")
+                        {
+                            if (!tests.empty())
+                            {
+                                ApplyDiagnostics(tests.back(), *block);
+                            }
+                            block.reset();
+                        }
+                        else
+                        {
+                            block->append(raw).push_back('\n');
+                        }
+                        continue;
+                    }
+                    if (line == "---")
+                    {
+                        block.emplace();
+                        continue;
+                    }
+                    std::size_t indent = 0;
+                    for (const char character : raw)
+                    {
+                        if (character != ' ' && character != '\t')
+                        {
+                            break;
+                        }
+                        indent += character == '\t' ? 4 : 1;
+                    }
+                    const std::size_t depth = indent / 4;
+                    if (ImportStartsWith(line, "# Subtest:"))
+                    {
+                        subtests.resize(depth);
+                        subtests.emplace_back(ImportTrim(line.substr(10)));
+                        continue;
+                    }
+                    if (ImportStartsWith(line, "Bail out!"))
+                    {
+                        anything = true;
+                        bailOut = std::string{ line };
+                        break;
+                    }
+                    if (ImportStartsWith(line, "1..") && depth == 0)
+                    {
+                        anything = true;
+                        const std::string count{ line.substr(3) };
+                        planned = static_cast<std::size_t>(
+                            std::strtoull(count.c_str(), nullptr, 10));
+                        continue;
+                    }
+                    if (line.size() > 1 && line.front() == '#' && !tests.empty()
+                        && !tests.back().attempts.back().assertions.empty())
+                    {
+                        // Comments after a failure usually explain it.
+                        auto &failure
+                            = tests.back().attempts.back().assertions.front();
+                        failure.expansion
+                            += std::string{ ImportTrim(line.substr(1)) } + "\n";
+                        continue;
+                    }
+                    const auto parsed = ReadLine(line);
+                    if (!parsed)
+                    {
+                        continue;
+                    }
+                    anything = true;
+                    topLevel += depth == 0 ? 1 : 0;
+                    std::string parent;
+                    for (std::size_t level = 0;
+                         level < std::min(depth, subtests.size());
+                         ++level)
+                    {
+                        parent
+                            += (parent.empty() ? "" : " > ") + subtests[level];
+                    }
+                    std::string name = parsed->description;
+                    if (name.empty())
+                    {
+                        name = "test "
+                               + std::to_string(++seen["unnamed\n" + parent]);
+                    }
+                    // TAP has no retries: a name that comes back in one
+                    // stream is another test.
+                    const std::size_t repeat = ++seen[parent + "\n" + name];
+                    if (repeat > 1)
+                    {
+                        name += " #" + std::to_string(repeat);
+                    }
+                    TestResult test
+                        = ImportedTest(std::move(name), std::move(parent));
+                    test.attempts.push_back(
+                        ImportedAttempt(OutcomeOf(*parsed), 0, parsed->reason));
+                    tests.push_back(std::move(test));
+                }
+                if (!anything)
+                {
+                    return Error{ "there are no TAP results in it" };
+                }
+                // A stream that ends early must not read as a run that passed.
+                std::string incomplete;
+                if (!bailOut.empty())
+                {
+                    incomplete = bailOut;
+                }
+                else if (planned && *planned != topLevel)
+                {
+                    incomplete = "planned " + std::to_string(*planned)
+                                 + " test(s), reported "
+                                 + std::to_string(topLevel);
+                }
+                if (!incomplete.empty())
+                {
+                    TestResult test = ImportedTest("the TAP stream", {});
+                    test.attempts.push_back(
+                        ImportedAttempt(Outcome::kFailed,
+                                        0,
+                                        std::move(incomplete),
+                                        {},
+                                        FailureCategory::kInfrastructure));
+                    tests.push_back(std::move(test));
+                }
+                return tests;
+            }
+        } // namespace ImportTap
+    } // namespace
+
+    bool
+    IsTapTestLine(std::string_view line)
+    {
+        return ImportTap::ReadLine(line).has_value();
+    }
+
+    Expected<std::vector<TestResult>>
+    ParseTap(std::string_view text)
+    {
+        return ImportTap::Parse(text);
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+
+// The XML reports: JUnit, xUnit.net v2 and Visual Studio's TRX.
+#include <cstdlib>
+#include <map>
+#include <string_view>
+#include <utility>
+
+
+namespace Progmasoft::Catch3::Runner
+{
+    namespace
+    {
+        namespace ImportXml
+        {
+            Expected<bool>
+            Load(pugi::xml_document &document, std::string_view text)
+            {
+                const pugi::xml_parse_result parsed
+                    = document.load_buffer(text.data(), text.size());
+                if (!parsed)
+                {
+                    return Error{ std::string{ "it is not valid XML: " }
+                                  + parsed.description() + " at byte "
+                                  + std::to_string(parsed.offset) };
+                }
+                return true;
+            }
+
+            double
+            NumberOf(const char *text)
+            {
+                std::string digits;
+                for (; *text != '\0'; ++text)
+                {
+                    if (*text != ',')
+                    {
+                        digits.push_back(*text);
+                    }
+                }
+                return std::strtod(digits.c_str(), nullptr);
+            }
+
+            std::string
+            TextOf(pugi::xml_node node)
+            {
+                return node.text().get();
+            }
+
+            /// `error` and `failure` of JUnit and what Surefire writes for
+            /// retries, which have the same shape.
+            Attempt
+            JUnitFailure(pugi::xml_node node, FailureCategory category)
+            {
+                std::string details = TextOf(node);
+                if (const auto trace = node.child("stackTrace"))
+                {
+                    details = TextOf(trace);
+                }
+                Attempt attempt
+                    = ImportedAttempt(Outcome::kFailed,
+                                      ImportedMicroseconds(NumberOf(
+                                          node.attribute("time").value())),
+                                      node.attribute("message").value(),
+                                      std::move(details),
+                                      category);
+                attempt.assertions.front().macro
+                    = node.attribute("type").value();
+                attempt.standardOutput = TextOf(node.child("system-out"));
+                attempt.standardError = TextOf(node.child("system-err"));
+                return attempt;
+            }
+
+            bool
+            NameIs(pugi::xml_node node, std::string_view name)
+            {
+                return name == node.name();
+            }
+
+            bool
+            NameEndsWithError(pugi::xml_node node)
+            {
+                return NameIs(node, "flakyError") || NameIs(node, "rerunError");
+            }
+
+            bool
+            NotRunStatus(pugi::xml_node testCase)
+            {
+                const std::string_view status
+                    = testCase.attribute("status").value();
+                const std::string_view result
+                    = testCase.attribute("result").value();
+                return status == "notrun" || status == "skipped"
+                       || status == "disabled" || result == "skipped"
+                       || result == "suppressed";
+            }
+
+            void
+            ReadJUnitCase(pugi::xml_node testCase,
+                          pugi::xml_node suite,
+                          std::vector<TestResult> &tests)
+            {
+                TestResult test
+                    = ImportedTest(testCase.attribute("name").value(),
+                                   testCase.attribute("classname").value());
+                test.file = testCase.attribute("file").value();
+                for (auto outer = suite; test.file.empty() && outer;
+                     outer = outer.parent())
+                {
+                    test.file = outer.attribute("file").value();
+                }
+                test.line = testCase.attribute("line").as_ullong();
+
+                std::vector<Attempt> failures;
+                std::optional<Attempt> skipped;
+                for (const auto child : testCase.children())
+                {
+                    if (NameIs(child, "flakyFailure")
+                        || NameIs(child, "rerunFailure")
+                        || NameEndsWithError(child))
+                    {
+                        test.attempts.push_back(JUnitFailure(
+                            child,
+                            NameEndsWithError(child)
+                                ? FailureCategory::kUnexpectedException
+                                : FailureCategory::kAssertion));
+                    }
+                    else if (NameIs(child, "failure"))
+                    {
+                        failures.push_back(
+                            JUnitFailure(child, FailureCategory::kAssertion));
+                    }
+                    else if (NameIs(child, "error"))
+                    {
+                        failures.push_back(JUnitFailure(
+                            child,
+                            FailureCategory::kUnexpectedException));
+                    }
+                    else if (NameIs(child, "skipped"))
+                    {
+                        std::string reason = child.attribute("message").value();
+                        skipped = ImportedAttempt(
+                            Outcome::kSkipped,
+                            0,
+                            reason.empty() ? TextOf(child) : std::move(reason));
+                    }
+                }
+
+                const std::int64_t duration = ImportedMicroseconds(
+                    NumberOf(testCase.attribute("time").value()));
+                Attempt verdict;
+                if (!failures.empty())
+                {
+                    // Several failures are one attempt with several findings.
+                    verdict = std::move(failures.front());
+                    for (std::size_t index = 1; index < failures.size();
+                         ++index)
+                    {
+                        auto &record = failures[index].assertions.front();
+                        verdict.assertions.push_back(std::move(record));
+                        ++verdict.assertionsFailed;
+                    }
+                    verdict.durationMicroseconds = duration;
+                }
+                else if (skipped)
+                {
+                    verdict = std::move(*skipped);
+                }
+                else if (NotRunStatus(testCase))
+                {
+                    verdict = ImportedAttempt(Outcome::kSkipped, 0);
+                }
+                else
+                {
+                    verdict = ImportedAttempt(Outcome::kPassed, duration);
+                }
+                if (verdict.standardOutput.empty())
+                {
+                    verdict.standardOutput
+                        = TextOf(testCase.child("system-out"));
+                }
+                if (verdict.standardError.empty())
+                {
+                    verdict.standardError
+                        = TextOf(testCase.child("system-err"));
+                }
+                test.attempts.push_back(std::move(verdict));
+                tests.push_back(std::move(test));
+            }
+
+            void
+            ReadJUnitSuite(pugi::xml_node suite, std::vector<TestResult> &tests)
+            {
+                for (const auto child : suite.children())
+                {
+                    if (NameIs(child, "testcase"))
+                    {
+                        ReadJUnitCase(child, suite, tests);
+                    }
+                    else if (NameIs(child, "testsuite"))
+                    {
+                        ReadJUnitSuite(child, tests);
+                    }
+                }
+            }
+
+            void
+            ReadXUnitTest(pugi::xml_node node, std::vector<TestResult> &tests)
+            {
+                TestResult test = ImportedTest(node.attribute("name").value(),
+                                               node.attribute("type").value());
+                test.file = node.attribute("source-file").value();
+                test.line = node.attribute("source-line").as_ullong();
+                for (const auto trait : node.child("traits").children("trait"))
+                {
+                    test.tags.push_back(
+                        std::string{ trait.attribute("name").value() } + "="
+                        + trait.attribute("value").value());
+                }
+                const std::string_view result
+                    = node.attribute("result").value();
+                const std::int64_t duration = ImportedMicroseconds(
+                    NumberOf(node.attribute("time").value()));
+                Attempt attempt;
+                if (result == "Pass")
+                {
+                    attempt = ImportedAttempt(Outcome::kPassed, duration);
+                }
+                else if (result == "Fail")
+                {
+                    const auto failure = node.child("failure");
+                    attempt
+                        = ImportedAttempt(Outcome::kFailed,
+                                          duration,
+                                          TextOf(failure.child("message")),
+                                          TextOf(failure.child("stack-trace")));
+                    attempt.assertions.front().macro
+                        = failure.attribute("exception-type").value();
+                }
+                else if (result == "Skip")
+                {
+                    attempt = ImportedAttempt(Outcome::kSkipped,
+                                              0,
+                                              TextOf(node.child("reason")));
+                }
+                else
+                {
+                    attempt = ImportedAttempt(Outcome::kNotRun, 0);
+                }
+                if (attempt.standardOutput.empty())
+                {
+                    attempt.standardOutput = TextOf(node.child("output"));
+                }
+                test.attempts.push_back(std::move(attempt));
+                tests.push_back(std::move(test));
+            }
+
+            /// A failure outside any test, such as in a fixture.
+            void
+            ReadXUnitErrors(pugi::xml_node assembly,
+                            std::vector<TestResult> &tests)
+            {
+                for (const auto error :
+                     assembly.child("errors").children("error"))
+                {
+                    const auto failure = error.child("failure");
+                    TestResult test = ImportedTest(
+                        std::string{ error.attribute("type").value() } + " "
+                            + error.attribute("name").value(),
+                        assembly.attribute("name").value());
+                    test.attempts.push_back(
+                        ImportedAttempt(Outcome::kFailed,
+                                        0,
+                                        TextOf(failure.child("message")),
+                                        TextOf(failure.child("stack-trace")),
+                                        FailureCategory::kInfrastructure));
+                    tests.push_back(std::move(test));
+                }
+            }
+
+            void
+            ReadXUnitAssembly(pugi::xml_node assembly,
+                              std::vector<TestResult> &tests)
+            {
+                ReadXUnitErrors(assembly, tests);
+                for (const auto child : assembly.children())
+                {
+                    if (NameIs(child, "test"))
+                    {
+                        ReadXUnitTest(child, tests);
+                    }
+                    else if (NameIs(child, "collection"))
+                    {
+                        for (const auto test : child.children("test"))
+                        {
+                            ReadXUnitTest(test, tests);
+                        }
+                    }
+                }
+            }
+
+            /// `[days.]hours:minutes:seconds[.fraction]`.
+            std::int64_t
+            TrxDuration(std::string_view text)
+            {
+                double seconds = 0.0;
+                std::string field;
+                const auto addField = [&] {
+                    seconds = seconds * 60.0 + NumberOf(field.c_str());
+                    field.clear();
+                };
+                double days = 0.0;
+                for (std::size_t index = 0; index < text.size(); ++index)
+                {
+                    if (text[index] == ':')
+                    {
+                        addField();
+                    }
+                    else if (text[index] == '.'
+                             && text.find(':', index) != std::string_view::npos)
+                    {
+                        days = NumberOf(field.c_str());
+                        field.clear();
+                    }
+                    else
+                    {
+                        field.push_back(text[index]);
+                    }
+                }
+                addField();
+                return ImportedMicroseconds(seconds + days * 86400.0);
+            }
+
+            struct TrxOutcome final
+            {
+                Outcome outcome = Outcome::kNotRun;
+                FailureCategory category = FailureCategory::kNone;
+            };
+
+            TrxOutcome
+            TrxOutcomeOf(std::string_view outcome)
+            {
+                if (outcome == "Passed" || outcome == "PassedButRunAborted"
+                    || outcome == "Warning" || outcome == "Completed")
+                {
+                    return { Outcome::kPassed, FailureCategory::kNone };
+                }
+                if (outcome == "Failed")
+                {
+                    return { Outcome::kFailed, FailureCategory::kAssertion };
+                }
+                if (outcome == "Error")
+                {
+                    return { Outcome::kFailed,
+                             FailureCategory::kUnexpectedException };
+                }
+                if (outcome == "Timeout")
+                {
+                    return { Outcome::kTimedOut, FailureCategory::kTimeout };
+                }
+                if (outcome == "Aborted")
+                {
+                    return { Outcome::kCrashed, FailureCategory::kCrash };
+                }
+                if (outcome == "Disconnected")
+                {
+                    return { Outcome::kCrashed,
+                             FailureCategory::kInfrastructure };
+                }
+                if (outcome == "NotExecuted" || outcome == "Inconclusive"
+                    || outcome == "NotRunnable")
+                {
+                    return { Outcome::kSkipped, FailureCategory::kNone };
+                }
+                return {};
+            }
+
+            /// The class of a test: the type without its assembly.
+            std::string
+            TrxClass(std::string_view className)
+            {
+                return std::string{ className.substr(0, className.find(',')) };
+            }
+
+            void
+            ReadTrxResult(pugi::xml_node result,
+                          const std::map<std::string, std::string> &classes,
+                          std::vector<TestResult> &tests)
+            {
+                // A data-driven test: the rows are what ran.
+                if (const auto inner = result.child("InnerResults"))
+                {
+                    for (const auto row : inner.children())
+                    {
+                        ReadTrxResult(row, classes, tests);
+                    }
+                    return;
+                }
+                const auto found
+                    = classes.find(result.attribute("testId").value());
+                TestResult test = ImportedTest(
+                    result.attribute("testName").value(),
+                    found == classes.end() ? std::string{} : found->second);
+                const auto [outcome, category]
+                    = TrxOutcomeOf(result.attribute("outcome").value());
+                const auto output = result.child("Output");
+                const auto error = output.child("ErrorInfo");
+                std::string message = TextOf(error.child("Message"));
+                Attempt attempt = ImportedAttempt(
+                    outcome,
+                    TrxDuration(result.attribute("duration").value()),
+                    outcome == Outcome::kSkipped
+                        ? TextOf(output.child("StdOut"))
+                        : std::move(message),
+                    TextOf(error.child("StackTrace")),
+                    category);
+                if (outcome != Outcome::kSkipped)
+                {
+                    attempt.standardOutput = TextOf(output.child("StdOut"));
+                }
+                attempt.standardError = TextOf(output.child("StdErr"));
+                test.attempts.push_back(std::move(attempt));
+                tests.push_back(std::move(test));
+            }
+        } // namespace ImportXml
+    } // namespace
+
+    Expected<std::vector<TestResult>>
+    ParseJUnit(std::string_view text)
+    {
+        pugi::xml_document document;
+        if (auto loaded = ImportXml::Load(document, text); !loaded)
+        {
+            return loaded.GetError();
+        }
+        const pugi::xml_node root = document.document_element();
+        std::vector<TestResult> tests;
+        if (ImportXml::NameIs(root, "testsuites")
+            || ImportXml::NameIs(root, "testsuite"))
+        {
+            ImportXml::ReadJUnitSuite(root, tests);
+            return tests;
+        }
+        return Error{ "a JUnit report has testsuites or testsuite as its root, "
+                      "not "
+                      + std::string{ root.name() } };
+    }
+
+    Expected<std::vector<TestResult>>
+    ParseXUnit(std::string_view text)
+    {
+        pugi::xml_document document;
+        if (auto loaded = ImportXml::Load(document, text); !loaded)
+        {
+            return loaded.GetError();
+        }
+        const pugi::xml_node root = document.document_element();
+        std::vector<TestResult> tests;
+        if (ImportXml::NameIs(root, "assembly"))
+        {
+            ImportXml::ReadXUnitAssembly(root, tests);
+            return tests;
+        }
+        if (ImportXml::NameIs(root, "assemblies"))
+        {
+            for (const auto assembly : root.children("assembly"))
+            {
+                ImportXml::ReadXUnitAssembly(assembly, tests);
+            }
+            return tests;
+        }
+        return Error{ "an xUnit report has assemblies or assembly as its root, "
+                      "not "
+                      + std::string{ root.name() } };
+    }
+
+    Expected<std::vector<TestResult>>
+    ParseTrx(std::string_view text)
+    {
+        pugi::xml_document document;
+        if (auto loaded = ImportXml::Load(document, text); !loaded)
+        {
+            return loaded.GetError();
+        }
+        const pugi::xml_node root = document.document_element();
+        if (!ImportXml::NameIs(root, "TestRun"))
+        {
+            return Error{ "a TRX report has TestRun as its root, not "
+                          + std::string{ root.name() } };
+        }
+        std::map<std::string, std::string> classes;
+        for (const auto definition : root.child("TestDefinitions").children())
+        {
+            classes[definition.attribute("id").value()] = ImportXml::TrxClass(
+                definition.child("TestMethod").attribute("className").value());
+        }
+        std::vector<TestResult> tests;
+        for (const auto result : root.child("Results").children())
+        {
+            ImportXml::ReadTrxResult(result, classes, tests);
+        }
+        return tests;
+    }
+} // namespace Progmasoft::Catch3::Runner
+// Copyright (c) 2026 Progmasoft.
+// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -16782,6 +18391,7 @@ namespace Progmasoft::Catch3::Runner
 #include <cstdio>
 #include <exception>
 #include <filesystem>
+#include <iterator>
 #include <map>
 #include <random>
 #include <system_error>
@@ -17264,6 +18874,215 @@ namespace Progmasoft::Catch3
                 .count();
         }
 
+        /// Writes the reports that were asked for. One that is missing would
+        /// let a build server miss the run, so it fails the run.
+        bool
+        WriteReports(const Runner::Options &options, const RunResult &run)
+        {
+            bool written = true;
+            const auto write = [&](const std::string &path,
+                                   const std::string &contents) {
+                if (auto status = Runner::WriteFileAtomically(path, contents);
+                    !status)
+                {
+                    PrintError(status.GetError().Message());
+                    written = false;
+                }
+            };
+            if (!options.junitPath.empty())
+            {
+                write(options.junitPath, JUnitXmlWriter::ToString(run));
+            }
+            if (!options.jsonPath.empty())
+            {
+                write(options.jsonPath, Runner::ToJson(run).ToPrettyString());
+            }
+            if (!options.tracePath.empty())
+            {
+                write(options.tracePath, Runner::TraceJson(run));
+            }
+            return written;
+        }
+
+        void
+        SaveHistory(const std::filesystem::path &file,
+                    const RunResult &run,
+                    const std::string &commit,
+                    const std::string &binaryFingerprint,
+                    const std::map<std::string, std::string> &fingerprints)
+        {
+            if (run.tests.empty())
+            {
+                return;
+            }
+            Runner::RunRecord record;
+            record.unixMilliseconds = run.startUnixMilliseconds;
+            record.commit = commit;
+            record.binaryFingerprint = binaryFingerprint;
+            record.seed = run.seed;
+            record.tests = run.tests.size();
+            record.wallMicroseconds = run.wallMicroseconds;
+            for (const auto &test : run.tests)
+            {
+                record.failed += test.FailsRun() ? 1 : 0;
+            }
+            auto committed = Runner::History::Commit(file,
+                                                     run,
+                                                     record,
+                                                     fingerprints,
+                                                     {});
+            if (!committed)
+            {
+                std::fprintf(stderr,
+                             "warning: the history was not saved: %s\n",
+                             committed.GetError().Message().c_str());
+            }
+        }
+
+        int
+        ExitCodeOf(const Runner::Options &options,
+                   const RunResult &run,
+                   bool reportMissing)
+        {
+            const bool quarantineCounts
+                = options.quarantine == Runner::QuarantineMode::kReport;
+            bool failed = false;
+            std::size_t ran = 0;
+            std::size_t skipped = 0;
+            for (const auto &test : run.tests)
+            {
+                if (test.outcome != Outcome::kUpToDate)
+                {
+                    ++ran;
+                }
+                skipped += test.outcome == Outcome::kSkipped ? 1 : 0;
+                failed = failed || test.FailsRun()
+                         || (quarantineCounts && test.quarantined
+                             && IsFailure(test.outcome));
+            }
+            if (failed)
+            {
+                return Catch::TestFailureExitCode;
+            }
+            if (reportMissing)
+            {
+                return Catch::UnspecifiedErrorExitCode;
+            }
+            if (run.tests.empty() && !options.allowNoTests)
+            {
+                return Catch::NoTestsRunExitCode;
+            }
+            if (ran > 0 && skipped == ran && !options.allowNoTests)
+            {
+                return Catch::AllTestsSkippedExitCode;
+            }
+            return 0;
+        }
+
+        /// The file results are remembered in.
+        std::filesystem::path
+        HistoryFileOf(const Runner::Options &options,
+                      const std::filesystem::path &program,
+                      const std::string &programName)
+        {
+            std::string name = options.importName;
+            if (name.empty())
+            {
+                name = options.mode == Runner::Mode::kImport ? "imported"
+                                                             : programName;
+            }
+            return Runner::HistoryFile(HistoryDirectory(options, program),
+                                       name);
+        }
+
+        /// Reports of other frameworks: `--import`. What they say goes
+        /// through the analysis, the history and the reports of a run.
+        int
+        Import(const Runner::Options &options,
+               const std::filesystem::path &program,
+               const std::string &programName)
+        {
+            std::vector<TestResult> imported;
+            for (const auto &file : options.importFiles)
+            {
+                auto text = Runner::ReadFile(file);
+                if (!text)
+                {
+                    PrintError(text.GetError().Message());
+                    return Catch::UnspecifiedErrorExitCode;
+                }
+                auto tests = Runner::ParseImport(*text, options.importFormat);
+                if (!tests)
+                {
+                    PrintError(tests.GetError().Context(file).Message());
+                    return Catch::UnspecifiedErrorExitCode;
+                }
+                imported.insert(imported.end(),
+                                std::make_move_iterator(tests->begin()),
+                                std::make_move_iterator(tests->end()));
+            }
+
+            const std::filesystem::path historyFile
+                = HistoryFileOf(options, program, programName);
+            Runner::History history;
+            RunResult run;
+            run.binary = options.importName.empty() ? "imported"
+                                                    : options.importName;
+            if (options.historyEnabled)
+            {
+                auto loaded = Runner::History::Load(historyFile);
+                if (loaded)
+                {
+                    history = std::move(*loaded);
+                }
+                else
+                {
+                    run.notes.push_back("the history could not be read: "
+                                        + loaded.GetError().Message());
+                }
+            }
+
+            run.tests = Runner::MergeImported(std::move(imported));
+            run.candidates = run.tests.size();
+            run.startUnixMilliseconds = UnixMilliseconds();
+            std::error_code here;
+            const std::string revision
+                = options.importRevision.empty()
+                      ? Runner::CurrentCommit(
+                            std::filesystem::current_path(here))
+                      : options.importRevision;
+            std::map<std::string, std::string> fingerprints;
+            for (auto &test : run.tests)
+            {
+                run.wallMicroseconds += test.DurationMicroseconds();
+                fingerprints[test.id] = revision;
+                const Runner::TestHistory *past = history.Find(test.id);
+                test.quarantined
+                    = options.quarantine != Runner::QuarantineMode::kOff
+                      && past != nullptr && past->quarantine.has_value();
+            }
+
+            Runner::AnalysisInputs analysis;
+            analysis.history = options.historyEnabled ? &history : nullptr;
+            Runner::Analyze(run, analysis);
+
+            Runner::ConsoleReport console{ options, stdout };
+            console.ImportStarting(run.tests.size(),
+                                   options.importFiles.size());
+            for (const auto &test : run.tests)
+            {
+                console.TestFinished(test);
+            }
+            console.RunEnded(run);
+
+            const bool reportMissing = !WriteReports(options, run);
+            if (options.historyEnabled)
+            {
+                SaveHistory(historyFile, run, revision, {}, fingerprints);
+            }
+            return ExitCodeOf(options, run, reportMissing);
+        }
+
         int
         Run(const std::vector<std::string> &arguments)
         {
@@ -17310,6 +19129,10 @@ namespace Progmasoft::Catch3
             if (options.mode == Runner::Mode::kWorker)
             {
                 return Runner::RunWorker(options, programName);
+            }
+            if (options.mode == Runner::Mode::kImport)
+            {
+                return Import(options, program, programName);
             }
 
             std::vector<std::string> notes;
@@ -17376,8 +19199,7 @@ namespace Progmasoft::Catch3
             }
 
             const std::filesystem::path historyFile
-                = Runner::HistoryFile(HistoryDirectory(options, program),
-                                      programName);
+                = HistoryFileOf(options, program, programName);
             Runner::History history;
             if (options.historyEnabled
                 || options.mode == Runner::Mode::kAnalytics)
@@ -17528,66 +19350,14 @@ namespace Progmasoft::Catch3
             Runner::Analyze(run, analysis);
             console.RunEnded(run);
 
-            // A report that was asked for and is missing would let a build
-            // server miss the run, so it fails the run.
-            bool reportMissing = false;
-            if (!options.junitPath.empty())
+            const bool reportMissing = !WriteReports(options, run);
+            if (options.historyEnabled)
             {
-                if (auto status = Runner::WriteFileAtomically(
-                        options.junitPath,
-                        JUnitXmlWriter::ToString(run));
-                    !status)
-                {
-                    PrintError(status.GetError().Message());
-                    reportMissing = true;
-                }
-            }
-            if (!options.jsonPath.empty())
-            {
-                if (auto status = Runner::WriteFileAtomically(
-                        options.jsonPath,
-                        Runner::ToJson(run).ToPrettyString());
-                    !status)
-                {
-                    PrintError(status.GetError().Message());
-                    reportMissing = true;
-                }
-            }
-            if (!options.tracePath.empty())
-            {
-                if (auto status
-                    = Runner::WriteFileAtomically(options.tracePath,
-                                                  Runner::TraceJson(run));
-                    !status)
-                {
-                    PrintError(status.GetError().Message());
-                    reportMissing = true;
-                }
-            }
-            if (options.historyEnabled && !run.tests.empty())
-            {
-                Runner::RunRecord record;
-                record.unixMilliseconds = run.startUnixMilliseconds;
-                record.commit = changes ? changes->commit : std::string{};
-                record.binaryFingerprint = binaryFingerprint;
-                record.seed = run.seed;
-                record.tests = run.tests.size();
-                record.wallMicroseconds = run.wallMicroseconds;
-                for (const auto &test : run.tests)
-                {
-                    record.failed += test.FailsRun() ? 1 : 0;
-                }
-                auto committed = Runner::History::Commit(historyFile,
-                                                         run,
-                                                         record,
-                                                         plan->fingerprints,
-                                                         {});
-                if (!committed)
-                {
-                    std::fprintf(stderr,
-                                 "warning: the history was not saved: %s\n",
-                                 committed.GetError().Message().c_str());
-                }
+                SaveHistory(historyFile,
+                            run,
+                            changes ? changes->commit : std::string{},
+                            binaryFingerprint,
+                            plan->fingerprints);
             }
             if (!guard.empty())
             {
@@ -17603,39 +19373,7 @@ namespace Progmasoft::Catch3
             {
                 return Catch::UnmatchedTestSpecExitCode;
             }
-            const bool quarantineCounts
-                = options.quarantine == Runner::QuarantineMode::kReport;
-            bool failed = false;
-            std::size_t ran = 0;
-            std::size_t skipped = 0;
-            for (const auto &test : run.tests)
-            {
-                if (test.outcome != Outcome::kUpToDate)
-                {
-                    ++ran;
-                }
-                skipped += test.outcome == Outcome::kSkipped ? 1 : 0;
-                failed = failed || test.FailsRun()
-                         || (quarantineCounts && test.quarantined
-                             && IsFailure(test.outcome));
-            }
-            if (failed)
-            {
-                return Catch::TestFailureExitCode;
-            }
-            if (reportMissing)
-            {
-                return Catch::UnspecifiedErrorExitCode;
-            }
-            if (run.tests.empty() && !options.allowNoTests)
-            {
-                return Catch::NoTestsRunExitCode;
-            }
-            if (ran > 0 && skipped == ran && !options.allowNoTests)
-            {
-                return Catch::AllTestsSkippedExitCode;
-            }
-            return 0;
+            return ExitCodeOf(options, run, reportMissing);
         }
     } // namespace
 
