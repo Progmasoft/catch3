@@ -37,7 +37,7 @@ endif()
 # The version is Catch3's; the Catch2 engine it is built on keeps its own in
 # CATCH_VERSION_MAJOR and the other macros of Progmasoft/Catch3/EngineVersionMacros.hpp.
 project(Catch3
-  VERSION 0.3.0.1
+  VERSION 0.3.0.2
   LANGUAGES CXX
   HOMEPAGE_URL "https://github.com/Progmasoft/catch3"
   DESCRIPTION "A C++ test framework with a Catch2-compatible API, a parallel runner, property testing and snapshots."
@@ -164,7 +164,6 @@ if(NOT_SUBPROJECT)
     # Install CMake scripts
     install(
       FILES
-        "extras/ParseAndAddCatchTests.cmake"
         "extras/Catch3.cmake"
         "extras/Catch3AddTests.cmake"
         "extras/Catch3ShardTests.cmake"
