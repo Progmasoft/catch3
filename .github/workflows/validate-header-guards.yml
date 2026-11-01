@@ -19,31 +19,23 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Dependencies
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
         with:
-            python-version: '3.12'
+          bazelisk-cache: true
+          repository-cache: true
 
-      # Every header is guarded with #pragma once, as the Progmasoft C++ Style
-      # asks; the amalgamation script relies on it.
-      - name: Check that every header starts its guard with pragma once
-        run: |
-          wrong_files=$(grep -rL --include='*.hpp' '^#pragma once' src/Progmasoft || true)
-          if [[ $wrong_files ]]; then
-            echo "Headers without #pragma once:"
-            echo $wrong_files
-            exit 1
-          fi
+      - name: Test the tools
+        run: bazel test //tools:tools_tests
+        env:
+          CC: clang
 
-      - name: Check that there are no duplicated filenames
-        run: |
-          ./tools/scripts/checkDuplicateFilenames.py
-
-      - name: Check that all source files have the correct license header
-        run: |
-          ./tools/scripts/checkLicense.py
+      - name: Check licenses, headers, file names, versions and the amalgamation
+        run: bazel run //tools:check
+        env:
+          CC: clang
 
       # third_party/ must be the pinned release archives, byte for byte.
       - name: Check that third_party matches its pinned archives
-        run: |
-          ./tools/scripts/updateThirdParty.py --check
+        run: bazel run //tools:third_party -- --check
+        env:
+          CC: clang

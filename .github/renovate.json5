@@ -46,16 +46,16 @@
     "custom.regex",
   ],
 
-  // third_party/ holds copies of release archives, which
-  // tools/scripts/updateThirdParty.py pins by version and sha256. Renovate
-  // changes the version; the pull request then needs the new digest and
-  // --update, which the third_party check of CI asks for.
+  // third_party/ holds copies of release archives, which MODULE.bazel pins by
+  // version and sha256. Renovate changes the version; the pull request then
+  // needs the new digest and //tools:third_party -- --update, which the
+  // third_party check of CI asks for.
   customManagers: [
     {
       customType: "regex",
-      managerFilePatterns: ["/^tools/scripts/updateThirdParty\\.py$/"],
+      managerFilePatterns: ["/^MODULE\\.bazel$/"],
       matchStrings: [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( extractVersion=(?<extractVersion>\\S+))?\\s+\"version\": \"(?<currentValue>[^\"]+)\"",
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( extractVersion=(?<extractVersion>\\S+))?\\s+\\w+_VERSION = \"(?<currentValue>[^\"]+)\"",
       ],
     },
   ],

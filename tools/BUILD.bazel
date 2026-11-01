@@ -1,0 +1,101 @@
+# Copyright (c) 2026 Progmasoft.
+# SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+
+# The tools of this repository. They work on the checkout:
+#
+#     bazelisk run //tools:<tool>
+#     bazelisk run //tools:<tool> -- <arguments>
+CPP17 = select({
+    "@platforms//os:windows": ["/std:c++17"],
+    "//conditions:default": ["-std=c++17"],
+})
+
+cc_library(
+    name = "library",
+    srcs = [
+        "Amalgamation.cpp",
+        "Checks.cpp",
+        "Repository.cpp",
+        "RepositoryReport.cpp",
+        "Versions.cpp",
+    ],
+    hdrs = [
+        "Amalgamation.hpp",
+        "Checks.hpp",
+        "Repository.hpp",
+        "RepositoryReport.hpp",
+        "Versions.hpp",
+    ],
+    copts = CPP17,
+    deps = ["//third_party/yyjson"],
+)
+
+cc_binary(
+    name = "amalgamate",
+    srcs = ["AmalgamateMain.cpp"],
+    copts = CPP17,
+    deps = [":library"],
+)
+
+cc_binary(
+    name = "check",
+    srcs = ["CheckMain.cpp"],
+    copts = CPP17,
+    deps = [":library"],
+)
+
+cc_binary(
+    name = "release_notes",
+    srcs = ["ReleaseNotesMain.cpp"],
+    copts = CPP17,
+    deps = [":library"],
+)
+
+cc_binary(
+    name = "repo_info",
+    srcs = ["RepoInfoMain.cpp"],
+    copts = CPP17,
+    deps = [":library"],
+)
+
+cc_binary(
+    name = "version",
+    srcs = ["VersionMain.cpp"],
+    copts = CPP17,
+    deps = [":library"],
+)
+
+cc_binary(
+    name = "third_party",
+    srcs = ["ThirdPartyMain.cpp"],
+    args = [
+        "third_party/yyjson/yyjson.c=$(rlocationpath @yyjson_archive//:src/yyjson.c)",
+        "third_party/yyjson/yyjson.h=$(rlocationpath @yyjson_archive//:src/yyjson.h)",
+        "third_party/pugixml/pugiconfig.hpp=$(rlocationpath @pugixml_archive//:src/pugiconfig.hpp)",
+        "third_party/pugixml/pugixml.cpp=$(rlocationpath @pugixml_archive//:src/pugixml.cpp)",
+        "third_party/pugixml/pugixml.hpp=$(rlocationpath @pugixml_archive//:src/pugixml.hpp)",
+    ],
+    copts = CPP17,
+    data = [
+        "@pugixml_archive//:src/pugiconfig.hpp",
+        "@pugixml_archive//:src/pugixml.cpp",
+        "@pugixml_archive//:src/pugixml.hpp",
+        "@yyjson_archive//:src/yyjson.c",
+        "@yyjson_archive//:src/yyjson.h",
+    ],
+    deps = [
+        ":library",
+        "@rules_cc//cc/runfiles",
+    ],
+)
+
+cc_test(
+    name = "tools_tests",
+    srcs = ["Tools.tests.cpp"],
+    copts = CPP17,
+    deps = [
+        ":library",
+        "//:catch3_main",
+    ],
+)

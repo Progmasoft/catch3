@@ -36,7 +36,7 @@ backported, in upstream order, and the compatibility engine is now 3.16.1:
 
 Each applied without a conflict in the sources. The amalgamated distribution
 under `extras/` did conflict, because it is generated; it was generated again
-from the sources of this repository with `generateAmalgamatedFiles.py`, which
+from the sources of this repository with `//tools:amalgamate`, which
 also brought it up to date with fork changes it had not yet picked up. No
 fork-owned file under `src/Progmasoft` needed a change.
 

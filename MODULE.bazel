@@ -5,6 +5,33 @@ bazel_dep(name = "rules_cc", version = "0.2.17")
 bazel_dep(name = "rules_license", version = "1.0.0")
 bazel_dep(name = "platforms", version = "1.0.0")
 
+# The archives third_party/ holds copies of. Renovate changes a version; the
+# pull request then needs the digest of the new archive and
+# `bazelisk run //tools:third_party -- --update`, which CI asks for.
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# renovate: datasource=github-tags depName=ibireme/yyjson
+YYJSON_VERSION = "0.13.0"
+
+http_archive(
+    name = "yyjson_archive",
+    build_file_content = 'exports_files(["src/yyjson.c", "src/yyjson.h"])',
+    sha256 = "34e0f62a2bc11ab20d601e8ca1cc2b2079503aa45119a19133d89d19b94a0fae",
+    strip_prefix = "yyjson-" + YYJSON_VERSION,
+    urls = ["https://github.com/ibireme/yyjson/archive/refs/tags/" + YYJSON_VERSION + ".tar.gz"],
+)
+
+# renovate: datasource=github-tags depName=zeux/pugixml extractVersion=^v(?<version>.+)$
+PUGIXML_VERSION = "1.16"
+
+http_archive(
+    name = "pugixml_archive",
+    build_file_content = 'exports_files(["src/pugiconfig.hpp", "src/pugixml.cpp", "src/pugixml.hpp"])',
+    sha256 = "357bcab8877dc9943f355d3a72daba1b053238ba955f50fa81586afb65090219",
+    strip_prefix = "pugixml-" + PUGIXML_VERSION,
+    urls = ["https://github.com/zeux/pugixml/archive/refs/tags/v" + PUGIXML_VERSION + ".tar.gz"],
+)
+
 # rules_swift reaches the graph through protobuf and rules_apple. Up to 3.4.1
 # its Windows autoconfiguration, which runs whenever swiftc.exe is on PATH,
 # writes a toolchain that indexes APPLE_PLATFORMS_CONSTRAINTS with an

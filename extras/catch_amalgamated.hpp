@@ -7,7 +7,6 @@
 // SPDX-License-Identifier: BSL-1.0
 
 //  Catch3 v0.3.0.2, on the Catch2 v3.16.1 engine
-//  Generated: 2026-11-01 23:05:23.296246
 //  ----------------------------------------------------------
 //  This file is an amalgamation of multiple different files.
 //  You probably shouldn't edit it directly.
