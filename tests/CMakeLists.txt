@@ -166,6 +166,7 @@ add_executable(ProgmasoftSelfTest
   Progmasoft/RunnerConfig.tests.cpp
   Progmasoft/RunnerAnalysis.tests.cpp
   Progmasoft/RunnerImport.tests.cpp
+  Progmasoft/RunnerCoverage.tests.cpp
   Progmasoft/RunnerOutput.tests.cpp
   Progmasoft/Snapshot.tests.cpp
   Progmasoft/Stateful.tests.cpp
@@ -180,9 +181,28 @@ target_link_libraries(RunnerFixture PRIVATE Catch3WithMain)
 target_compile_features(RunnerFixture PRIVATE cxx_std_17)
 add_dependencies(ProgmasoftSelfTest RunnerFixture)
 
+# Tests built with coverage instrumentation, for the integration tests of
+# --coverage: LLVM source-based coverage with Clang, gcov with GCC. MSVC has
+# neither, so its builds skip those tests.
+set(_catch3_coverage_environment "")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
+  set(_catch3_coverage_flags -fprofile-instr-generate -fcoverage-mapping)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(_catch3_coverage_flags --coverage)
+endif()
+if(_catch3_coverage_flags)
+  add_executable(CoverageFixture Progmasoft/CoverageFixture.cpp)
+  target_link_libraries(CoverageFixture PRIVATE Catch3WithMain)
+  target_compile_features(CoverageFixture PRIVATE cxx_std_17)
+  target_compile_options(CoverageFixture PRIVATE ${_catch3_coverage_flags})
+  target_link_options(CoverageFixture PRIVATE ${_catch3_coverage_flags})
+  add_dependencies(ProgmasoftSelfTest CoverageFixture)
+  set(_catch3_coverage_environment "CATCH3_COVERAGE_FIXTURE=$<TARGET_FILE:CoverageFixture>")
+endif()
+
 add_test(NAME Progmasoft::PropertyTests COMMAND $<TARGET_FILE:ProgmasoftSelfTest> --no-history)
 set_tests_properties(Progmasoft::PropertyTests PROPERTIES
-  ENVIRONMENT "CATCH3_RUNNER_FIXTURE=$<TARGET_FILE:RunnerFixture>"
+  ENVIRONMENT "CATCH3_RUNNER_FIXTURE=$<TARGET_FILE:RunnerFixture>;${_catch3_coverage_environment}"
 )
 if(BUILD_SHARED_LIBS AND WIN32)
   add_custom_command(TARGET SelfTest PRE_LINK

@@ -32,10 +32,10 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Install Clang, CMake and Ninja
+    - name: Install Clang, LLVM's coverage tools, CMake and Ninja
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang cmake ninja-build python3
+        sudo apt-get install -y clang llvm cmake ninja-build python3
 
     - name: Configure
       run: |
@@ -51,6 +51,8 @@ jobs:
 
     - name: Test
       run: ctest --test-dir build -j
+      env:
+        CATCH3_COVERAGE_REQUIRE_MAP: 1
 
     - name: Install, and find the installed package
       run: |
@@ -75,10 +77,10 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Install Clang, CMake and Ninja
+    - name: Install Clang, LLVM's coverage tools, CMake and Ninja
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang cmake ninja-build python3
+        sudo apt-get install -y clang llvm cmake ninja-build python3
 
     - name: Configure with the sanitizers
       env:
@@ -111,8 +113,8 @@ jobs:
     steps:
     # Git comes first: without it the checkout falls back to an archive of
     # the repository, which is not a checkout the tests can ask questions of.
-    - name: Install Git, Clang, CMake and Ninja
-      run: dnf install -y git clang gcc-c++ cmake ninja-build python3
+    - name: Install Git, Clang, LLVM's coverage tools, CMake and Ninja
+      run: dnf install -y git clang llvm gcc-c++ cmake ninja-build python3
 
     - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
@@ -132,3 +134,41 @@ jobs:
 
     - name: Test
       run: ctest --test-dir build -j
+      env:
+        CATCH3_COVERAGE_REQUIRE_MAP: 1
+
+  # Catch3 is built with Clang everywhere; GCC's stricter warnings are not
+  # errors here. The job checks per-test coverage in gcov's format, which
+  # only GCC writes.
+  gcc-coverage:
+    name: Ubuntu 26.04, GCC, per-test coverage with gcov
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      with:
+        persist-credentials: false
+
+    - name: Install GCC, CMake and Ninja
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y g++ cmake ninja-build python3
+
+    - name: Configure
+      run: |
+        cmake --preset basic-tests -GNinja \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_CXX_COMPILER=g++ \
+              -DCMAKE_CXX_STANDARD=17 \
+              -DCATCH3_ENABLE_WERROR=OFF
+
+    - name: Build
+      run: cmake --build build --target ProgmasoftSelfTest
+
+    - name: Test per-test coverage
+      env:
+        CATCH3_RUNNER_FIXTURE: build/tests/RunnerFixture
+        CATCH3_COVERAGE_FIXTURE: build/tests/CoverageFixture
+        CATCH3_COVERAGE_REQUIRE_MAP: 1
+      run: build/tests/ProgmasoftSelfTest --no-history "[coverage]"

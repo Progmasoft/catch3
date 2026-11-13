@@ -22,7 +22,7 @@ The steps are ordered by what each one builds on.
 | 1 | Native property testing: choice-sequence shrinking, combinators, state machines, statistics, targeted search, example database, differential and metamorphic oracles | done; see [Native property testing](progmasoft-properties.md#top) |
 | 2 | The Catch3 runner | done; see [The Catch3 runner](progmasoft-runner.md#top) |
 | 3 | Mocking | done; see [Mocking](progmasoft-mocking.md#top) |
-| 4 | Per-test code coverage | planned |
+| 4 | Per-test code coverage | in progress: Linux and macOS, with Clang and GCC; see [Per-test coverage](progmasoft-runner.md#per-test-coverage). Windows with clang-cl is next |
 | 5 | Change-impact test selection and test prioritization | planned |
 | 6 | Mutation testing | planned |
 | 7 | Coverage-, mutation- and history-guided test generation | planned |

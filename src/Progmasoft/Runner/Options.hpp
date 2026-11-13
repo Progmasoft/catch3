@@ -190,6 +190,10 @@ namespace Progmasoft::Catch3::Runner
         std::string junitPath;
         std::string jsonPath;
         std::string tracePath;
+        /// Per-test coverage: every attempt runs in a process of its own and
+        /// leaves its profile below this directory, with the map of what
+        /// each test reached and the combined report; see CoverageReport.
+        std::string coverageDirectory;
         unsigned slowest = 0;
         /// Created when the run starts and removed when it ends normally, so
         /// a file left behind shows that the run ended early.

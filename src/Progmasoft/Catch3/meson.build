@@ -288,6 +288,7 @@ runner_sources = files(
   '../Runner/Console.cpp',
   '../Runner/Execution.cpp',
   '../Runner/Files.cpp',
+  '../Runner/CoverageReport.cpp',
   '../Runner/Git.cpp',
   '../Runner/Hash.cpp',
   '../Runner/History.cpp',

@@ -22,6 +22,7 @@
 #include <random>
 #include <system_error>
 
+#include "CoverageReport.hpp"
 #include "Analysis.hpp"
 #include "Catalog.hpp"
 #include "Console.hpp"
@@ -949,6 +950,17 @@ namespace Progmasoft::Catch3
                 }
             }
 
+            if (!options.coverageDirectory.empty())
+            {
+                if (auto status = Runner::PrepareCoverageDirectory(
+                        options.coverageDirectory);
+                    !status)
+                {
+                    PrintError(status.GetError().Message());
+                    return Catch::UnspecifiedErrorExitCode;
+                }
+            }
+
             const auto started = std::chrono::steady_clock::now();
             RunResult run;
             run.binary = programName;
@@ -983,6 +995,14 @@ namespace Progmasoft::Catch3
                 run.tests.push_back(std::move(kept));
             }
             run.notes = std::move(outcome.notes);
+            if (!options.coverageDirectory.empty())
+            {
+                for (auto &note : Runner::WriteCoverageReports(
+                         options.coverageDirectory, run, program.string()))
+                {
+                    run.notes.push_back(std::move(note));
+                }
+            }
 
             const bool anyFailure
                 = std::any_of(run.tests.begin(),
