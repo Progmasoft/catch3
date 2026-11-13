@@ -16292,8 +16292,10 @@ namespace Progmasoft::Catch3::Runner
         std::mutex &
         StartLock()
         {
-            static std::mutex lock;
-            return lock;
+            // Never destroyed, so no exit-time destructor runs while a
+            // detached thread may still start a child.
+            static std::mutex *const lock = new std::mutex;
+            return *lock;
         }
     } // namespace
 
