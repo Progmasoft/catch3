@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 ---
-# Progmasoft C++ Style format profile, pinned to LLVM/Clang 23.1.0.
+# Progmasoft Core C++ Coding Guidelines format profile, pinned to LLVM/Clang 23.1.0.
 # Naming is intentionally outside clang-format and remains governed by the
-# PascalCase/camelCase conventions of Progmasoft C++ Style.
+# PascalCase/camelCase conventions of Progmasoft Core C++ Coding Guidelines.
 Language: Cpp
 BasedOnStyle: LLVM
 Standard: c++17
