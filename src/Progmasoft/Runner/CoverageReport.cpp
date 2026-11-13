@@ -239,14 +239,16 @@ namespace Progmasoft::Catch3::Runner
                     return Error{ "the notes file " + gcno.string()
                                   + " could not be read: " + error.message() };
                 }
-                auto json = RunTool(
-                    gcov,
-                    // Without --branch-probabilities the JSON has no branches.
-                    { "--json-format",
-                      "--branch-probabilities",
-                      "--stdout",
-                      gcda.filename().string() },
-                    gcda.parent_path());
+                // The data file by its absolute path, so that gcov needs no
+                // working directory: profiles are read on several threads,
+                // and a working directory is the whole process's.
+                // Without --branch-probabilities the JSON has no branches.
+                auto json
+                    = RunTool(gcov,
+                              { "--json-format",
+                                "--branch-probabilities",
+                                "--stdout",
+                                std::filesystem::absolute(gcda).string() });
                 if (!json)
                 {
                     return json.GetError();

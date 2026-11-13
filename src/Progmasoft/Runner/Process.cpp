@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iterator>
+#include <mutex>
 #include <string_view>
 #include <thread>
 
@@ -611,6 +612,20 @@ namespace Progmasoft::Catch3::Runner
 #endif
     }
 
+    namespace
+    {
+        /// Held while a child starts. Starting changes what the whole process
+        /// shares: the working directory on POSIX, and the handles a child
+        /// inherits; two threads starting children at once would see each
+        /// other's directory or hand their pipes to each other's child.
+        std::mutex &
+        StartLock()
+        {
+            static std::mutex lock;
+            return lock;
+        }
+    } // namespace
+
 #if defined(_WIN32)
     Expected<std::unique_ptr<ChildProcess>>
     ChildProcess::Start(const ChildOptions &options)
@@ -619,6 +634,7 @@ namespace Progmasoft::Catch3::Runner
         {
             return Error{ "no program to start" };
         }
+        const std::lock_guard<std::mutex> starting{ StartLock() };
         SECURITY_ATTRIBUTES inheritable{};
         inheritable.nLength = sizeof(inheritable);
         inheritable.bInheritHandle = TRUE;
@@ -981,6 +997,7 @@ namespace Progmasoft::Catch3::Runner
         {
             return Error{ "no program to start" };
         }
+        const std::lock_guard<std::mutex> starting{ StartLock() };
         int input[2] = { -1, -1 };
         int output[2] = { -1, -1 };
         int errors[2] = { -1, -1 };
@@ -1072,7 +1089,10 @@ namespace Progmasoft::Catch3::Runner
         arguments.push_back(nullptr);
 
         // posix_spawn has no working-directory action everywhere, so the
-        // directory changes around the call; only this thread spawns.
+        // directory changes around the call, under StartLock. A thread that
+        // reads a relative path meanwhile would read it from there, so
+        // callers that start children from several threads use absolute
+        // paths or no working directory.
         std::filesystem::path previousDirectory;
         if (!options.workingDirectory.empty())
         {
