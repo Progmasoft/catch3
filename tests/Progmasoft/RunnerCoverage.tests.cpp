@@ -157,6 +157,58 @@ TEST_CASE("gcov JSON adds up across data files",
     CHECK(map.size() == 1);
 }
 
+TEST_CASE("A coverage run starts without the reports of an earlier one",
+          "[progmasoft][runner][coverage]")
+{
+    const Scratch scratch;
+    const auto directory = scratch.Path() / "coverage";
+    std::filesystem::create_directories(directory / "profiles");
+    for (const char *name :
+         { "coverage.json", "coverage.lcov", "coverage.profdata" })
+    {
+        REQUIRE(Runner::WriteFileAtomically(directory / name, "earlier"));
+    }
+    REQUIRE(Runner::WriteFileAtomically(directory / "profiles" / "t.profraw",
+                                        "earlier"));
+
+    REQUIRE(Runner::PrepareCoverageDirectory(directory));
+    CHECK_FALSE(std::filesystem::exists(directory / "coverage.json"));
+    CHECK_FALSE(std::filesystem::exists(directory / "coverage.lcov"));
+    CHECK_FALSE(std::filesystem::exists(directory / "coverage.profdata"));
+    CHECK_FALSE(std::filesystem::exists(directory / "profiles" / "t.profraw"));
+    CHECK(std::filesystem::is_directory(directory / "profiles"));
+
+    // With no profiles there is a note, no report and no failure.
+    Progmasoft::Catch3::RunResult run;
+    run.tests.emplace_back();
+    run.tests.back().name = "no profile";
+    const auto reports
+        = Runner::WriteCoverageReports(directory, run, "binary", 2);
+    CHECK(reports.failures.empty());
+    REQUIRE(reports.notes.size() == 1);
+    CHECK_THAT(reports.notes.front(), ContainsSubstring("wrote no coverage"));
+    CHECK_FALSE(std::filesystem::exists(directory / "coverage.json"));
+}
+
+TEST_CASE("An attempt that left no profile gives way to an earlier one",
+          "[progmasoft][runner][coverage]")
+{
+    const Scratch scratch;
+    const auto base = (scratch.Path() / "test").string();
+    Progmasoft::Catch3::TestResult test;
+    test.attempts.resize(3);
+    test.attempts[0].coverageProfile = base + "-1";
+    test.attempts[1].coverageProfile = base + "-2";
+    test.attempts[2].coverageProfile = base + "-3"; // crashed: no profile
+    REQUIRE(Runner::WriteFileAtomically(base + "-1.profraw", "1"));
+    REQUIRE(Runner::WriteFileAtomically(base + "-2.profraw", "2"));
+
+    const auto *attempt = Runner::ProfiledAttempt(test, ".profraw");
+    REQUIRE(attempt != nullptr);
+    CHECK(attempt == &test.attempts[1]);
+    CHECK(Runner::ProfiledAttempt(test, ".gcov") == nullptr);
+}
+
 TEST_CASE("Each test of a coverage run gets its own profile and map",
           "[progmasoft][runner][coverage]")
 {
@@ -223,4 +275,19 @@ TEST_CASE("Each test of a coverage run gets its own profile and map",
     REQUIRE(file != combined.end());
     CHECK(file->second.lines.at(addLine) > 0);
     CHECK(file->second.lines.at(subtractLine) > 0);
+
+    // Both formats carry branches: the condition of the fixture went one
+    // way only, so one of its branches was taken and one was not.
+    const auto branchLine = MarkedLine(source, "branch");
+    std::size_t taken = 0;
+    std::size_t notTaken = 0;
+    for (const auto &[position, count] : file->second.branches)
+    {
+        if (position.first == branchLine)
+        {
+            (count > 0 ? taken : notTaken) += 1;
+        }
+    }
+    CHECK(taken > 0);
+    CHECK(notTaken > 0);
 }

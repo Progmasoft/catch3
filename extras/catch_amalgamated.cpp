@@ -1378,23 +1378,44 @@ namespace Progmasoft::Catch3::Runner
     [[nodiscard]] std::string
     ToLcov(const CoverageMap &map);
 
-    /// Prepares the directory of a coverage run: the profiles of an earlier
-    /// run below it are removed, because gcov adds to the .gcda files it
-    /// finds instead of replacing them.
+    /// Prepares the directory of a coverage run: the profiles and reports of
+    /// an earlier run below it are removed, because gcov adds to the .gcda
+    /// files it finds instead of replacing them, and because a run that
+    /// writes no reports must not leave the earlier ones to be read as its
+    /// own.
     Status
     PrepareCoverageDirectory(const std::filesystem::path &directory);
+
+    /// The last attempt of `test` whose profile, its base name followed by
+    /// `suffix` (`.profraw` or `.gcov`), exists: an attempt that crashed or
+    /// timed out before writing one is passed over for an earlier one.
+    [[nodiscard]] const Attempt *
+    ProfiledAttempt(const TestResult &test, const std::string &suffix);
+
+    /// What writing the coverage reports gave.
+    struct CoverageReports final
+    {
+        /// What the run should be told: how many profiles there were and
+        /// where the reports are, or why there are none.
+        std::vector<std::string> notes;
+        /// What failed: a profile that could not be read, a report that
+        /// could not be written. A run with failures is missing a report.
+        std::vector<std::string> failures;
+    };
 
     /// Turns the profiles a coverage run left in `directory` into
     /// `directory/coverage.json`, the lines and branches each test reached,
     /// and `directory/coverage.lcov`, the run combined. LLVM profiles are
     /// read with `llvm-profdata` and `llvm-cov`, gcov data with `gcov`,
     /// found on PATH or named by CATCH3_LLVM_PROFDATA, CATCH3_LLVM_COV and
-    /// CATCH3_GCOV. Returns what the run should be told: how many profiles
-    /// there were and where the reports are, or why there are none.
-    [[nodiscard]] std::vector<std::string>
+    /// CATCH3_GCOV; the profiles of the tests are read up to `jobs` at a
+    /// time. A run whose tests wrote no profiles, or whose tools are
+    /// missing, gets a note and no reports, not a failure.
+    [[nodiscard]] CoverageReports
     WriteCoverageReports(const std::filesystem::path &directory,
                          const RunResult &run,
-                         const std::string &program);
+                         const std::string &program,
+                         std::size_t jobs);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
@@ -10931,10 +10952,13 @@ namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 #include <algorithm>
+#include <atomic>
 #include <cstdlib>
+#include <initializer_list>
 #include <optional>
 #include <string_view>
 #include <system_error>
+#include <thread>
 
 
 namespace Progmasoft::Catch3::Runner
@@ -11111,22 +11135,6 @@ namespace Progmasoft::Catch3::Runner
             return files;
         }
 
-        /// The final attempt of a test that left a profile.
-        const Attempt *
-        ProfiledAttempt(const TestResult &test)
-        {
-            for (auto attempt = test.attempts.rbegin();
-                 attempt != test.attempts.rend();
-                 ++attempt)
-            {
-                if (!attempt->coverageProfile.empty())
-                {
-                    return &*attempt;
-                }
-            }
-            return nullptr;
-        }
-
         /// The .gcda files gcov wrote below `prefix`, each with the path the
         /// object was built at, where its .gcno is.
         std::vector<std::pair<std::filesystem::path, std::filesystem::path>>
@@ -11180,7 +11188,11 @@ namespace Progmasoft::Catch3::Runner
                 }
                 auto json = RunTool(
                     gcov,
-                    { "--json-format", "--stdout", gcda.filename().string() },
+                    // Without --branch-probabilities the JSON has no branches.
+                    { "--json-format",
+                      "--branch-probabilities",
+                      "--stdout",
+                      gcda.filename().string() },
                     gcda.parent_path());
                 if (!json)
                 {
@@ -11327,6 +11339,17 @@ namespace Progmasoft::Catch3::Runner
                           + directory.string()
                           + " could not be removed: " + error.message() };
         }
+        for (const char *report :
+             { "coverage.json", "coverage.lcov", "coverage.profdata" })
+        {
+            std::filesystem::remove(directory / report, error);
+            if (error)
+            {
+                return Error{ "the report " + (directory / report).string()
+                              + " of an earlier run could not be removed: "
+                              + error.message() };
+            }
+        }
         std::filesystem::create_directories(directory / "profiles", error);
         if (error)
         {
@@ -11336,142 +11359,215 @@ namespace Progmasoft::Catch3::Runner
         return Status::Ok();
     }
 
-    std::vector<std::string>
-    WriteCoverageReports(const std::filesystem::path &directory,
-                         const RunResult &run,
-                         const std::string &program)
+    const Attempt *
+    ProfiledAttempt(const TestResult &test, const std::string &suffix)
     {
-        std::vector<std::string> notes;
-        std::size_t llvmProfiles = 0;
-        std::size_t gcovProfiles = 0;
-        for (const auto &test : run.tests)
+        for (auto attempt = test.attempts.rbegin();
+             attempt != test.attempts.rend();
+             ++attempt)
         {
-            if (const Attempt *attempt = ProfiledAttempt(test))
+            std::error_code error;
+            if (!attempt->coverageProfile.empty()
+                && std::filesystem::exists(attempt->coverageProfile + suffix,
+                                           error))
             {
-                std::error_code error;
-                llvmProfiles += std::filesystem::exists(attempt->coverageProfile
-                                                            + ".profraw",
-                                                        error)
-                                    ? 1
-                                    : 0;
-                gcovProfiles += std::filesystem::exists(attempt->coverageProfile
-                                                            + ".gcov",
-                                                        error)
-                                    ? 1
-                                    : 0;
+                return &*attempt;
             }
         }
-        if (llvmProfiles == 0 && gcovProfiles == 0)
-        {
-            notes.emplace_back(
-                "--coverage: the tests wrote no coverage; build them with "
-                "-fprofile-instr-generate -fcoverage-mapping (Clang) or "
-                "--coverage (GCC)");
-            return notes;
-        }
-        const bool llvm = llvmProfiles >= gcovProfiles;
-        std::optional<Tool> profdata;
-        std::optional<Tool> cov;
-        std::optional<Tool> gcov;
-        if (llvm)
-        {
-            profdata = FindTool("CATCH3_LLVM_PROFDATA", "llvm-profdata");
-            cov = FindTool("CATCH3_LLVM_COV", "llvm-cov");
-        }
-        else
-        {
-            gcov = FindTool("CATCH3_GCOV", "gcov");
-        }
-        if (llvm ? (!profdata || !cov) : !gcov)
-        {
-            notes.push_back(
-                "--coverage: "
-                + std::to_string(llvm ? llvmProfiles : gcovProfiles)
-                + " profile(s) in " + (directory / "profiles").string() + "; "
-                + (llvm ? "llvm-profdata and llvm-cov were" : "gcov was")
-                + " not found, so there is no map of what each test reached");
-            return notes;
-        }
+        return nullptr;
+    }
 
-        CoverageMap combined;
-        std::vector<std::string> raw;
-        JsonValue tests = JsonValue::Array();
-        std::vector<std::string> failures;
-        for (const auto &test : run.tests)
+    namespace
+    {
+        /// The coverage tools of one profile format.
+        struct CoverageTools final
         {
-            const Attempt *attempt = ProfiledAttempt(test);
-            if (attempt == nullptr)
-            {
-                continue;
-            }
-            const std::string base = attempt->coverageProfile;
-            Expected<CoverageMap> reached = CoverageMap{};
+            bool llvm = false;
+            std::optional<Tool> profdata;
+            std::optional<Tool> cov;
+            std::optional<Tool> gcov;
+        };
+
+        /// What the profile of one test gave.
+        struct TestCoverage final
+        {
+            const TestResult *test = nullptr;
             std::string profile;
-            if (llvm)
+            std::optional<CoverageMap> reached;
+            std::string failure;
+        };
+
+        TestCoverage
+        ReadTestCoverage(const TestResult &test,
+                         const Attempt &attempt,
+                         const CoverageTools &tools,
+                         const std::string &program)
+        {
+            TestCoverage result;
+            result.test = &test;
+            const std::string base = attempt.coverageProfile;
+            if (tools.llvm)
             {
-                profile = base + ".profraw";
-                std::error_code error;
-                if (!std::filesystem::exists(profile, error))
-                {
-                    continue;
-                }
-                raw.push_back(profile);
-                auto merged = RunTool(
-                    *profdata,
-                    { "merge", "-sparse", profile, "-o", base + ".profdata" });
+                result.profile = base + ".profraw";
+                auto merged = RunTool(*tools.profdata,
+                                      { "merge",
+                                        "-sparse",
+                                        result.profile,
+                                        "-o",
+                                        base + ".profdata" });
                 if (!merged)
                 {
-                    failures.push_back(test.name + ": "
-                                       + merged.GetError().Message());
-                    continue;
+                    result.failure = merged.GetError().Message();
+                    return result;
                 }
-                auto lcov = RunTool(*cov,
+                auto lcov = RunTool(*tools.cov,
                                     { "export",
                                       "-format=lcov",
                                       "-instr-profile=" + base + ".profdata",
                                       program });
                 if (!lcov)
                 {
-                    failures.push_back(test.name + ": "
-                                       + lcov.GetError().Message());
-                    continue;
+                    result.failure = lcov.GetError().Message();
+                    return result;
                 }
-                reached = ParseLcov(*lcov);
+                result.reached = ParseLcov(*lcov);
+                return result;
+            }
+            result.profile = base + ".gcov";
+            auto reached = GcovCoverage(*tools.gcov, result.profile);
+            if (!reached)
+            {
+                result.failure = reached.GetError().Message();
+                return result;
+            }
+            result.reached = std::move(*reached);
+            return result;
+        }
+
+        /// Reads the profile of each of `tests`, up to `jobs` at a time;
+        /// the results keep the order of `tests`.
+        std::vector<TestCoverage>
+        ReadAll(
+            const std::vector<std::pair<const TestResult *, const Attempt *>>
+                &tests,
+            const CoverageTools &tools,
+            const std::string &program,
+            std::size_t jobs)
+        {
+            std::vector<TestCoverage> results(tests.size());
+            std::atomic<std::size_t> next{ 0 };
+            const auto work = [&] {
+                for (std::size_t index = next++; index < tests.size();
+                     index = next++)
+                {
+                    results[index] = ReadTestCoverage(*tests[index].first,
+                                                      *tests[index].second,
+                                                      tools,
+                                                      program);
+                }
+            };
+            const std::size_t threads
+                = std::min(std::max<std::size_t>(jobs, 1), tests.size());
+            std::vector<std::thread> pool;
+            for (std::size_t thread = 1; thread < threads; ++thread)
+            {
+                pool.emplace_back(work);
+            }
+            work();
+            for (auto &thread : pool)
+            {
+                thread.join();
+            }
+            return results;
+        }
+    } // namespace
+
+    CoverageReports
+    WriteCoverageReports(const std::filesystem::path &directory,
+                         const RunResult &run,
+                         const std::string &program,
+                         std::size_t jobs)
+    {
+        CoverageReports reports;
+        std::vector<std::pair<const TestResult *, const Attempt *>> llvmTests;
+        std::vector<std::pair<const TestResult *, const Attempt *>> gcovTests;
+        for (const auto &test : run.tests)
+        {
+            if (const Attempt *attempt = ProfiledAttempt(test, ".profraw"))
+            {
+                llvmTests.emplace_back(&test, attempt);
+            }
+            if (const Attempt *attempt = ProfiledAttempt(test, ".gcov"))
+            {
+                gcovTests.emplace_back(&test, attempt);
+            }
+        }
+        if (llvmTests.empty() && gcovTests.empty())
+        {
+            reports.notes.emplace_back(
+                "--coverage: the tests wrote no coverage; build them with "
+                "-fprofile-instr-generate -fcoverage-mapping (Clang) or "
+                "--coverage (GCC)");
+            return reports;
+        }
+        CoverageTools tools;
+        tools.llvm = llvmTests.size() >= gcovTests.size();
+        const auto &profiled = tools.llvm ? llvmTests : gcovTests;
+        if (tools.llvm)
+        {
+            tools.profdata = FindTool("CATCH3_LLVM_PROFDATA", "llvm-profdata");
+            tools.cov = FindTool("CATCH3_LLVM_COV", "llvm-cov");
+        }
+        else
+        {
+            tools.gcov = FindTool("CATCH3_GCOV", "gcov");
+        }
+        if (tools.llvm ? (!tools.profdata || !tools.cov) : !tools.gcov)
+        {
+            reports.notes.push_back(
+                "--coverage: " + std::to_string(profiled.size())
+                + " profile(s) in " + (directory / "profiles").string() + "; "
+                + (tools.llvm ? "llvm-profdata and llvm-cov were" : "gcov was")
+                + " not found, so there is no map of what each test reached");
+            return reports;
+        }
+
+        CoverageMap combined;
+        std::vector<std::string> raw;
+        JsonValue tests = JsonValue::Array();
+        for (auto &read : ReadAll(profiled, tools, program, jobs))
+        {
+            if (!read.reached)
+            {
+                reports.failures.push_back(read.test->name + ": "
+                                           + read.failure);
+                continue;
+            }
+            if (tools.llvm)
+            {
+                raw.push_back(read.profile);
             }
             else
             {
-                profile = base + ".gcov";
-                std::error_code error;
-                if (!std::filesystem::exists(profile, error))
-                {
-                    continue;
-                }
-                reached = GcovCoverage(*gcov, profile);
-                if (!reached)
-                {
-                    failures.push_back(test.name + ": "
-                                       + reached.GetError().Message());
-                    continue;
-                }
-                Add(combined, *reached);
+                Add(combined, *read.reached);
             }
-            tests.Append(
-                JsonValue::Object({ { "name", test.name },
-                                    { "outcome", OutcomeName(test.outcome) },
-                                    { "profile", profile },
-                                    { "files", ReachedJson(*reached) } }));
+            tests.Append(JsonValue::Object(
+                { { "name", read.test->name },
+                  { "outcome", OutcomeName(read.test->outcome) },
+                  { "profile", read.profile },
+                  { "files", ReachedJson(*read.reached) } }));
         }
 
         std::string lcovText;
-        if (llvm && !raw.empty())
+        if (tools.llvm && !raw.empty())
         {
             std::vector<std::string> arguments{ "merge", "-sparse" };
             arguments.insert(arguments.end(), raw.begin(), raw.end());
             const std::string all = (directory / "coverage.profdata").string();
             arguments.emplace_back("-o");
             arguments.push_back(all);
-            auto merged = RunTool(*profdata, arguments);
-            auto exported = merged ? RunTool(*cov,
+            auto merged = RunTool(*tools.profdata, arguments);
+            auto exported = merged ? RunTool(*tools.cov,
                                              { "export",
                                                "-format=lcov",
                                                "-instr-profile=" + all,
@@ -11483,8 +11579,8 @@ namespace Progmasoft::Catch3::Runner
             }
             else
             {
-                failures.push_back("the combined report: "
-                                   + exported.GetError().Message());
+                reports.failures.push_back("the combined report: "
+                                           + exported.GetError().Message());
             }
         }
         else
@@ -11494,29 +11590,43 @@ namespace Progmasoft::Catch3::Runner
 
         JsonValue report
             = JsonValue::Object({ { "version", 1 },
-                                  { "format", llvm ? "llvm" : "gcov" },
+                                  { "format", tools.llvm ? "llvm" : "gcov" },
                                   { "binary", program },
                                   { "tests", std::move(tests) } });
         const auto json = directory / "coverage.json";
         const auto lcov = directory / "coverage.lcov";
-        if (auto status = WriteFileAtomically(json, report.ToPrettyString());
-            !status)
+        const auto jsonWritten
+            = WriteFileAtomically(json, report.ToPrettyString());
+        if (!jsonWritten)
         {
-            failures.push_back(status.GetError().Message());
+            reports.failures.push_back(jsonWritten.GetError().Message());
         }
-        if (auto status = WriteFileAtomically(lcov, lcovText); !status)
+        const auto lcovWritten = WriteFileAtomically(lcov, lcovText);
+        if (!lcovWritten)
         {
-            failures.push_back(status.GetError().Message());
+            reports.failures.push_back(lcovWritten.GetError().Message());
         }
-        notes.push_back(
-            "--coverage: " + std::to_string(llvm ? llvmProfiles : gcovProfiles)
-            + " test profile(s); what each test reached is in " + json.string()
-            + ", the run combined in " + lcov.string());
-        for (const auto &failure : failures)
+        std::string written;
+        if (jsonWritten && lcovWritten)
         {
-            notes.push_back("--coverage: " + failure);
+            written = "; what each test reached is in " + json.string()
+                      + ", the run combined in " + lcov.string();
         }
-        return notes;
+        else if (jsonWritten)
+        {
+            written = "; what each test reached is in " + json.string();
+        }
+        else if (lcovWritten)
+        {
+            written = "; the run combined is in " + lcov.string();
+        }
+        reports.notes.push_back("--coverage: " + std::to_string(profiled.size())
+                                + " test profile(s)" + written);
+        for (auto &failure : reports.failures)
+        {
+            failure = "--coverage: " + failure;
+        }
+        return reports;
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
@@ -20349,12 +20459,24 @@ namespace Progmasoft::Catch3
                 run.tests.push_back(std::move(kept));
             }
             run.notes = std::move(outcome.notes);
+            bool coverageFailed = false;
             if (!options.coverageDirectory.empty())
             {
-                for (auto &note : Runner::WriteCoverageReports(
-                         options.coverageDirectory, run, program.string()))
+                auto coverage
+                    = Runner::WriteCoverageReports(options.coverageDirectory,
+                                                   run,
+                                                   program.string(),
+                                                   run.workers);
+                for (auto &note : coverage.notes)
                 {
                     run.notes.push_back(std::move(note));
+                }
+                // Like a report that could not be written, a coverage
+                // failure makes the run fail when its tests passed.
+                coverageFailed = !coverage.failures.empty();
+                for (auto &failure : coverage.failures)
+                {
+                    run.notes.push_back(std::move(failure));
                 }
             }
 
@@ -20377,7 +20499,8 @@ namespace Progmasoft::Catch3
             Runner::Analyze(run, analysis);
             console.RunEnded(run);
 
-            const bool reportMissing = !WriteReports(options, run);
+            const bool reportMissing
+                = !WriteReports(options, run) || coverageFailed;
             if (options.historyEnabled)
             {
                 SaveHistory(historyFile,

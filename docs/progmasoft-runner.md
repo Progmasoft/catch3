@@ -356,12 +356,13 @@ with `.profraw` for LLVM, or a `.gcov` directory below which gcov writes its
 `.gcda` files under their absolute paths. The runner sets `LLVM_PROFILE_FILE`
 and `GCOV_PREFIX` for the process; each runtime reads its own. A process
 that runs other tests first, to find a test that leaves state behind, writes
-beside the profiles, never into one. The profiles of an earlier run in
-`DIR/profiles` are removed when the run starts, because gcov adds to the
-data it finds.
+beside the profiles, never into one. The profiles and reports of an earlier
+run in `DIR` are removed when the run starts: gcov adds to the data it finds,
+and a run that writes no reports leaves none to be read as its own.
 
-After the run, the runner reads the profile of the last attempt of every
-test:
+After the run, the runner reads, on as many threads as the run had workers,
+the profile of the last attempt of every test that left one; when a retry or
+repeat crashed before writing its profile, the attempt before it counts:
 
 * `DIR/coverage.json` holds, for each test, its outcome, its profile and the
   files it reached, with the lines it ran and, per line, how many of its
@@ -381,8 +382,12 @@ test:
 LLVM profiles are read with `llvm-profdata` and `llvm-cov`, gcov data with
 `gcov`. They are looked up on `PATH`, through `xcrun` on macOS, or named by
 `CATCH3_LLVM_PROFDATA`, `CATCH3_LLVM_COV` and `CATCH3_GCOV`. Without them the
-profiles stay in `DIR/profiles` and the run says so. A test that crashes or
-is stopped at its time limit leaves no profile. The runner's own process is
+profiles stay in `DIR/profiles` and the run says so, as it does when the
+tests wrote no profiles; neither fails the run. A profile the tools cannot
+read, or a report that cannot be written, fails a run whose tests passed,
+like any report the run was asked for. A test that crashes or is stopped at
+its time limit leaves no profile. gcov is run with `--branch-probabilities`,
+without which its JSON has no branches. The runner's own process is
 instrumented too and writes its profile where any instrumented program does,
 `default.profraw` in the working directory unless `LLVM_PROFILE_FILE` says
 otherwise; it holds no test.

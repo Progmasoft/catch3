@@ -20,11 +20,22 @@ namespace
     {
         return value - 1; // coverage: subtract-one
     }
+
+    int
+    NonNegative(int value)
+    {
+        if (value < 0) // coverage: branch
+        {
+            return 0;
+        }
+        return value;
+    }
 } // namespace
 
 TEST_CASE("Adds one", "[coverage]")
 {
     CHECK(AddOne(1) == 2);
+    CHECK(NonNegative(AddOne(1)) == 2);
 }
 
 TEST_CASE("Subtracts one", "[coverage]")

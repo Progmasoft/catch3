@@ -995,12 +995,24 @@ namespace Progmasoft::Catch3
                 run.tests.push_back(std::move(kept));
             }
             run.notes = std::move(outcome.notes);
+            bool coverageFailed = false;
             if (!options.coverageDirectory.empty())
             {
-                for (auto &note : Runner::WriteCoverageReports(
-                         options.coverageDirectory, run, program.string()))
+                auto coverage
+                    = Runner::WriteCoverageReports(options.coverageDirectory,
+                                                   run,
+                                                   program.string(),
+                                                   run.workers);
+                for (auto &note : coverage.notes)
                 {
                     run.notes.push_back(std::move(note));
+                }
+                // Like a report that could not be written, a coverage
+                // failure makes the run fail when its tests passed.
+                coverageFailed = !coverage.failures.empty();
+                for (auto &failure : coverage.failures)
+                {
+                    run.notes.push_back(std::move(failure));
                 }
             }
 
@@ -1023,7 +1035,8 @@ namespace Progmasoft::Catch3
             Runner::Analyze(run, analysis);
             console.RunEnded(run);
 
-            const bool reportMissing = !WriteReports(options, run);
+            const bool reportMissing
+                = !WriteReports(options, run) || coverageFailed;
             if (options.historyEnabled)
             {
                 SaveHistory(historyFile,
