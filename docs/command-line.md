@@ -120,6 +120,7 @@ Without a spec, every test runs except hidden ones, whose tags start with
 | `--junit=FILE` | write a JUnit XML report |
 | `--json=FILE` | write a JSON report with every attempt and its analysis |
 | `--trace=FILE` | write a trace for `chrome://tracing` or Perfetto |
+| `--coverage=DIR` | run every test in a process of its own and keep its coverage in DIR, with a map of what each test reached; see [Per-test coverage](progmasoft-runner.md#per-test-coverage) |
 | `--slowest[=N]` | list the N slowest tests (default 10) |
 | `--premature-exit-guard-file=FILE` | create FILE, private to the user, when the run starts and remove it when the run ends normally |
 

@@ -830,6 +830,21 @@ namespace Progmasoft::Catch3::Runner
                      options.tracePath = *value;
                      return Status::Ok();
                  }},
+                {"coverage",
+                 '\0',
+                 Takes::kValue,
+                 "DIR",
+                 "Output",
+                 "run every test in a process of its own and keep its "
+                 "coverage in DIR, with a map of what each test reached",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     if (value->empty())
+                     {
+                         return Status{ Error{ "--coverage needs a directory" } };
+                     }
+                     options.coverageDirectory = *value;
+                     return Status::Ok();
+                 }},
                 {"premature-exit-guard-file",
                  '\0',
                  Takes::kValue,
@@ -1104,6 +1119,11 @@ namespace Progmasoft::Catch3::Runner
             {
                 return status.GetError();
             }
+        }
+        if (!options.coverageDirectory.empty() && options.inProcess)
+        {
+            return Error{ "--coverage runs every test in a process of its own, "
+                          "so it cannot be used with --in-process or --break" };
         }
         return options;
     }

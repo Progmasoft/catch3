@@ -203,6 +203,7 @@ namespace Progmasoft::Catch3::Runner
         SetText(value, "exitDescription", attempt.exitDescription);
         SetText(value, "lastLocation", attempt.lastLocation);
         SetText(value, "temporaryDirectory", attempt.temporaryDirectory);
+        SetText(value, "coverageProfile", attempt.coverageProfile);
         return value;
     }
 
@@ -242,6 +243,7 @@ namespace Progmasoft::Catch3::Runner
         attempt.exitDescription = value["exitDescription"].AsString();
         attempt.lastLocation = value["lastLocation"].AsString();
         attempt.temporaryDirectory = value["temporaryDirectory"].AsString();
+        attempt.coverageProfile = value["coverageProfile"].AsString();
         return attempt;
     }
 

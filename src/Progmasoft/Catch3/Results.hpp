@@ -153,6 +153,9 @@ namespace Progmasoft::Catch3
         /// The directory the test had for its temporary files; kept when the
         /// attempt failed, so its contents can be inspected.
         std::string temporaryDirectory;
+        /// In a coverage run, where the profile of this attempt went,
+        /// without its extension (`.profraw` or `.gcov`).
+        std::string coverageProfile;
     };
 
     /// One test of the run and everything the runner learned about it.

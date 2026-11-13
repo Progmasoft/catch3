@@ -346,6 +346,10 @@ namespace Progmasoft::Catch3::Runner
                 }
                 attempt.temporaryDirectory
                     = TemporaryFor(catalogIndex, attempt.number);
+                if (target)
+                {
+                    attempt.coverageProfile = worker.coverageProfile;
+                }
                 worker.running = std::move(running);
                 if (options_.inProcess)
                 {
@@ -973,8 +977,33 @@ namespace Progmasoft::Catch3::Runner
 
             // Worker processes.
 
+            /// Where the coverage profile of the next attempt of `job` goes,
+            /// without its extension. Only an attempt that runs alone in its
+            /// process gets one: a job that runs other tests first would
+            /// count their lines as its own.
+            std::string
+            CoverageProfileFor(const Job &job) const
+            {
+                if (options_.coverageDirectory.empty()
+                    || job.kind != Job::Kind::kAttempt || !job.before.empty())
+                {
+                    return {};
+                }
+                const std::size_t catalogIndex
+                    = plan_.tests[job.test].entry->index;
+                const std::size_t attempt
+                    = states_[job.test].result.attempts.size() + 1;
+                return (std::filesystem::path{ options_.coverageDirectory }
+                        / "profiles"
+                        / ("t" + std::to_string(catalogIndex) + "-a"
+                           + std::to_string(attempt)))
+                    .string();
+            }
+
             Worker *
-            SpawnWorker(bool dedicated, std::optional<std::uint32_t> seed)
+            SpawnWorker(bool dedicated,
+                        std::optional<std::uint32_t> seed,
+                        std::string coverageProfile = {})
             {
                 if (infrastructureFailed_)
                 {
@@ -994,6 +1023,26 @@ namespace Progmasoft::Catch3::Runner
                 const std::size_t id = ++workersStarted_;
                 child.environment.emplace_back("CATCH3_WORKER",
                                                std::to_string(id));
+                if (!options_.coverageDirectory.empty())
+                {
+                    // Each runtime reads its own variable: LLVM's profile
+                    // runtime the file it writes at exit, gcov the directory
+                    // its .gcda files go below. A process that is not one
+                    // attempt alone writes beside the profiles, never into
+                    // one of them.
+                    const std::string base
+                        = !coverageProfile.empty()
+                              ? coverageProfile
+                              : (std::filesystem::path{
+                                     options_.coverageDirectory }
+                                 / "profiles"
+                                 / ("other-w" + std::to_string(id)))
+                                    .string();
+                    child.environment.emplace_back("LLVM_PROFILE_FILE",
+                                                   base + ".profraw");
+                    child.environment.emplace_back("GCOV_PREFIX",
+                                                   base + ".gcov");
+                }
                 child.keptEnvironment = options_.passedEnvironment;
                 auto process = ChildProcess::Start(child);
                 if (!process)
@@ -1010,6 +1059,7 @@ namespace Progmasoft::Catch3::Runner
                 worker->id = id;
                 worker->dedicated = dedicated;
                 worker->seed = seed;
+                worker->coverageProfile = std::move(coverageProfile);
                 worker->started = Clock::now();
                 worker->process = std::move(*process);
                 Worker *raw = worker.get();
@@ -1099,8 +1149,12 @@ namespace Progmasoft::Catch3::Runner
                         return;
                     }
                     const PlannedTest &planned = plan_.tests[job->test];
+                    // A coverage run gives every attempt a process of its
+                    // own: the profile a process writes at exit is then the
+                    // coverage of that one test.
                     const bool fresh = job->fresh || options_.isolate
-                                       || planned.entry->isolated;
+                                       || planned.entry->isolated
+                                       || !options_.coverageDirectory.empty();
                     if (!fresh && idle != nullptr)
                     {
                         Assign(*idle, std::move(*job));
@@ -1116,7 +1170,8 @@ namespace Progmasoft::Catch3::Runner
                         queue_.push_front(std::move(*job));
                         return;
                     }
-                    Worker *worker = SpawnWorker(fresh, job->seed);
+                    Worker *worker
+                        = SpawnWorker(fresh, job->seed, CoverageProfileFor(*job));
                     if (worker == nullptr)
                     {
                         queue_.push_front(std::move(*job));
