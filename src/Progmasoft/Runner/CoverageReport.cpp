@@ -300,7 +300,7 @@ namespace Progmasoft::Catch3::Runner
                     = fields.size() > 1 ? Number(fields[1]) : std::nullopt;
                 if (number && count)
                 {
-                    current->lines[*number] += *count;
+                    current->lines[static_cast<std::size_t>(*number)] += *count;
                 }
             }
             else if (current != nullptr && line.substr(0, 5) == "BRDA:")
@@ -310,22 +310,23 @@ namespace Progmasoft::Catch3::Runner
                 {
                     continue;
                 }
-                const auto number = Number(fields[0]);
-                if (!number)
+                const auto parsed = Number(fields[0]);
+                if (!parsed)
                 {
                     continue;
                 }
+                const auto number = static_cast<std::size_t>(*parsed);
                 // The branches of a line are numbered in the order they come;
                 // `-` counts as never taken.
                 std::size_t index = 0;
-                for (auto it = current->branches.lower_bound({ *number, 0 });
+                for (auto it = current->branches.lower_bound({ number, 0 });
                      it != current->branches.end()
-                     && it->first.first == *number;
+                     && it->first.first == number;
                      ++it)
                 {
                     ++index;
                 }
-                current->branches[{ *number, index }]
+                current->branches[{ number, index }]
                     += Number(fields[3]).value_or(0);
             }
         }
