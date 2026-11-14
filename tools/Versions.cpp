@@ -17,72 +17,67 @@ namespace Progmasoft::Catch3::Tools
             = "src/Progmasoft/Catch3/Version.hpp";
     } // namespace
 
+    namespace
+    {
+        /// The dot-separated numbers of `text`, at most `limit` of them, none
+        /// empty or with a leading zero; nothing for anything else.
+        std::optional<std::vector<unsigned>>
+        Numbers(std::string_view text, std::size_t limit)
+        {
+            std::vector<unsigned> numbers;
+            while (true)
+            {
+                const auto dot = text.find('.');
+                const auto number = text.substr(0, dot);
+                if (numbers.size() == limit || number.empty()
+                    || (number.size() > 1 && number.front() == '0'))
+                {
+                    return std::nullopt;
+                }
+                unsigned value = 0;
+                const auto *end = number.data() + number.size();
+                const auto parsed = std::from_chars(number.data(), end, value);
+                if (parsed.ec != std::errc{} || parsed.ptr != end)
+                {
+                    return std::nullopt;
+                }
+                numbers.push_back(value);
+                if (dot == std::string_view::npos)
+                {
+                    return numbers;
+                }
+                text.remove_prefix(dot + 1);
+            }
+        }
+    } // namespace
+
     std::optional<Version>
     ParseVersion(std::string_view text)
     {
-        Version version{};
-        std::size_t count = 0;
-        while (true)
-        {
-            const auto dot = text.find('.');
-            const auto number = text.substr(0, dot);
-            if (count == version.size() || number.empty()
-                || (number.size() > 1 && number.front() == '0'))
-            {
-                return std::nullopt;
-            }
-            const auto *end = number.data() + number.size();
-            const auto parsed
-                = std::from_chars(number.data(), end, version[count]);
-            if (parsed.ec != std::errc{} || parsed.ptr != end)
-            {
-                return std::nullopt;
-            }
-            ++count;
-            if (dot == std::string_view::npos)
-            {
-                break;
-            }
-            text.remove_prefix(dot + 1);
-        }
-        if (count < 3)
+        const auto numbers = Numbers(text, 3);
+        if (!numbers || numbers->size() != 3)
         {
             return std::nullopt;
         }
-        return version;
+        return Version{ (*numbers)[0], (*numbers)[1], (*numbers)[2] };
     }
 
     std::string
     FormatVersion(const Version &version)
     {
         return std::to_string(version[0]) + "." + std::to_string(version[1])
-               + "." + std::to_string(version[2]) + "."
-               + std::to_string(version[3]);
+               + "." + std::to_string(version[2]);
     }
 
-    Version
-    NextVersion(Version version)
+    std::optional<Version>
+    NextPatch(std::string_view current)
     {
-        if (version[3] < 9)
+        const auto numbers = Numbers(current, 4);
+        if (!numbers || numbers->size() < 3)
         {
-            ++version[3];
-            return version;
+            return std::nullopt;
         }
-        version[3] = 0;
-        if (version[2] < 9)
-        {
-            ++version[2];
-            return version;
-        }
-        version[2] = 0;
-        if (version[1] < 19)
-        {
-            ++version[1];
-            return version;
-        }
-        version[1] = 0;
-        ++version[0];
-        return version;
+        return Version{ (*numbers)[0], (*numbers)[1], (*numbers)[2] + 1 };
     }
 
     const std::array<VersionSite, 5> &
@@ -211,17 +206,10 @@ namespace Progmasoft::Catch3::Tools
     std::optional<std::string>
     ReleaseNotesOf(std::string_view notes, std::string_view version)
     {
-        auto heading = "\n## " + std::string{ version } + "\n";
-        auto found = notes.find(heading);
-        // A release with D = 0 may be headed by its three numbers.
-        const auto parsed = ParseVersion(version);
-        if (found == std::string_view::npos && parsed && (*parsed)[3] == 0)
-        {
-            heading = "\n## " + std::to_string((*parsed)[0]) + "."
-                      + std::to_string((*parsed)[1]) + "."
-                      + std::to_string((*parsed)[2]) + "\n";
-            found = notes.find(heading);
-        }
+        // Every release is headed by its version as it was published: three
+        // numbers, or four for the releases before Semantic Versioning.
+        const auto heading = "\n## " + std::string{ version } + "\n";
+        const auto found = notes.find(heading);
         if (found == std::string_view::npos)
         {
             return std::nullopt;
