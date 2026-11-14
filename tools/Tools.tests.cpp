@@ -3,6 +3,7 @@
 
 #include <Progmasoft/Catch3/Matchers/String.hpp>
 #include <Progmasoft/Catch3/TestMacros.hpp>
+#include <limits>
 #include <string>
 
 #include "tools/Amalgamation.hpp"
@@ -38,6 +39,9 @@ TEST_CASE("The next patch release follows a SemVer or a four-number version",
     // After the four-number versions: the fourth number goes.
     CHECK(next("0.3.0.2") == "0.3.1");
     CHECK(next("0.3") == "none");
+    const auto largest = std::to_string(std::numeric_limits<unsigned>::max());
+    CHECK(next(("0.4." + largest).c_str()) == "none");
+    CHECK(next(("0.3." + largest + ".2").c_str()) == "none");
     CHECK(next("0.3.0.2.1") == "none");
 }
 

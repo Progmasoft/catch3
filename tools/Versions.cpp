@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -73,7 +74,10 @@ namespace Progmasoft::Catch3::Tools
     NextPatch(std::string_view current)
     {
         const auto numbers = Numbers(current, 4);
-        if (!numbers || numbers->size() < 3)
+        // A patch number at its largest has no next one; adding one would
+        // wrap around to 0 and move the version back.
+        if (!numbers || numbers->size() < 3
+            || (*numbers)[2] == std::numeric_limits<unsigned>::max())
         {
             return std::nullopt;
         }
