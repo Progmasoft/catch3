@@ -20,6 +20,7 @@ cc_test(
         "RunnerConfig.tests.cpp",
         "RunnerAnalysis.tests.cpp",
         "RunnerImport.tests.cpp",
+        "RunnerCoverage.tests.cpp",
         "RunnerOutput.tests.cpp",
         "Snapshot.tests.cpp",
         "Stateful.tests.cpp",

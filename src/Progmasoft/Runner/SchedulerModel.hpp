@@ -116,6 +116,10 @@ namespace Progmasoft::Catch3::Runner::Scheduling
         /// Catalog indices this process has run, in order.
         std::vector<std::size_t> history;
         std::string startupOutput;
+        /// In a coverage run, where the profile of the attempt this process
+        /// was started for goes, without its extension; empty for a process
+        /// that runs other tests first or only probes.
+        std::string coverageProfile;
     };
 
     struct Event final

@@ -12,6 +12,7 @@
 [Temporary files](#temporary-files)<br>
 [What a failure report says](#what-a-failure-report-says)<br>
 [Reports and traces](#reports-and-traces)<br>
+[Per-test coverage](#per-test-coverage)<br>
 [Formats other tools read](#formats-other-tools-read)<br>
 [Project configuration](#project-configuration)<br>
 [Bazel and CTest](#bazel-and-ctest)<br>
@@ -330,6 +331,70 @@ replay line runs the failure again as it happened.
 * `--trace=FILE` writes a trace for `chrome://tracing` or
   [Perfetto](https://ui.perfetto.dev): one track per worker, one slice per
   attempt and section.
+
+
+## Per-test coverage
+
+`--coverage=DIR` runs every test in a process of its own and keeps what each
+one reached. Build the tests with coverage instrumentation:
+
+* Clang: `-fprofile-instr-generate -fcoverage-mapping`, LLVM source-based
+  coverage;
+* GCC: `--coverage`, gcov's format.
+
+```text
+$ ./tests --coverage=coverage
+Catch3: 120 test(s), up to 8 worker(s), seed 2153251184
+note: --coverage: 120 test profile(s); what each test reached is in coverage/coverage.json, the run combined in coverage/coverage.lcov
+
+120 test(s): 120 passed
+```
+
+Each attempt gets a process of its own, so the profile its process writes at
+exit is the coverage of that one test: `DIR/profiles/t<index>-a<attempt>`
+with `.profraw` for LLVM, or a `.gcov` directory below which gcov writes its
+`.gcda` files under their absolute paths. The runner sets `LLVM_PROFILE_FILE`
+and `GCOV_PREFIX` for the process; each runtime reads its own. A process
+that runs other tests first, to find a test that leaves state behind, writes
+beside the profiles, never into one. The profiles and reports of an earlier
+run in `DIR` are removed when the run starts: gcov adds to the data it finds,
+and a run that writes no reports leaves none to be read as its own.
+
+After the run, the runner reads, on as many threads as the run had workers,
+the profile of the last attempt of every test that left one; when a retry or
+repeat crashed before writing its profile, the attempt before it counts:
+
+* `DIR/coverage.json` holds, for each test, its outcome, its profile and the
+  files it reached, with the lines it ran and, per line, how many of its
+  branches it took:
+
+  ```json
+  { "version": 1, "format": "llvm", "binary": "./tests",
+    "tests": [ { "name": "Adds one", "outcome": "passed",
+                 "profile": "coverage/profiles/t0-a1.profraw",
+                 "files": [ { "file": "/src/calc.cpp", "lines": [ 12, 13 ],
+                              "branches": [ { "line": 12, "taken": 1, "total": 2 } ] } ] } ] }
+  ```
+
+* `DIR/coverage.lcov` is the coverage of the whole run as an LCOV tracefile,
+  which `genhtml`, Codecov and editors read.
+
+LLVM profiles are read with `llvm-profdata` and `llvm-cov`, gcov data with
+`gcov`. They are looked up on `PATH`, through `xcrun` on macOS, or named by
+`CATCH3_LLVM_PROFDATA`, `CATCH3_LLVM_COV` and `CATCH3_GCOV`. Without them the
+profiles stay in `DIR/profiles` and the run says so, as it does when the
+tests wrote no profiles; neither fails the run. A profile the tools cannot
+read, or a report that cannot be written, fails a run whose tests passed,
+like any report the run was asked for. A test that crashes or is stopped at
+its time limit leaves no profile. gcov is run with `--branch-probabilities`,
+without which its JSON has no branches. The runner's own process is
+instrumented too and writes its profile where any instrumented program does,
+`default.profraw` in the working directory unless `LLVM_PROFILE_FILE` says
+otherwise; it holds no test.
+
+`--coverage` cannot be used with `--in-process` or `--break`, which run the
+tests in one process. Per-test coverage is tested on Linux and macOS; Windows
+builds with clang-cl are next.
 
 
 ## Formats other tools read

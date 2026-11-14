@@ -22,6 +22,7 @@
 #include <random>
 #include <system_error>
 
+#include "CoverageReport.hpp"
 #include "Analysis.hpp"
 #include "Catalog.hpp"
 #include "Console.hpp"
@@ -949,6 +950,17 @@ namespace Progmasoft::Catch3
                 }
             }
 
+            if (!options.coverageDirectory.empty())
+            {
+                if (auto status = Runner::PrepareCoverageDirectory(
+                        options.coverageDirectory);
+                    !status)
+                {
+                    PrintError(status.GetError().Message());
+                    return Catch::UnspecifiedErrorExitCode;
+                }
+            }
+
             const auto started = std::chrono::steady_clock::now();
             RunResult run;
             run.binary = programName;
@@ -983,6 +995,26 @@ namespace Progmasoft::Catch3
                 run.tests.push_back(std::move(kept));
             }
             run.notes = std::move(outcome.notes);
+            bool coverageFailed = false;
+            if (!options.coverageDirectory.empty())
+            {
+                auto coverage
+                    = Runner::WriteCoverageReports(options.coverageDirectory,
+                                                   run,
+                                                   program.string(),
+                                                   run.workers);
+                for (auto &note : coverage.notes)
+                {
+                    run.notes.push_back(std::move(note));
+                }
+                // Like a report that could not be written, a coverage
+                // failure makes the run fail when its tests passed.
+                coverageFailed = !coverage.failures.empty();
+                for (auto &failure : coverage.failures)
+                {
+                    run.notes.push_back(std::move(failure));
+                }
+            }
 
             const bool anyFailure
                 = std::any_of(run.tests.begin(),
@@ -1003,7 +1035,8 @@ namespace Progmasoft::Catch3
             Runner::Analyze(run, analysis);
             console.RunEnded(run);
 
-            const bool reportMissing = !WriteReports(options, run);
+            const bool reportMissing
+                = !WriteReports(options, run) || coverageFailed;
             if (options.historyEnabled)
             {
                 SaveHistory(historyFile,

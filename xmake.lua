@@ -63,6 +63,7 @@ target("ProgmasoftPropertyTests")
         "tests/Progmasoft/RunnerConfig.tests.cpp",
         "tests/Progmasoft/RunnerAnalysis.tests.cpp",
         "tests/Progmasoft/RunnerImport.tests.cpp",
+        "tests/Progmasoft/RunnerCoverage.tests.cpp",
         "tests/Progmasoft/RunnerOutput.tests.cpp",
         "tests/Progmasoft/Snapshot.tests.cpp",
         "tests/Progmasoft/Stateful.tests.cpp",
