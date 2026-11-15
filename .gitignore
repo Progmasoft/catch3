@@ -27,6 +27,7 @@ cmake-build-*
 benchmark-dir
 **/CMakeUserPresets.json
 /bazel-*
+/tests/Progmasoft/BazelModule/bazel-*
 build-fuzzers
 debug-build
 .vscode
