@@ -12,7 +12,7 @@
 #include <Progmasoft/Catch3/Generators/Random.hpp>
 #include <Progmasoft/Catch3/Generators/Range.hpp>
 
-#include <cstring>
+#include <string_view>
 
 
 // Generators and sections can be nested freely
@@ -62,7 +62,7 @@ TEST_CASE("tables", "[generators]") {
         tuple_type{"etc...", 6}
     }));
 
-    REQUIRE(strlen(std::get<0>(data)) == static_cast<size_t>(std::get<1>(data)));
+    REQUIRE(std::string_view(std::get<0>(data)).size() == static_cast<size_t>(std::get<1>(data)));
 }
 
 

@@ -56,7 +56,14 @@ if ret.returncode != 42:
     exit(1)
 
 try:
-    tree = ET.parse(xml_out_path)
+    with open(xml_out_path, 'r', encoding='utf-8') as report:
+        text = report.read()
+    # A JUnit report has no document type, so it declares no entities: one
+    # that does is rejected before parsing, and no entity is ever expanded.
+    if '<!DOCTYPE' in text or '<!ENTITY' in text:
+        print("The report declares a document type: '{}'".format(xml_out_path))
+        exit(2)
+    tree = ET.ElementTree(ET.fromstring(text))
 except ET.ParseError as ex:
     print("Invalid XML: '{}'".format(ex))
     raise
