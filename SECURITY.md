@@ -1,6 +1,8 @@
-<!-- SPDX-FileCopyrightText: Catch2 Authors -->
-<!-- SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com> -->
-<!-- SPDX-License-Identifier: LGPL-3.0-or-later AND BSL-1.0 -->
+<!--
+SPDX-FileCopyrightText: Catch2 Authors
+SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com>
+SPDX-License-Identifier: LGPL-3.0-or-later AND BSL-1.0
+-->
 
 # Security policy
 
