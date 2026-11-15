@@ -1,0 +1,5 @@
+# Copyright (c) 2026 Progmasoft.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+# A module of its own, built by CI and by the Bazel Central Registry.
+tests/Progmasoft/BazelModule

@@ -1,0 +1,16 @@
+# Copyright (c) 2026 Progmasoft.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+# Each public name of the module, as a user links it.
+cc_test(
+    name = "with_main",
+    srcs = ["WithMain.tests.cpp"],
+    deps = ["@progmasoft_catch3//:catch3_main"],
+)
+
+cc_test(
+    name = "own_main",
+    srcs = ["OwnMain.tests.cpp"],
+    deps = ["@progmasoft_catch3//:catch3"],
+)

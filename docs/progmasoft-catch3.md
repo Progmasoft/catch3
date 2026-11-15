@@ -179,8 +179,22 @@ find_package(Catch3 0.3 CONFIG REQUIRED)
 target_link_libraries(MyTests PRIVATE Catch3::Catch3WithMain)
 ```
 
-The Bazel target is `//:catch3`; its tests are
-`//tests/Progmasoft:property_tests`. Bazel is the primary
+In the Bazel Central Registry, from 0.5.0 on, the module is
+`progmasoft_catch3`, for Bazel 8 and later:
+
+```starlark
+bazel_dep(name = "progmasoft_catch3", version = "0.5.0")
+```
+
+Its targets are `@progmasoft_catch3//:catch3` and
+`@progmasoft_catch3//:catch3_main`, which brings `main`. Code that includes
+the headers is C++17 or later, so a module that is not already set to it
+passes `--cxxopt=-std=c++17` (`--cxxopt=/std:c++17` with MSVC, which defaults
+to C++14).
+
+In this repository the Bazel target is `//:catch3`; its tests are
+`//tests/Progmasoft:property_tests`, and `tests/Progmasoft/BazelModule` is a
+module that depends on Catch3 as a user's does. Bazel is the primary
 build path; CMake, Meson, Xmake, and Premake are also maintained as alternate
 ways to build the same engine and property tests. Their root files are
 `CMakeLists.txt`, `meson.build`, `xmake.lua`, and `premake5.lua`. Xmake and
