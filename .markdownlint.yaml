@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com>
+# SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+
+# The documents keep Catch2's style: an anchor at the top of each page and a
+# contents list whose lines end in <br>.
+MD033:
+  allowed_elements:
+    - a
+    - br

@@ -1,7 +1,7 @@
 name: Mac Builds
 
 # macOS runners are few and shared by every Progmasoft repository, so macOS
-# gets one job, as in the Tala compiler: the newest macOS on Apple Silicon,
+# gets one job: the newest macOS on Apple Silicon,
 # with AddressSanitizer and UndefinedBehaviorSanitizer. The other build
 # systems, the C++ standards and ThreadSanitizer run on Linux and Windows.
 
