@@ -7,11 +7,39 @@ based on Catch2 3.16.1; Catch2's own history is in
 [its release notes](https://github.com/catchorg/Catch2/blob/devel/docs/release-notes.md).
 
 **Contents**<br>
+[0.4.0](#040)<br>
 [0.3.0.2](#0302)<br>
 [0.3.0.1](#0301)<br>
 [0.3.0](#030)<br>
 [0.2.0](#020)<br>
 [0.1.0](#010)<br>
+
+
+## 0.4.0
+
+Released 2026-11-15.
+
+Versions of Catch3 have three numbers again from this release on:
+`MAJOR.MINOR.PATCH`, as Semantic Versioning writes them.
+
+### The Catch3 runner
+
+* `--coverage=DIR` runs every test in a process of its own and keeps what each
+  one reached: `DIR/coverage.json` maps every test to the lines it ran, and
+  `DIR/coverage.lcov` is the run combined. It reads LLVM source-based coverage
+  (Clang) and gcov (GCC). See [Per-test coverage](progmasoft-runner.md#per-test-coverage).
+* Workers and the processes the runner starts no longer inherit the variables
+  whose names look like secrets (`TOKEN`, `SECRET`, `PASSWORD` and the like).
+  `--pass-env=NAME`, which can be repeated, or `"pass-env"` in the project
+  configuration hands one to the tests that need it.
+  See [Environment variables](progmasoft-runner.md#environment-variables).
+
+### Tools
+
+* The repository tools are C++17 and run through Bazel:
+  `//tools:check`, `//tools:amalgamate`, `//tools:version`,
+  `//tools:release_notes`, `//tools:repo_info` and `//tools:third_party`.
+  They replace the Python scripts of earlier releases.
 
 
 ## 0.3.0.2
