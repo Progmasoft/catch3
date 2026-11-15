@@ -1,5 +1,5 @@
 -- Copyright (c) 2026 Progmasoft.
--- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+-- SPDX-License-Identifier: LGPL-3.0-or-later
 
 set_project("Catch3")
 set_version("0.4.0")

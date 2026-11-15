@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+// SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include <algorithm>
 #include <array>
@@ -33,8 +33,8 @@ namespace Progmasoft::Catch3::Tools
 //  You probably shouldn't edit it directly.
 //
 //  The parts that come from src/Progmasoft, the Catch3 runner, keep
-//  their own copyright and license lines (MPL-2.0 WITH
-//  AdditionRef-Progmasoft-Exception-2.0). The runner needs C++17.
+//  their own copyright and license lines (LGPL-3.0-or-later). The
+//  runner needs C++17.
 //  ----------------------------------------------------------
 )";
 
@@ -45,7 +45,7 @@ namespace Progmasoft::Catch3::Tools
 // third_party/. You probably shouldn't edit it directly.
 //
 // yyjson and pugixml keep their MIT licenses, stated in their text below;
-// the rest is MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0. Only
+// the rest is LGPL-3.0-or-later. Only
 // catch_amalgamated.cpp includes this file.
 // ----------------------------------------------------------
 )";

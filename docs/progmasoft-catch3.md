@@ -232,8 +232,8 @@ Do not rename or rewrite Catch2 headers, `Catch` symbols, macros, runner options
 or upstream coding style as part of this extension. New functionality belongs
 in separately licensed Progmasoft headers and uses Progmasoft's PascalCase C++
 types/functions and project naming conventions. Catch2-originated source files
-remain under BSL-1.0; Progmasoft-authored source files carry the MPL-2.0 plus
-Progmasoft linking-exception SPDX expression shown in their headers. The two
+remain under BSL-1.0; Progmasoft-authored source files are under
+LGPL-3.0-or-later, as their headers say. The two
 areas are not relicensed as a whole. Any proposed upstream PR must be prepared
 under Catch2's contribution rules as a separate contribution, rather than
 reusing a source file whose license header says otherwise.

@@ -9,7 +9,7 @@ project(
   'catch3',
   'cpp',
   version: '0.4.0',
-  license: ['BSL-1.0', 'MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0'],
+  license: ['BSL-1.0', 'LGPL-3.0-or-later'],
   # Meson 1.1 added clang-cl support for the C++ modes used by Progmasoft tests.
   meson_version: '>=1.1.0',
 )
