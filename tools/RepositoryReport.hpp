@@ -44,7 +44,7 @@ namespace Progmasoft::Catch3::Tools
     FormatReport(const RepositoryReport &report);
 
     /// The report as JSON: empty texts are left out, the rest has the names
-    /// of Tala's repo-info, in camelCase.
+    /// of the fields of RepositoryReport, in camelCase.
     [[nodiscard]] std::string
     ReportToJson(const RepositoryReport &report);
 } // namespace Progmasoft::Catch3::Tools
