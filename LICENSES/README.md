@@ -12,6 +12,8 @@ This repository contains two independently licensed source areas:
 - A few files came from Catch2 and were rewritten by Progmasoft; they carry
   both notices and `SPDX-License-Identifier: LGPL-3.0-or-later AND BSL-1.0`.
 - Vendored third-party libraries under `third_party/` keep their own licenses.
+- `PATENTS.md` applies the Progmasoft Patent Grant 1.1, whose text is here, to the
+  Progmasoft-authored files; it does not cover Catch2-originated or vendored files.
 
 Releases before 0.5.0 keep the license they were published under:
 MPL-2.0 with the Progmasoft Linking Exception for the Progmasoft-authored files.
