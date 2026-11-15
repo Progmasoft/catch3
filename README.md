@@ -12,8 +12,8 @@ serialization.
 > Catch3 is not an official Catch2 release and is not endorsed by Catch2's
 > maintainers. Its current compatibility engine is based on Catch2 3.16.1;
 > upstream-originated files keep their upstream license, the Boost Software
-> License 1.0. Progmasoft-authored additions are under LGPL-3.0-or-later. See [the project scope and
-> compatibility notes](docs/why-catch3.md).
+> License 1.0. Progmasoft-authored additions are under LGPL-3.0-or-later. See
+> [the project scope and compatibility notes](docs/why-catch3.md).
 
 ## What Catch3 provides
 
