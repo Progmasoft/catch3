@@ -12,19 +12,22 @@
 
 namespace Progmasoft::Catch3::Tools
 {
-    /// A.B.C.D. A version of three numbers has D = 0.
-    using Version = std::array<unsigned, 4>;
+    /// MAJOR.MINOR.PATCH, as Semantic Versioning numbers a release.
+    using Version = std::array<unsigned, 3>;
 
+    /// A version of exactly three numbers, none with a leading zero.
     [[nodiscard]] std::optional<Version>
     ParseVersion(std::string_view text);
 
     [[nodiscard]] std::string
     FormatVersion(const Version &version);
 
-    /// The version after `version`, which counts releases: D up to 9, then C
-    /// up to 9, then B up to 19, then A.
-    [[nodiscard]] Version
-    NextVersion(Version version);
+    /// The next patch release after `current`. `current` may also be one of
+    /// the four-number versions Catch3 had before Semantic Versioning: the
+    /// fourth number is dropped and the patch goes up, so 0.3.0.2 is followed
+    /// by 0.3.1.
+    [[nodiscard]] std::optional<Version>
+    NextPatch(std::string_view current);
 
     /// A place that states the version: the file, and the text around it.
     struct VersionSite final

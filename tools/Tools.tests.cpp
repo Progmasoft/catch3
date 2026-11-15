@@ -3,6 +3,7 @@
 
 #include <Progmasoft/Catch3/Matchers/String.hpp>
 #include <Progmasoft/Catch3/TestMacros.hpp>
+#include <limits>
 #include <string>
 
 #include "tools/Amalgamation.hpp"
@@ -13,28 +14,35 @@
 using namespace Progmasoft::Catch3::Tools;
 using Catch::Matchers::ContainsSubstring;
 
-TEST_CASE("Versions have three or four numbers", "[tools]")
+TEST_CASE("Versions are MAJOR.MINOR.PATCH", "[tools]")
 {
-    CHECK(ParseVersion("0.3.0") == Version{ 0, 3, 0, 0 });
-    CHECK(ParseVersion("0.3.0.2") == Version{ 0, 3, 0, 2 });
+    CHECK(ParseVersion("0.4.0") == Version{ 0, 4, 0 });
+    CHECK(ParseVersion("10.20.30") == Version{ 10, 20, 30 });
+    CHECK(FormatVersion(Version{ 0, 4, 0 }) == "0.4.0");
     for (const char *wrong :
-         { "0.3", "0.3.0.2.1", "01.3.0", "0.3.0.", "a.3.0", "", "0.3.0-rc" })
+         { "0.3", "0.3.0.2", "01.3.0", "0.3.0.", "a.3.0", "", "0.3.0-rc" })
     {
         INFO(wrong);
         CHECK_FALSE(ParseVersion(wrong));
     }
 }
 
-TEST_CASE("The next version counts releases", "[tools]")
+TEST_CASE("The next patch release follows a SemVer or a four-number version",
+          "[tools]")
 {
     const auto next = [](const char *version) {
-        return FormatVersion(NextVersion(*ParseVersion(version)));
+        const auto parsed = NextPatch(version);
+        return parsed ? FormatVersion(*parsed) : std::string{ "none" };
     };
-    CHECK(next("0.3.0") == "0.3.0.1");
-    CHECK(next("0.4.0.8") == "0.4.0.9");
-    CHECK(next("0.4.0.9") == "0.4.1.0");
-    CHECK(next("0.4.9.9") == "0.5.0.0");
-    CHECK(next("0.19.9.9") == "1.0.0.0");
+    CHECK(next("0.4.0") == "0.4.1");
+    CHECK(next("1.2.9") == "1.2.10");
+    // After the four-number versions: the fourth number goes.
+    CHECK(next("0.3.0.2") == "0.3.1");
+    CHECK(next("0.3") == "none");
+    const auto largest = std::to_string(std::numeric_limits<unsigned>::max());
+    CHECK(next(("0.4." + largest).c_str()) == "none");
+    CHECK(next(("0.3." + largest + ".2").c_str()) == "none");
+    CHECK(next("0.3.0.2.1") == "none");
 }
 
 TEST_CASE("A version site is read and written in place", "[tools]")
@@ -57,12 +65,14 @@ TEST_CASE("Release notes are found by their heading", "[tools]")
     CHECK_FALSE(ReleaseNotesOf(notes, "0.3"));
 }
 
-TEST_CASE("A release with D = 0 may be headed by three numbers", "[tools]")
+TEST_CASE("A release is found by the version it was published as", "[tools]")
 {
-    const std::string notes = "# Notes\n\n## 0.4.0\n\nThree.\n";
+    const std::string notes
+        = "# Notes\n\n## 0.4.0\n\nThree.\n\n\n## 0.3.0.2\n\nFour.\n";
     CHECK(ReleaseNotesOf(notes, "0.4.0") == "Three.\n");
-    CHECK(ReleaseNotesOf(notes, "0.4.0.0") == "Three.\n");
-    CHECK_FALSE(ReleaseNotesOf(notes, "0.4.0.1"));
+    CHECK(ReleaseNotesOf(notes, "0.3.0.2") == "Four.\n");
+    CHECK_FALSE(ReleaseNotesOf(notes, "0.4.0.0"));
+    CHECK_FALSE(ReleaseNotesOf(notes, "0.3.0"));
 }
 
 TEST_CASE("Git that could not say is not a clean checkout", "[tools]")

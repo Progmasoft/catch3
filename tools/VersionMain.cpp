@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
 
 // bazelisk run //tools:version                  prints the current version
-// bazelisk run //tools:version -- --next        moves to the next version
-// bazelisk run //tools:version -- 0.3.1.0       moves to that version
+// bazelisk run //tools:version -- --next        moves to the next patch release
+// bazelisk run //tools:version -- 0.4.0         moves to that version
 //
 // Moving writes every place that states the version, and the amalgamation.
 
@@ -44,16 +44,19 @@ main(int argc, char **argv)
         return 0;
     }
     const std::string_view argument{ argv[1] };
-    const auto parsed = ParseVersion(
-        argument == "--next" ? *current : std::string{ argument });
+    const auto parsed
+        = argument == "--next" ? NextPatch(*current) : ParseVersion(argument);
     if (!parsed)
     {
-        std::cerr << "not a version of three or four numbers: " << argument
+        std::cerr << (argument == "--next"
+                          ? "the current version is not a release version: "
+                                + *current
+                          : "not a version MAJOR.MINOR.PATCH: "
+                                + std::string{ argument })
                   << '\n';
         return 2;
     }
-    const auto version
-        = FormatVersion(argument == "--next" ? NextVersion(*parsed) : *parsed);
+    const auto version = FormatVersion(*parsed);
     // The sources have to make a distribution before anything is changed.
     (void)GenerateAmalgamation(*root, problems);
     if (problems.empty())
