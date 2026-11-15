@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Progmasoft.
-# SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+# SPDX-License-Identifier: LGPL-3.0-or-later
 
 # pugixml (MIT), the XML writer of the reports.
 # The version is pinned in MODULE.bazel. Catch3

@@ -1,6 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com> -->
-<!-- SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0 -->
-
 # Security policy
 
 Progmasoft Catch3 is an independent fork, not an official Catch2 release. Security reports for this repository must go to Progmasoft, not to upstream Catch2 maintainers.

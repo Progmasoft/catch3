@@ -11,9 +11,9 @@ serialization.
 
 > Catch3 is not an official Catch2 release and is not endorsed by Catch2's
 > maintainers. Its current compatibility engine is based on Catch2 3.16.1;
-> upstream-originated files keep their upstream license. Progmasoft-authored
-> additions have their own licensing terms. See [the project scope and
-> compatibility notes](docs/why-catch3.md).
+> upstream-originated files keep their upstream license, the Boost Software
+> License 1.0. Progmasoft-authored additions are under LGPL-3.0-or-later. See
+> [the project scope and compatibility notes](docs/why-catch3.md).
 
 ## What Catch3 provides
 
@@ -106,3 +106,15 @@ their package, target, header and pkg-config names differ.
 
 Issues and feature requests for Progmasoft Catch3 belong in the
 [Progmasoft/Catch3 issue tracker](https://github.com/Progmasoft/catch3/issues).
+
+## License
+
+Catch2-originated files keep the Boost Software License 1.0
+([LICENSE.txt](LICENSE.txt)). Progmasoft-authored files are under the GNU Lesser
+General Public License, version 3 or later
+([LICENSES/LGPL-3.0-or-later.txt](LICENSES/LGPL-3.0-or-later.txt), with the
+GPL-3.0 text it builds on beside it). Vendored libraries in `third_party/` keep
+their own licenses. [LICENSES/README.md](LICENSES/README.md) maps which file is
+under which license; releases before 0.5.0 keep the license they were published
+under. Progmasoft-authored code is also covered by the [Progmasoft Patent Grant
+1.1](PATENTS.md); Catch2-originated files are not.

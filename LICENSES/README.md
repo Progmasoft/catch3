@@ -4,10 +4,21 @@ This repository contains two independently licensed source areas:
 
 - Catch2-originated files retain their upstream Boost Software License 1.0
   notices and the root `LICENSE.txt`.
-- Progmasoft-authored files identify their terms in each file with
-  `SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-1.1`.
-  The canonical MPL-2.0 text and Progmasoft linking exception are in this
-  directory.
+- Progmasoft-authored files are licensed under the GNU Lesser General Public
+  License, version 3 or (at your option) any later version, and say so in
+  each file with `SPDX-License-Identifier: LGPL-3.0-or-later`. The LGPL is a
+  set of additional permissions on the GNU General Public License, version 3;
+  both texts are in this directory.
+- A few files came from Catch2 and were rewritten by Progmasoft; they carry
+  both notices and `SPDX-License-Identifier: LGPL-3.0-or-later AND BSL-1.0`.
+  `SECURITY.md` keeps them in `SECURITY.md.license`, the REUSE form for a file
+  whose readers should not meet them, so that the policy reads as plain text.
+- Vendored third-party libraries under `third_party/` keep their own licenses.
+- `PATENTS.md` applies the Progmasoft Patent Grant 1.1, whose text is here, to the
+  Progmasoft-authored files; it does not cover Catch2-originated or vendored files.
+
+Releases before 0.5.0 keep the license they were published under:
+MPL-2.0 with the Progmasoft Linking Exception for the Progmasoft-authored files.
 
 New Progmasoft files are kept separate from upstream files so the two license
 boundaries remain visible. A patch intended for Catch2 upstream must follow the

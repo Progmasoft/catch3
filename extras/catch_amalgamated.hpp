@@ -12,8 +12,8 @@
 //  You probably shouldn't edit it directly.
 //
 //  The parts that come from src/Progmasoft, the Catch3 runner, keep
-//  their own copyright and license lines (MPL-2.0 WITH
-//  AdditionRef-Progmasoft-Exception-2.0). The runner needs C++17.
+//  their own copyright and license lines (LGPL-3.0-or-later). The
+//  runner needs C++17.
 //  ----------------------------------------------------------
 #ifndef CATCH_AMALGAMATED_HPP_INCLUDED
 #define CATCH_AMALGAMATED_HPP_INCLUDED
@@ -11738,7 +11738,7 @@ namespace Catch {
 
 
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+// SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include <cstddef>
 #include <exception>
