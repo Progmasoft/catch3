@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+// SPDX-License-Identifier: LGPL-3.0-or-later
 
 // The command line of a test binary: arguments separated by NUL bytes. The
 // parser must answer with options or an error, never crash, and the worker

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+// SPDX-License-Identifier: LGPL-3.0-or-later
 
 // Starts the runner fixture and checks what the runner made of its tests.
 

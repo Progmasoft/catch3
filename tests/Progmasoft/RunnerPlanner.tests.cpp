@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+// SPDX-License-Identifier: LGPL-3.0-or-later
 
 // The planner decides which tests run, where, in which order and under
 // which limits, from the options, the history and the changed files. These

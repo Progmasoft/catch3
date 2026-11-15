@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Progmasoft.
-// SPDX-License-Identifier: MPL-2.0 WITH AdditionRef-Progmasoft-Exception-2.0
+// SPDX-License-Identifier: LGPL-3.0-or-later
 
 // What the runner writes down about a failure: how it relates to earlier
 // runs and to other failures, where it stopped, what changed and how to
