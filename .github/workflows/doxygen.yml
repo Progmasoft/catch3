@@ -1,0 +1,43 @@
+name: Doxygen
+
+# The reference of the Progmasoft headers under src/Progmasoft, with the
+# include graphs. Every warning fails it.
+
+on:
+  push:
+    branches: [devel]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: doxygen-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  doxygen:
+    name: Doxygen
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install Doxygen and Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends doxygen graphviz
+
+      - name: Build the reference
+        run: doxygen Doxyfile
+
+      - name: Keep the reference
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: catch3-doxygen
+          path: docs/doxygen/html/
+          if-no-files-found: error
+          retention-days: 7
