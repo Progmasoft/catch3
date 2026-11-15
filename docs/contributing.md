@@ -80,8 +80,7 @@ must keep compiling. It stays under the Boost Software License 1.0, keeps the
 Code that includes its headers needs C++17 or later.
 
 `src/Progmasoft` holds what Progmasoft adds: the runner, the results model,
-property testing and snapshots. It is licensed `MPL-2.0 WITH
-AdditionRef-Progmasoft-Exception-2.0`, follows the
+property testing and snapshots. It is licensed `LGPL-3.0-or-later`, follows the
 [Progmasoft Core C++ Coding Guidelines](https://github.com/Progmasoft/progmasoft-cpp), is
 C++17, reports recoverable errors with `Expected` rather than exceptions, and
 is formatted with the `.clang-format` beside it.
