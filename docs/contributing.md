@@ -34,7 +34,9 @@ On Windows, point Bazel at Git's bash first:
 `BAZEL_SH="C:\Program Files\Git\usr\bin\bash.exe"`.
 
 CMake builds every test, including the extra tests that check compile-time
-configurations:
+configurations. Their scripts need Python 3 with
+[defusedxml](https://pypi.org/project/defusedxml/) (`python3-defusedxml` on
+Debian, Ubuntu and Fedora, or `requirements-tests.txt`):
 
 ```
 cmake --preset basic-tests -GNinja -DCATCH3_BUILD_EXTRA_TESTS=ON -DCATCH3_BUILD_EXAMPLES=ON
