@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Progmasoft <support@progmasoft.com>
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+# The Bazel Central Registry builds and runs the test module, which depends on
+# progmasoft_catch3 as a user's module does, on each platform and Bazel line.
+bcr_test_module:
+  module_path: tests/Progmasoft/BazelModule
+  matrix:
+    platform: [debian11, ubuntu2204, macos, macos_arm64, windows]
+    bazel: [8.x, 9.x]
+  tasks:
+    run_test_module:
+      name: Run the test module
+      platform: ${{ platform }}
+      bazel: ${{ bazel }}
+      test_targets:
+        - //...
