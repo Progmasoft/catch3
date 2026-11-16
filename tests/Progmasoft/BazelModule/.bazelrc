@@ -1,0 +1,12 @@
+# Copyright (c) 2026 Progmasoft.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+# Code that includes the headers of Catch3 is C++17 or later, as it must be in
+# a user's module; MSVC defaults to C++14.
+common --enable_platform_specific_config
+build:linux --cxxopt=-std=c++17
+build:macos --cxxopt=-std=c++17
+build:windows --cxxopt=/std:c++17
+
+# The lockfile is the user's; this module keeps none.
+common --lockfile_mode=off

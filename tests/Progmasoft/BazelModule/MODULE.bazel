@@ -1,0 +1,14 @@
+# Copyright (c) 2026 Progmasoft.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+# A module that uses progmasoft_catch3 as a user's does. CI builds it from this
+# checkout; the Bazel Central Registry builds it from the published version.
+module(name = "progmasoft_catch3_test_module")
+
+bazel_dep(name = "progmasoft_catch3")
+local_path_override(
+    module_name = "progmasoft_catch3",
+    path = "../../..",
+)
+
+bazel_dep(name = "rules_cc", version = "0.2.17")

@@ -89,7 +89,9 @@ namespace Progmasoft::Catch3::Tools
     {
         static constexpr std::array<VersionSite, 5> kSites{ {
             { "CMakeLists.txt", "\n  VERSION ", "\n" },
-            { "MODULE.bazel", "module(name = \"catch3\", version = \"", "\"" },
+            { "MODULE.bazel",
+              "module(name = \"progmasoft_catch3\", version = \"",
+              "\"" },
             { "meson.build", "\n  version: '", "'" },
             { "xmake.lua", "\nset_version(\"", "\"" },
             { kVersionHeader, "kVersion = \"", "\"" },
