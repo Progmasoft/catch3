@@ -32,10 +32,10 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Install Clang, LLVM's coverage tools, CMake and Ninja
+    - name: Install Clang, LLVM's coverage tools, CMake, Ninja and defusedxml
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang llvm cmake ninja-build python3
+        sudo apt-get install -y clang llvm cmake ninja-build python3 python3-defusedxml
 
     - name: Configure
       run: |
@@ -113,8 +113,8 @@ jobs:
     steps:
     # Git comes first: without it the checkout falls back to an archive of
     # the repository, which is not a checkout the tests can ask questions of.
-    - name: Install Git, Clang, LLVM's coverage tools, CMake and Ninja
-      run: dnf install -y git clang llvm gcc-c++ cmake ninja-build python3
+    - name: Install Git, Clang, LLVM's coverage tools, CMake, Ninja and defusedxml
+      run: dnf install -y git clang llvm gcc-c++ cmake ninja-build python3 python3-defusedxml
 
     - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:

@@ -16957,7 +16957,12 @@ namespace Progmasoft::Catch3::Runner
         std::string buffer(size, '\0');
         if (_NSGetExecutablePath(buffer.data(), &size) == 0)
         {
-            buffer.resize(std::strlen(buffer.c_str()));
+            // The path ends at its first NUL, never past the buffer.
+            const auto end = buffer.find('\0');
+            if (end != std::string::npos)
+            {
+                buffer.resize(end);
+            }
             auto canonical = std::filesystem::weakly_canonical(buffer, error);
             return error ? std::filesystem::path{ buffer } : canonical;
         }
