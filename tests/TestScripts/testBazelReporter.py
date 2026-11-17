@@ -10,7 +10,9 @@
 import os
 import re
 import sys
-import xml.etree.ElementTree as ET
+# defusedxml refuses entity declarations and external references, which the
+# standard parsers would expand.
+from defusedxml import ElementTree
 import subprocess
 
 """
@@ -56,8 +58,8 @@ if ret.returncode != 42:
     exit(1)
 
 try:
-    tree = ET.parse(xml_out_path)
-except ET.ParseError as ex:
+    tree = ElementTree.parse(xml_out_path)
+except ElementTree.ParseError as ex:
     print("Invalid XML: '{}'".format(ex))
     raise
 except FileNotFoundError as ex:

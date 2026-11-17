@@ -28,11 +28,19 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.14'
+
+      - name: Install what the extra tests import
+        run: python -m pip install --require-hashes --requirement requirements-tests.txt
+
       - name: Configure build
         run: |
           cmake --preset all-tests `
                 -A ${{matrix.platform}} `
                 -DCMAKE_CXX_STANDARD=${{matrix.std}} `
+                -DPython3_EXECUTABLE="$((Get-Command python).Source)"
 
       - name: Build tests
         run: cmake --build build --config ${{matrix.build_type}} --parallel $env:NUMBER_OF_PROCESSORS
