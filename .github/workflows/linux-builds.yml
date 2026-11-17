@@ -74,14 +74,19 @@ jobs:
         #include <Progmasoft/Catch3.hpp>
         TEST_CASE("an installed Catch3 links by its name") { REQUIRE(1 + 1 == 2); }
         EOF
+        # A debug build is named apart with a "d".
+        d=""
+        if [ "$BUILD_TYPE" = Debug ]; then d=d; fi
         clang++ -std=c++${{matrix.std}} -I"$prefix/include" "$RUNNER_TEMP/consumer/test.cpp" \
-                -L"$prefix/lib" -lCatch3Main -lCatch3 -o "$RUNNER_TEMP/consumer/by-name"
+                -L"$prefix/lib" "-lCatch3Main$d" "-lCatch3$d" -o "$RUNNER_TEMP/consumer/by-name"
         "$RUNNER_TEMP/consumer/by-name"
         export PKG_CONFIG_PATH="$prefix/share/pkgconfig"
         # shellcheck disable=SC2046 # pkg-config prints several flags.
         clang++ -std=c++${{matrix.std}} "$RUNNER_TEMP/consumer/test.cpp" \
                 $(pkg-config --cflags --libs catch3-with-main) -o "$RUNNER_TEMP/consumer/by-pkg-config"
         "$RUNNER_TEMP/consumer/by-pkg-config"
+      env:
+        BUILD_TYPE: ${{matrix.build_type}}
 
   thread-sanitizer:
     name: Ubuntu 26.04, C++17, ThreadSanitizer and UBSan

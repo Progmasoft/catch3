@@ -399,10 +399,11 @@ target_link_libraries(Catch3
 )
 
 # The files are libCatch3 and libCatch3Main (Catch3.lib and Catch3Main.lib on
-# Windows) in every configuration, so that an installed Catch3 links with
-# -lCatch3 and -lCatch3Main. Released archives and packages hold release
-# builds, so a debug build needs no name of its own.
+# Windows), so that an installed Catch3 links with -lCatch3 and -lCatch3Main.
+# A debug build is not the same library and is named apart with a "d"; the
+# released archives and packages hold release builds.
 set_target_properties(Catch3 PROPERTIES
+  DEBUG_POSTFIX "d"
   VERSION ${PROJECT_VERSION}
   SOVERSION ${PROJECT_VERSION}
 )
@@ -437,6 +438,8 @@ set_target_properties(Catch3WithMain
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION}
 )
+set_target_properties(Catch3WithMain PROPERTIES DEBUG_POSTFIX "d")
+
 if(NOT_SUBPROJECT)
   # Create and install an export set for the targets as Catch3::Catch3 and
   # Catch3::Catch3WithMain.
