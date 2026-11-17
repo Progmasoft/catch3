@@ -181,8 +181,8 @@ target_link_libraries(MyTests PRIVATE Catch3::Catch3WithMain)
 
 Without a build system, an installed Catch3 links by its name: the library is
 `Catch3` and the one that brings `main` is `Catch3Main`, as `libCatch3.a` and
-`libCatch3Main.a` (`Catch3.lib` and `Catch3Main.lib` on Windows, where a debug
-build adds a `d`). `Catch3Main` comes first, since it uses `Catch3`:
+`libCatch3Main.a` (`Catch3.lib` and `Catch3Main.lib` on Windows), in every
+build configuration. `Catch3Main` comes first, since it uses `Catch3`:
 
 ```sh
 c++ -std=c++17 tests.cpp -lCatch3Main -lCatch3
