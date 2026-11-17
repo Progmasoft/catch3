@@ -39,30 +39,48 @@ the work.
 What exactly is owed is not the same in every case. It depends on how Catch3
 is built into the work and how the work is given:
 
-- **A shared library.** A work that uses Catch3 through a shared library,
-  one that runs with a modified Catch3 of the same interface put in its
-  place, meets the relinking condition that way (LGPL-3.0, section 4 d 1).
+- **A shared library.** A work that links Catch3 as a shared library, which
+  at run time uses a copy of Catch3 already present on the user's system and
+  works with a modified Catch3 that is interface-compatible with the linked
+  one, meets the relinking condition that way (LGPL-3.0, section 4 d 1).
 - **Static linking.** A work with Catch3 linked in statically has to give
   the recipient what they need to relink it with a modified Catch3: the
-  object files or the source of the rest of the work, with what it takes to
-  link them again (section 4 d 0).
-- **Code from the headers.** Test macros and templates of Catch3 compile into
-  the tests that use them. Object code that takes from Catch3's headers only
-  numerical parameters, data structure layouts and accessors, or small
-  macros, inline functions and templates of ten lines or fewer, owes the
-  notice and the license texts (section 3); larger parts of the headers, as
-  Catch3's test macros and templates usually are, bring the conditions of a
-  combined work (section 4).
+  object files or the source of the rest of the work, in a form that lets
+  them be linked again (section 4 d 0).
+- **Code from the headers.** Section 3 covers object code that takes
+  material from Catch3's headers, as tests take its test macros and
+  templates. If that material is limited to numerical parameters, data
+  structure layouts and accessors, or small macros, inline functions and
+  templates of ten or fewer lines, the object code may be conveyed on terms
+  of your choice, with no condition from section 3. If it takes more, as
+  Catch3's test macros and templates usually do, each copy of the object
+  code needs a prominent notice that Catch3 is used in it and is covered by
+  the LGPL, and copies of the GPL-3.0 and the LGPL-3.0; section 3 asks
+  nothing beyond that. A work that is also linked with the compiled library
+  of Catch3, as a test binary is, is a combined work as well, and section 4
+  applies to it.
 - **Catch3 itself.** Giving Catch3, as it is or modified, is giving the
-  library: its source goes with it, and a modified Catch3 stays under the
-  LGPL-3.0-or-later (sections 2 and 4 of the LGPL, and the GPL-3.0 it builds
-  on).
+  library, on the conditions of the GPL-3.0 for conveying it, its source
+  among them. A modified Catch3 may be conveyed under the LGPL-3.0-or-later,
+  or under the GNU GPL without the LGPL's additional permissions: the
+  GPL-3.0 lets any conveyed copy drop additional permissions (section 7),
+  and the LGPL-3.0 names that choice for a modification whose facility
+  relies on an application to supply a function or data (section 2 b; the
+  LGPL way then needs a good faith effort that the facility still works
+  without it, section 2 a).
 - **A device.** A work given as part of a consumer product (a "User Product")
-  also owes the information needed to install a modified version on the
+  may also owe the information needed to install a modified version on the
   device (LGPL-3.0, section 4 e; GPL-3.0, section 6).
-- **Whether it is conveying at all.** Handing a work over within one legal
-  person, or to someone who works on it only for you under the terms of the
-  GPL-3.0's section 2, is not conveying it; the GPL-3.0's definitions decide.
+- **Within an organisation, and to contractors.** Making and running copies
+  that you do not convey needs no permission beyond the license (GPL-3.0,
+  section 2), and in the FSF's reading copies made and used within one
+  organisation for itself are not distribution. Giving a copy to anyone
+  outside it, a contractor included, is conveying. The GPL-3.0's section 2
+  allows conveying a work to someone who modifies or runs it exclusively for
+  you, under your direction and control and on terms that forbid copies of
+  your material outside that relationship, provided that you comply with the
+  license for the material whose copyright you do not control: for Catch3,
+  that is its LGPL.
 
 The license texts in this directory hold the full conditions; this summary
 does not replace them and is not legal advice.
