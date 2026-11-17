@@ -15678,6 +15678,7 @@ namespace Progmasoft::Catch3::Runner
 #include <cstdlib>
 #include <cstring>
 #include <iterator>
+#include <limits>
 #include <mutex>
 #include <string_view>
 #include <thread>
@@ -16165,9 +16166,14 @@ namespace Progmasoft::Catch3::Runner
         }
         return static_cast<std::int64_t>(read);
 #else
+        // read() leaves a request above SSIZE_MAX to the implementation, so
+        // one call asks for at most that much and never more than the buffer.
+        const auto request = std::min<std::size_t>(
+            size,
+            static_cast<std::size_t>(std::numeric_limits<ssize_t>::max()));
         while (true)
         {
-            const auto count = read(Descriptor(handle_), buffer, size);
+            const auto count = read(Descriptor(handle_), buffer, request);
             if (count >= 0)
             {
                 return static_cast<std::int64_t>(count);
