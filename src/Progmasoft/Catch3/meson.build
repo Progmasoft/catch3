@@ -355,7 +355,7 @@ endif
 
 # The library, and the code that includes its headers, need C++17.
 catch3 = static_library(
-  'Catch3',
+  'catch3',
   sources,
   dependencies: catch3_dependencies,
   include_directories: '../..',
@@ -379,7 +379,7 @@ if get_option('install')
 endif
 
 catch3_with_main = static_library(
-  'Catch3Main',
+  'catch3_main',
   'Internal/Main.cpp',
   link_with: catch3,
   include_directories: '../..',

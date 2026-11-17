@@ -179,6 +179,26 @@ find_package(Catch3 0.3 CONFIG REQUIRED)
 target_link_libraries(MyTests PRIVATE Catch3::Catch3WithMain)
 ```
 
+Without a build system, an installed Catch3 links by its short name: the
+library is `catch3` and the one that brings `main` is `catch3_main`, as
+`libcatch3.a` and `libcatch3_main.a` (`catch3.lib` and `catch3_main.lib` on
+Windows, where a debug build adds a `d`). `catch3_main` comes first, since it
+uses `catch3`:
+
+```sh
+c++ -std=c++17 tests.cpp -lcatch3_main -lcatch3
+```
+
+When Catch3 is installed outside the compiler's search paths, pkg-config
+gives the same flags with the include and library directories:
+
+```sh
+c++ -std=c++17 tests.cpp $(pkg-config --cflags --libs catch3-with-main)
+```
+
+The pkg-config modules are `catch3` and `catch3-with-main`, and CMake, Meson
+and Premake build the files under the same names.
+
 In the Bazel Central Registry, from 0.5.0 on, the module is
 `progmasoft_catch3`, for Bazel 8 and later:
 

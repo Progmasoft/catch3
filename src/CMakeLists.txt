@@ -398,8 +398,11 @@ target_link_libraries(Catch3
     $<BUILD_INTERFACE:Catch3Pugixml>
 )
 
+# The files are libcatch3 and libcatch3_main (catch3.lib and catch3_main.lib
+# on Windows), so that an installed Catch3 links with -lcatch3 and
+# -lcatch3_main, as the Bazel and Xmake targets are named.
 set_target_properties(Catch3 PROPERTIES
-  DEBUG_POSTFIX "d"
+  OUTPUT_NAME "catch3"
   VERSION ${PROJECT_VERSION}
   SOVERSION ${PROJECT_VERSION}
 )
@@ -430,11 +433,16 @@ add_library(Catch3::Catch3WithMain ALIAS Catch3WithMain)
 target_link_libraries(Catch3WithMain PUBLIC Catch3)
 set_target_properties(Catch3WithMain
   PROPERTIES
-    OUTPUT_NAME "Catch3Main"
+    OUTPUT_NAME "catch3_main"
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION}
 )
-set_target_properties(Catch3WithMain PROPERTIES DEBUG_POSTFIX "d")
+# A debug build of Windows links the debug C runtime, so its files carry a "d"
+# and a debug and a release build can be installed side by side. Elsewhere
+# the files have the same name in every configuration.
+if(WIN32)
+  set_target_properties(Catch3 Catch3WithMain PROPERTIES DEBUG_POSTFIX "d")
+endif()
 
 if(NOT_SUBPROJECT)
   # Create and install an export set for the targets as Catch3::Catch3 and

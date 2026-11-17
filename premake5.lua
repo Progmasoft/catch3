@@ -36,6 +36,7 @@ workspace "Catch3"
 -- snapshots; the library and the code that includes it need C++17.
 project "Catch3"
     kind "StaticLib"
+    targetname "catch3"
     language "C++"
     cppdialect "C++17"
     targetdir "build/premake/bin/%{cfg.buildcfg}"
@@ -63,6 +64,7 @@ project "Catch3"
 
 project "Catch3WithMain"
     kind "StaticLib"
+    targetname "catch3_main"
     language "C++"
     cppdialect "C++17"
     -- Visual Studio injects UNICODE for Windows projects, which would select
