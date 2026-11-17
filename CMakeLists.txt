@@ -39,7 +39,7 @@ endif()
 project(Catch3
   VERSION 0.4.0
   LANGUAGES CXX
-  HOMEPAGE_URL "https://github.com/Progmasoft/catch3"
+  HOMEPAGE_URL "https://catch3.uk"
   DESCRIPTION "A C++ test framework with a Catch2-compatible API, a parallel runner, property testing and snapshots."
 )
 
