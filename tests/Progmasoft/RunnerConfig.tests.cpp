@@ -165,7 +165,7 @@ TEST_CASE("Keys set the option of the same name",
 {
     const auto options = Apply(R"({
         "version": 1,
-        "$schema": "https://catch3.progmasoft.com/schema/catch3-v1.json",
+        "$schema": "https://catch3.uk/schema/catch3-v1.json",
         "tests": ["[unit]", "~[slow]"],
         "select": "smart",
         "changes-since": "origin/devel",
