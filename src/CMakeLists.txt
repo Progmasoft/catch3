@@ -398,6 +398,10 @@ target_link_libraries(Catch3
     $<BUILD_INTERFACE:Catch3Pugixml>
 )
 
+# The files are libCatch3 and libCatch3Main (Catch3.lib and Catch3Main.lib on
+# Windows), so that an installed Catch3 links with -lCatch3 and -lCatch3Main.
+# A debug build is not the same library and is named apart with a "d"; the
+# released archives and packages hold release builds.
 set_target_properties(Catch3 PROPERTIES
   DEBUG_POSTFIX "d"
   VERSION ${PROJECT_VERSION}
