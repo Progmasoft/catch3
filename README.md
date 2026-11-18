@@ -27,8 +27,9 @@ The site of Catch3 is [catch3.uk](https://catch3.uk).
   tests, keeps a history that drives time limits, ordering, incremental runs
   and replay, selects and shards tests, and writes console, JUnit, JSON and
   trace reports.
-- **Mocks.** [Mocks](https://catch3.uk/docs/progmasoft-mocking/) of virtual interfaces and of
-  free functions behind a seam check call counts, arguments and order, and
+- **Mocks.** [Mocks](https://catch3.uk/docs/progmasoft-mocking/) of virtual
+  interfaces and of free functions behind a seam check call counts, arguments
+  and order, and
   report through the same assertions as the rest of a test.
 - **Deterministic property testing.** Generate values from a reproducible seed,
   check a predicate over multiple trials, and shrink a failing input to a
@@ -43,7 +44,8 @@ The site of Catch3 is [catch3.uk](https://catch3.uk).
 
 Catch3 is in an early development stage. Catch2's command line and reporters
 were replaced by the Catch3 runner; see
-[the command line](https://catch3.uk/docs/command-line/) before moving a project over. The
+[the command line](https://catch3.uk/docs/command-line/) before moving a
+project over. The
 property API currently checks one generated value per property and uses bounded,
 deterministic greedy shrinking. See [current capabilities and limitations](https://catch3.uk/docs/why-catch3/)
 before adopting it in a production project.
