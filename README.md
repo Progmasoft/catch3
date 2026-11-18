@@ -15,20 +15,21 @@ The site of Catch3 is [catch3.uk](https://catch3.uk).
 > maintainers. Its current compatibility engine is based on Catch2 3.16.1;
 > upstream-originated files keep their upstream license, the Boost Software
 > License 1.0. Progmasoft-authored additions are under LGPL-3.0-or-later. See
-> [the project scope and compatibility notes](docs/why-catch3.md).
+> [the project scope and compatibility notes](https://catch3.uk/docs/why-catch3/).
 
 ## What Catch3 provides
 
 - **Familiar test authoring.** Catch2's test cases, assertions, sections,
   matchers, generators, listeners and benchmarks keep working unchanged.
-- **A runner of its own.** The [Catch3 runner](docs/progmasoft-runner.md)
+- **A runner of its own.** The [Catch3 runner](https://catch3.uk/docs/progmasoft-runner/)
   runs tests in parallel worker processes, survives crashes and hangs, retries
   failures to tell flaky and order-dependent tests apart, quarantines flaky
   tests, keeps a history that drives time limits, ordering, incremental runs
   and replay, selects and shards tests, and writes console, JUnit, JSON and
   trace reports.
-- **Mocks.** [Mocks](docs/progmasoft-mocking.md) of virtual interfaces and of
-  free functions behind a seam check call counts, arguments and order, and
+- **Mocks.** [Mocks](https://catch3.uk/docs/progmasoft-mocking/) of virtual
+  interfaces and of free functions behind a seam check call counts, arguments
+  and order, and
   report through the same assertions as the rest of a test.
 - **Deterministic property testing.** Generate values from a reproducible seed,
   check a predicate over multiple trials, and shrink a failing input to a
@@ -43,9 +44,10 @@ The site of Catch3 is [catch3.uk](https://catch3.uk).
 
 Catch3 is in an early development stage. Catch2's command line and reporters
 were replaced by the Catch3 runner; see
-[the command line](docs/command-line.md) before moving a project over. The
+[the command line](https://catch3.uk/docs/command-line/) before moving a
+project over. The
 property API currently checks one generated value per property and uses bounded,
-deterministic greedy shrinking. See [current capabilities and limitations](docs/why-catch3.md)
+deterministic greedy shrinking. See [current capabilities and limitations](https://catch3.uk/docs/why-catch3/)
 before adopting it in a production project.
 
 ## Property-test example
@@ -66,7 +68,7 @@ TEST_CASE("generated integers stay within their requested domain", "[property]")
 
 The root seed and trial-index derivation are stable, so a reported failing trial
 can be replayed. Generators can provide their own generation and shrinking
-behavior. See the [property-testing guide](docs/progmasoft-catch3.md#property-testing)
+behavior. See the [property-testing guide](https://catch3.uk/docs/progmasoft-catch3/#property-testing)
 for the API, seed guarantees, and shrinking contract.
 
 ## Build and test
@@ -79,7 +81,7 @@ bazel test //tests/Progmasoft:property_tests
 
 The same suite is also available through the maintained CMake, Meson, Xmake,
 and Premake project files. Their setup details and toolchain requirements are
-in the [build guide](docs/progmasoft-catch3.md#build-quick-start).
+in the [build guide](https://catch3.uk/docs/progmasoft-catch3/#build-quick-start).
 
 For a CMake consumer of the installed library:
 
@@ -98,12 +100,12 @@ their package, target, header and pkg-config names differ.
 
 ## Documentation
 
-- [Catch3 additions: properties, snapshots, results, and XML](docs/progmasoft-catch3.md)
-- [Project scope, compatibility policy, and limitations](docs/why-catch3.md)
-- [The Catch3 runner](docs/progmasoft-runner.md)
-- [Mocking](docs/progmasoft-mocking.md)
-- [Tutorial](docs/tutorial.md)
-- [Catch2-compatible API reference](docs/Readme.md)
+- [Catch3 additions: properties, snapshots, results, and XML](https://catch3.uk/docs/progmasoft-catch3/)
+- [Project scope, compatibility policy, and limitations](https://catch3.uk/docs/why-catch3/)
+- [The Catch3 runner](https://catch3.uk/docs/progmasoft-runner/)
+- [Mocking](https://catch3.uk/docs/progmasoft-mocking/)
+- [Tutorial](https://catch3.uk/docs/tutorial/)
+- [Catch2-compatible API reference](https://catch3.uk/docs/)
 - [Catch2 upstream project and source history](https://github.com/catchorg/Catch2)
 
 Issues and feature requests for Progmasoft Catch3 belong in the
