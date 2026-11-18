@@ -63,6 +63,8 @@ project "Catch3"
 
 project "Catch3WithMain"
     kind "StaticLib"
+    -- The file is Catch3Main, as in CMake and Meson, for -lCatch3Main.
+    targetname "Catch3Main"
     language "C++"
     cppdialect "C++17"
     -- Visual Studio injects UNICODE for Windows projects, which would select

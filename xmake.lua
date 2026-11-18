@@ -18,6 +18,9 @@ includes("third_party/yyjson", "third_party/pugixml")
 -- library and the code that includes it need C++17.
 target("catch3")
     set_kind("static")
+    -- The files are Catch3 and Catch3Main, as in CMake and Meson, so that an
+    -- installed Catch3 links with -lCatch3 and -lCatch3Main.
+    set_basename("Catch3")
     on_load(function(target)
         -- File I/O is restricted to Xmake's script domain, so generate here
         -- rather than while the declarative project file is being evaluated.
@@ -45,6 +48,7 @@ target("catch3")
 
 target("catch3_main")
     set_kind("static")
+    set_basename("Catch3Main")
     add_files("src/Progmasoft/Catch3/Internal/Main.cpp")
     add_deps("catch3")
     add_includedirs("src", generated_include, {public = true})
