@@ -26,6 +26,7 @@ The steps are ordered by what each one builds on.
 | 5 | Change-impact test selection and test prioritization | planned |
 | 6 | Mutation testing | planned |
 | 7 | Coverage-, mutation- and history-guided test generation | planned |
+| 8 | Micro-benchmarking | planned, after steps 4 to 7 |
 
 ## 2. The Catch3 runner
 
@@ -100,3 +101,9 @@ those sequences from three sources:
 
 Generated examples are written as ordinary Catch2 test cases or stored replay
 tokens, so they run without the generator.
+
+## 8. Micro-benchmarking
+
+Micro-benchmarking is a capability of Catch3 of its own, in the
+`Progmasoft::Catch3` namespace and run by the Catch3 runner. It follows the
+other steps: its design is written down here when step 7 is done.
