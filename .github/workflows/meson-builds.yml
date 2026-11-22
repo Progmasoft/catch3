@@ -29,11 +29,44 @@ jobs:
       - name: Install Meson and Ninja
         run: python -m pip install --requirement requirements-meson.txt
 
+      # The STL of this Visual Studio needs Clang 22 or newer, which the image does not have: LLVM 23.1.5 from its MSI,
+      # checked against the SHA-256 of its release and unpacked by an administrative install, comes first on PATH,
+      # and CLANG_CL names its clang-cl.
+      - name: Restore LLVM
+        if: runner.os == 'Windows'
+        id: llvm
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ${{ runner.temp }}/llvm
+          key: llvm-23.1.5-win64-msi
+
+      - name: Install LLVM
+        if: runner.os == 'Windows' && steps.llvm.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $msi = Join-Path $env:RUNNER_TEMP "llvm.msi"
+          Invoke-WebRequest -Uri "https://github.com/llvm/llvm-project/releases/download/llvmorg-23.1.5/LLVM-23.1.5-win64.msi" -OutFile $msi
+          $sha = (Get-FileHash -Algorithm SHA256 $msi).Hash.ToLowerInvariant()
+          if ($sha -ne "288ab326377157a9e02e6fb9724914cc2b55963882d493a405f31dc66e837c12") { throw "LLVM has the SHA-256 $sha" }
+          $llvm = Join-Path $env:RUNNER_TEMP "llvm"
+          $process = Start-Process msiexec.exe -ArgumentList "/a", "`"$msi`"", "/qn", "TARGETDIR=`"$llvm`"" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "msiexec failed with $($process.ExitCode)" }
+
+      - name: Put LLVM first on PATH
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $clang = Get-ChildItem -Path (Join-Path $env:RUNNER_TEMP "llvm") -Recurse -Filter clang-cl.exe | Select-Object -First 1
+          if ($null -eq $clang) { throw "the LLVM install has no clang-cl.exe" }
+          "PATH=$($clang.DirectoryName);${env:PATH}" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CLANG_CL=$($clang.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Configure with Clang-CL on Windows
         if: runner.os == 'Windows'
+        # The full path: --vsenv puts the tools of Visual Studio on PATH before the LLVM above.
         env:
-          CC: clang-cl
-          CXX: clang-cl
+          CC: ${{ env.CLANG_CL }}
+          CXX: ${{ env.CLANG_CL }}
         run: meson setup build/meson --vsenv -Dtests=true -Dinstall=false
 
       - name: Configure with Clang on Linux
