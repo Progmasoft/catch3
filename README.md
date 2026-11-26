@@ -122,3 +122,14 @@ their own licenses. [LICENSES/README.md](LICENSES/README.md) maps which file is
 under which license; releases before 0.5.0 keep the license they were published
 under. Progmasoft-authored code is also covered by the [Progmasoft Patent Grant
 1.1](PATENTS.md); Catch2-originated files are not.
+
+Catch3 as a whole is therefore not under the Boost Software License: whoever
+uses the library uses its LGPL files, and the BSL-1.0 of the Catch2-originated
+files does not lift the LGPL's conditions. They take effect when Catch3, or a
+work that contains it such as a test binary, is given to others; running your
+own tests conveys nothing. What is owed then is not the same in every case: it
+depends on whether Catch3 is linked as a shared library or statically, how
+much of its headers a work compiles in, whether Catch3 itself is given, and
+whether the work is part of a device.
+[Using Catch3 as a whole](LICENSES/README.md#using-catch3-as-a-whole)
+goes through each case.
