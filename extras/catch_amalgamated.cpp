@@ -12436,44 +12436,37 @@ namespace Progmasoft::Catch3::Runner
         return ToHex(Fnv1a64(text.str()));
     }
 
-    std::string
-    DeclaredInputsDigest(std::vector<std::string> paths,
-                         std::vector<std::string> names)
+    namespace
     {
-        if (paths.empty() && names.empty())
+        /// Sorts the list and keeps each entry once.
+        void
+        SortUnique(std::vector<std::string> &list)
         {
-            return {};
+            std::sort(list.begin(), list.end());
+            list.erase(std::unique(list.begin(), list.end()), list.end());
         }
-        std::sort(paths.begin(), paths.end());
-        paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
-        std::sort(names.begin(), names.end());
-        names.erase(std::unique(names.begin(), names.end()), names.end());
 
-        Sha256 digest;
-        const auto file = [&digest](const std::string &label,
-                                    const std::filesystem::path &path) {
+        /// Adds one file, under the name it is listed by, to the digest.
+        void
+        DigestFile(Sha256 &digest,
+                   const std::string &label,
+                   const std::filesystem::path &path)
+        {
             const auto contents = Sha256File(path);
             digest.Update("file\n" + label + "\n"
                           + (contents ? *contents : std::string{ "unreadable" })
                           + "\n");
-        };
-        for (const std::string &path : paths)
+        }
+
+        /// Adds every regular file below a directory, in a fixed order, by
+        /// its path relative to the directory. Links to directories are not
+        /// followed, so a loop cannot make the walk endless.
+        void
+        DigestDirectory(Sha256 &digest,
+                        const std::string &path,
+                        const std::filesystem::path &root)
         {
             std::error_code error;
-            const std::filesystem::path root{ path };
-            if (std::filesystem::is_regular_file(root, error))
-            {
-                file(path, root);
-                continue;
-            }
-            if (!std::filesystem::is_directory(root, error))
-            {
-                digest.Update("missing\n" + path + "\n");
-                continue;
-            }
-            // Every regular file below the directory, in a fixed order, by
-            // its path relative to the directory. Links to directories are
-            // not followed, so a loop cannot make the walk endless.
             std::vector<std::filesystem::path> found;
             std::filesystem::recursive_directory_iterator walk{
                 root,
@@ -12493,20 +12486,66 @@ namespace Progmasoft::Catch3::Runner
             digest.Update("directory\n" + path + "\n");
             for (const auto &entry : found)
             {
-                file(entry.lexically_relative(root).generic_string(), entry);
+                DigestFile(
+                    digest, entry.lexically_relative(root).generic_string(), entry);
             }
             if (error)
             {
                 digest.Update("incomplete\n");
             }
         }
-        for (const std::string &name : names)
+
+        /// Adds a declared path: a file, a directory, or its absence.
+        void
+        DigestPath(Sha256 &digest, const std::string &path)
+        {
+            std::error_code error;
+            const std::filesystem::path root{ path };
+            if (std::filesystem::is_regular_file(root, error))
+            {
+                DigestFile(digest, path, root);
+            }
+            else if (std::filesystem::is_directory(root, error))
+            {
+                DigestDirectory(digest, path, root);
+            }
+            else
+            {
+                digest.Update("missing\n" + path + "\n");
+            }
+        }
+
+        /// Adds a declared variable: its value's digest, or that it is unset.
+        void
+        DigestVariable(Sha256 &digest, const std::string &name)
         {
             digest.Update(HasEnvironment(name.c_str())
                               ? "variable\n" + name + "\n"
                                     + Sha256Hex(ReadEnvironment(name.c_str()))
                                     + "\n"
                               : "unset\n" + name + "\n");
+        }
+    } // namespace
+
+    std::string
+    DeclaredInputsDigest(std::vector<std::string> paths,
+                         std::vector<std::string> names)
+    {
+        if (paths.empty() && names.empty())
+        {
+            return {};
+        }
+        SortUnique(paths);
+        SortUnique(names);
+
+        Sha256 digest;
+        for (const std::string &path : paths)
+        {
+            DigestPath(digest, path);
+        }
+        for (const std::string &name : names)
+        {
+            DigestVariable(digest, name);
         }
         return digest.HexDigest();
     }
