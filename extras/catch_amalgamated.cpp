@@ -1076,6 +1076,11 @@ namespace Progmasoft::Catch3::Runner
         Selection selection = Selection::kAll;
         std::string changesSince;
         bool incremental = false;
+        /// Files and directories the tests read: an incremental run keeps
+        /// a result only while their contents are unchanged.
+        std::vector<std::string> incrementalInputs;
+        /// Variables whose values an incremental run treats as inputs.
+        std::vector<std::string> incrementalEnvironment;
         Shard shard;
         std::string shardDurations;
         bool filenamesAsTags = false;
@@ -1234,6 +1239,9 @@ namespace Progmasoft::Catch3::Runner
         const Changes *changes = nullptr;
         /// A digest of the test binary.
         std::string binaryFingerprint;
+        /// A digest of the declared inputs, DeclaredInputsDigest; empty when
+        /// none are declared.
+        std::string inputsFingerprint;
     };
 
     [[nodiscard]] Expected<Plan>
@@ -1485,6 +1493,7 @@ namespace Progmasoft::Catch3::Runner
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -1532,6 +1541,17 @@ namespace Progmasoft::Catch3::Runner
     /// A name for a temporary file that no other process or thread uses.
     [[nodiscard]] std::string
     UniqueName();
+
+    /// A digest of the inputs of the tests besides their binary: the
+    /// contents of every regular file under `paths`, a file or a directory
+    /// each, and the values of the variables `names`. A missing path, an
+    /// unreadable file and an unset variable each count as a value of their
+    /// own, so that a change between any two states changes the digest.
+    /// Empty when both lists are, so that fingerprints without declared
+    /// inputs stay as they were.
+    [[nodiscard]] std::string
+    DeclaredInputsDigest(std::vector<std::string> paths,
+                         std::vector<std::string> names);
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
 // SPDX-License-Identifier: LGPL-3.0-or-later
@@ -12228,6 +12248,7 @@ namespace Progmasoft::Catch3::Runner
 #    include <unistd.h>
 #endif
 
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <fstream>
@@ -12413,6 +12434,81 @@ namespace Progmasoft::Catch3::Runner
              << std::chrono::steady_clock::now().time_since_epoch().count()
              << '-' << std::this_thread::get_id() << '-' << ++counter;
         return ToHex(Fnv1a64(text.str()));
+    }
+
+    std::string
+    DeclaredInputsDigest(std::vector<std::string> paths,
+                         std::vector<std::string> names)
+    {
+        if (paths.empty() && names.empty())
+        {
+            return {};
+        }
+        std::sort(paths.begin(), paths.end());
+        paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
+        std::sort(names.begin(), names.end());
+        names.erase(std::unique(names.begin(), names.end()), names.end());
+
+        Sha256 digest;
+        const auto file = [&digest](const std::string &label,
+                                    const std::filesystem::path &path) {
+            const auto contents = Sha256File(path);
+            digest.Update("file\n" + label + "\n"
+                          + (contents ? *contents : std::string{ "unreadable" })
+                          + "\n");
+        };
+        for (const std::string &path : paths)
+        {
+            std::error_code error;
+            const std::filesystem::path root{ path };
+            if (std::filesystem::is_regular_file(root, error))
+            {
+                file(path, root);
+                continue;
+            }
+            if (!std::filesystem::is_directory(root, error))
+            {
+                digest.Update("missing\n" + path + "\n");
+                continue;
+            }
+            // Every regular file below the directory, in a fixed order, by
+            // its path relative to the directory. Links to directories are
+            // not followed, so a loop cannot make the walk endless.
+            std::vector<std::filesystem::path> found;
+            std::filesystem::recursive_directory_iterator walk{
+                root,
+                std::filesystem::directory_options::skip_permission_denied,
+                error
+            };
+            for (const std::filesystem::recursive_directory_iterator end;
+                 !error && walk != end;
+                 walk.increment(error))
+            {
+                if (walk->is_regular_file(error))
+                {
+                    found.push_back(walk->path());
+                }
+            }
+            std::sort(found.begin(), found.end());
+            digest.Update("directory\n" + path + "\n");
+            for (const auto &entry : found)
+            {
+                file(entry.lexically_relative(root).generic_string(), entry);
+            }
+            if (error)
+            {
+                digest.Update("incomplete\n");
+            }
+        }
+        for (const std::string &name : names)
+        {
+            digest.Update(HasEnvironment(name.c_str())
+                              ? "variable\n" + name + "\n"
+                                    + Sha256Hex(ReadEnvironment(name.c_str()))
+                                    + "\n"
+                              : "unset\n" + name + "\n");
+        }
+        return digest.HexDigest();
     }
 } // namespace Progmasoft::Catch3::Runner
 // Copyright (c) 2026 Progmasoft.
@@ -14088,6 +14184,28 @@ namespace Progmasoft::Catch3::Runner
                      options.incremental = true;
                      return Status::Ok();
                  }},
+                {"incremental-input",
+                 '\0',
+                 Takes::kValue,
+                 "PATH",
+                 "Selecting tests",
+                 "a file or directory the tests read; --incremental reruns "
+                 "every test when its contents change (repeatable)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.incrementalInputs.push_back(*value);
+                     return Status::Ok();
+                 }},
+                {"incremental-env",
+                 '\0',
+                 Takes::kValue,
+                 "NAME",
+                 "Selecting tests",
+                 "a variable the tests read; --incremental reruns every test "
+                 "when its value changes (repeatable)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.incrementalEnvironment.push_back(*value);
+                     return Status::Ok();
+                 }},
                 {"shard",
                  '\0',
                  Takes::kValue,
@@ -15471,8 +15589,16 @@ namespace Progmasoft::Catch3::Runner
                 continue;
             }
             const TestEntry &entry = tests[index];
+            // The binary holds the test, Catch3 and everything linked
+            // statically; declared files and variables come next. Without
+            // declared inputs the fingerprint is the one of earlier releases,
+            // so their history keeps its results.
             const std::string fingerprint =
-                Sha256Hex(inputs.binaryFingerprint + "\n" + entry.key);
+                inputs.inputsFingerprint.empty()
+                    ? Sha256Hex(inputs.binaryFingerprint + "\n" + entry.key)
+                    : Sha256Hex(inputs.binaryFingerprint + "\n"
+                                + inputs.inputsFingerprint + "\n"
+                                + entry.key);
             plan.fingerprints[entry.key] = fingerprint;
             if (!options.incremental || options.replayFailures)
             {
@@ -17117,6 +17243,9 @@ namespace Progmasoft::Catch3::Runner
             kNumber,
             /// An array of strings, each given to the option.
             kWords,
+            /// An array of files or directories, each relative to the
+            /// file's directory and given to the option.
+            kPaths,
             /// A directory, or false for none.
             kPathOrFalse,
             /// "quiet", "normal" or "verbose".
@@ -17142,6 +17271,8 @@ namespace Progmasoft::Catch3::Runner
                 { "select", ValueKind::kWord },
                 { "changes-since", ValueKind::kWord },
                 { "incremental", ValueKind::kFlag },
+                { "incremental-input", ValueKind::kPaths },
+                { "incremental-env", ValueKind::kWords },
                 { "shard-durations", ValueKind::kPath },
                 { "filenames-as-tags", ValueKind::kFlag },
                 // Running.
@@ -17392,6 +17523,24 @@ namespace Progmasoft::Catch3::Runner
                             return wrong("an array of strings");
                         }
                         arguments.push_back(option + "=" + item.AsString());
+                    }
+                    return arguments;
+                }
+                case ValueKind::kPaths:
+                {
+                    if (!value.IsArray())
+                    {
+                        return wrong("an array of paths");
+                    }
+                    std::vector<std::string> arguments;
+                    for (const auto &item : value.Items())
+                    {
+                        if (!item.IsString() || item.AsString().empty())
+                        {
+                            return wrong("an array of paths");
+                        }
+                        arguments.push_back(
+                            option + "=" + PathText(item.AsString(), directory));
                     }
                     return arguments;
                 }
@@ -20411,6 +20560,18 @@ namespace Progmasoft::Catch3
             inputs.history = options.historyEnabled ? &history : nullptr;
             inputs.changes = changes ? &*changes : nullptr;
             inputs.binaryFingerprint = binaryFingerprint;
+            if (options.historyEnabled || options.incremental)
+            {
+                // The variables handed to the tests on purpose are inputs
+                // whether or not they were declared.
+                std::vector<std::string> variables =
+                    options.incrementalEnvironment;
+                variables.insert(variables.end(),
+                                 options.passedEnvironment.begin(),
+                                 options.passedEnvironment.end());
+                inputs.inputsFingerprint = Runner::DeclaredInputsDigest(
+                    options.incrementalInputs, std::move(variables));
+            }
             auto plan = Runner::MakePlan(options, inputs);
             if (!plan)
             {
