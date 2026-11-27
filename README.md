@@ -31,6 +31,10 @@ The site of Catch3 is [catch3.uk](https://catch3.uk).
   interfaces and of free functions behind a seam check call counts, arguments
   and order, and
   report through the same assertions as the rest of a test.
+- **Death tests.** [Death tests](https://catch3.uk/docs/progmasoft-death-tests/)
+  check that a statement ends the process, by exit code, signal or what it
+  wrote to standard error; the statement runs in a child process, on Linux,
+  macOS and Windows alike.
 - **Deterministic property testing.** Generate values from a reproducible seed,
   check a predicate over multiple trials, and shrink a failing input to a
   smaller counterexample.

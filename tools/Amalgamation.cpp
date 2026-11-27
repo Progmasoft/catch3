@@ -176,6 +176,8 @@ namespace Progmasoft::Catch3::Tools
                 // Mocks are Progmasoft's own, and tests use them through
                 // this header.
                 Concatenate(out, source / "Progmasoft/Catch3/Mock.hpp", true);
+                // Death tests too: they rest on the runner's processes.
+                Concatenate(out, source / "Progmasoft/Catch3/Death.hpp", true);
                 out += "#endif // CATCH_AMALGAMATED_HPP_INCLUDED\n";
                 return out;
             }
@@ -219,6 +221,7 @@ namespace Progmasoft::Catch3::Tools
                     }
                 }
                 std::vector<std::string> files{
+                    "src/Progmasoft/Death.cpp",
                     "src/Progmasoft/Mock.cpp",
                     "src/Progmasoft/Results.cpp",
                     "src/Progmasoft/XmlWriter.cpp"

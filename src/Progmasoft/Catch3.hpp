@@ -20,6 +20,7 @@
 #include <Progmasoft/Catch3/Relations.hpp>
 #include <Progmasoft/Catch3/Results.hpp>
 #include <Progmasoft/Catch3/Snapshot.hpp>
+#include <Progmasoft/Catch3/Death.hpp>
 #include <Progmasoft/Catch3/Stateful.hpp>
 #include <Progmasoft/Catch3/Strategy/ChoiceSource.hpp>
 #include <Progmasoft/Catch3/Strategy/Containers.hpp>
