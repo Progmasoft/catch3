@@ -31,9 +31,15 @@ The site of Catch3 is [catch3.uk](https://catch3.uk).
   interfaces and of free functions behind a seam check call counts, arguments
   and order, and
   report through the same assertions as the rest of a test.
-- **Deterministic property testing.** Generate values from a reproducible seed,
-  check a predicate over multiple trials, and shrink a failing input to a
-  smaller counterexample.
+- **Property testing.** [`ForAll`](https://catch3.uk/docs/progmasoft-properties/)
+  draws from any number of composable strategies (`Map`, `Filter`, `FlatMap`,
+  containers) and shrinks every failure through the recorded choices, so a
+  shrunk input still satisfies the filters that built it. It also runs
+  model-based tests of state machines, steers a targeted search with scores,
+  keeps an example database that replays past failures first, fails a
+  property whose inputs miss a case it must cover, and offers ready-made
+  oracles: equivalence, metamorphic relations, round trips and idempotence.
+  Every run is reproducible from its seed or replay token.
 - **Text snapshots.** Compare generated output against explicitly located
   snapshot files, with opt-in creation or replacement modes.
 - **Structured results and XML output.** The runner's result model, with
@@ -45,9 +51,7 @@ The site of Catch3 is [catch3.uk](https://catch3.uk).
 Catch3 is in an early development stage. Catch2's command line and reporters
 were replaced by the Catch3 runner; see
 [the command line](https://catch3.uk/docs/command-line/) before moving a
-project over. The
-property API currently checks one generated value per property and uses bounded,
-deterministic greedy shrinking. See [current capabilities and limitations](https://catch3.uk/docs/why-catch3/)
+project over, and [current capabilities and limitations](https://catch3.uk/docs/why-catch3/)
 before adopting it in a production project.
 
 ## Property-test example
@@ -55,21 +59,36 @@ before adopting it in a production project.
 ```cpp
 #include <Progmasoft/Catch3.hpp>
 
-TEST_CASE("generated integers stay within their requested domain", "[property]") {
-    CATCH3_CHECK_PROPERTY(
-        Progmasoft::Catch3::Integer<int>(1, 100),
-        [](int value) { return value > 0; },
-        Progmasoft::Catch3::PropertyOptions{
-            .Trials = 250,
-            .Seed = 0xC0FFEE,
-            .MaxShrinkSteps = 200});
+using namespace Progmasoft::Catch3;
+
+TEST_CASE("division undoes multiplication", "[property]") {
+    CATCH3_CHECK_FOR_ALL(
+        Gen::Integers<int>(-1000, 1000), Gen::Integers<int>(1, 50),
+        [](int value, int divisor) {
+            Note("product", value * divisor);
+            CATCH3_PROPERTY_ASSERT(value * divisor / divisor == value);
+        });
 }
 ```
 
-The root seed and trial-index derivation are stable, so a reported failing trial
-can be replayed. Generators can provide their own generation and shrinking
-behavior. See the [property-testing guide](https://catch3.uk/docs/progmasoft-catch3/#property-testing)
-for the API, seed guarantees, and shrinking contract.
+`ForAll` draws one value from each strategy, runs the body over many trials
+and, when it fails, reports the smallest input it found with a replay token
+that runs exactly that input again. The same engine checks state machines
+against a model:
+
+```cpp
+const auto result = CheckStateful<Model, Queue>(
+    options, [] { return Model{}; },
+    [](const Model&) { return Queue{}; },
+    {push, pop});
+```
+
+A failing command sequence shrinks to fewer steps with simpler arguments. See
+the [property-testing guide](https://catch3.uk/docs/progmasoft-properties/)
+for strategies, shrinking, targeted search, the example database and
+coverage requirements. The older single-generator `CATCH3_CHECK_PROPERTY` API
+remains supported; it is described in
+[Progmasoft Catch3 additions](https://catch3.uk/docs/progmasoft-catch3/#property-testing).
 
 ## Build and test
 
