@@ -3,14 +3,16 @@
 #include <Progmasoft/Catch3/Death.hpp>
 
 #include <Progmasoft/Catch3/Interfaces/IResultCapture.hpp>
+#include <Progmasoft/Runner/Hash.hpp>
 #include <Progmasoft/Runner/Process.hpp>
 
+#include <array>
 #include <cctype>
 #include <csignal>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
-#include <map>
 #include <string_view>
 #include <utility>
 
@@ -37,16 +39,41 @@ namespace Progmasoft::Catch3 {
         /// in a loop or a section gets the same name in the child as in the
         /// parent.
         std::string NameStatement( const char* file, int line ) {
-            static thread_local std::string test;
-            static thread_local std::map<std::string, unsigned> seen;
-            const std::string current =
-                ::Catch::getResultCapture().getCurrentTestName();
+            // How often the current test reached each place, by a hash of the
+            // place. The table holds plain numbers, so it needs no destructor
+            // at exit; a test with more death statements than it has rows
+            // counts the extra ones from the last row, which still names each
+            // one the same way in the child as in the parent.
+            struct Seen final {
+                std::uint64_t place;
+                unsigned count;
+            };
+            static thread_local std::uint64_t test = 0;
+            static thread_local std::array<Seen, 64> seen{};
+            static thread_local std::size_t used = 0;
+
+            const std::uint64_t current = Runner::Fnv1a64(
+                ::Catch::getResultCapture().getCurrentTestName() );
             if ( current != test ) {
                 test = current;
-                seen.clear();
+                used = 0;
             }
-            std::string place = std::string( file ) + ":" + std::to_string( line );
-            const unsigned count = ++seen[place];
+            std::string place =
+                std::string( file ) + ":" + std::to_string( line );
+            const std::uint64_t key = Runner::Fnv1a64( place );
+            std::size_t row = 0;
+            while ( row < used && seen[row].place != key ) {
+                ++row;
+            }
+            if ( row == used ) {
+                if ( used < seen.size() ) {
+                    ++used;
+                } else {
+                    row = seen.size() - 1;
+                }
+                seen[row] = Seen{ key, 0 };
+            }
+            const unsigned count = ++seen[row].count;
             return place + "#" + std::to_string( count );
         }
 
