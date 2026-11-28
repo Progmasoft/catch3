@@ -8926,12 +8926,13 @@ namespace Catch {
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 
+#include <array>
 #include <cctype>
 #include <csignal>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
-#include <map>
 #include <string_view>
 #include <utility>
 
@@ -8958,16 +8959,41 @@ namespace Progmasoft::Catch3 {
         /// in a loop or a section gets the same name in the child as in the
         /// parent.
         std::string NameStatement( const char* file, int line ) {
-            static thread_local std::string test;
-            static thread_local std::map<std::string, unsigned> seen;
-            const std::string current =
-                ::Catch::getResultCapture().getCurrentTestName();
+            // How often the current test reached each place, by a hash of the
+            // place. The table holds plain numbers, so it needs no destructor
+            // at exit; a test with more death statements than it has rows
+            // counts the extra ones from the last row, which still names each
+            // one the same way in the child as in the parent.
+            struct Seen final {
+                std::uint64_t place;
+                unsigned count;
+            };
+            static thread_local std::uint64_t test = 0;
+            static thread_local std::array<Seen, 64> seen{};
+            static thread_local std::size_t used = 0;
+
+            const std::uint64_t current = Runner::Fnv1a64(
+                ::Catch::getResultCapture().getCurrentTestName() );
             if ( current != test ) {
                 test = current;
-                seen.clear();
+                used = 0;
             }
-            std::string place = std::string( file ) + ":" + std::to_string( line );
-            const unsigned count = ++seen[place];
+            std::string place =
+                std::string( file ) + ":" + std::to_string( line );
+            const std::uint64_t key = Runner::Fnv1a64( place );
+            std::size_t row = 0;
+            while ( row < used && seen[row].place != key ) {
+                ++row;
+            }
+            if ( row == used ) {
+                if ( used < seen.size() ) {
+                    ++used;
+                } else {
+                    row = seen.size() - 1;
+                }
+                seen[row] = Seen{ key, 0 };
+            }
+            const unsigned count = ++seen[row].count;
             return place + "#" + std::to_string( count );
         }
 
@@ -9075,36 +9101,60 @@ namespace Progmasoft::Catch3 {
                !( ending == Ending::kExited && code == 0 );
     }
 
+    namespace {
+
+        //! `text`, and what the child wrote to standard error after `lead`
+        //! when it wrote anything.
+        std::string WithErrors( std::string text,
+                                const char* lead,
+                                const std::string& errors ) {
+            if ( !errors.empty() ) {
+                text += lead;
+                text += errors;
+            }
+            return text;
+        }
+
+        //! How the runner names the way a child ended.
+        Runner::ExitStatus::Kind StatusKind( DeathResult::Ending ending ) {
+            switch ( ending ) {
+            case DeathResult::Ending::kSignaled:
+                return Runner::ExitStatus::Kind::kSignaled;
+            case DeathResult::Ending::kException:
+                return Runner::ExitStatus::Kind::kException;
+            case DeathResult::Ending::kExited:
+                break;
+            }
+            return Runner::ExitStatus::Kind::kExited;
+        }
+
+    } // namespace
+
     std::string DeathResult::Describe() const {
         switch ( kind ) {
         case Kind::kEnded: {
             Runner::ExitStatus status;
-            status.kind = ending == Ending::kSignaled
-                              ? Runner::ExitStatus::Kind::kSignaled
-                          : ending == Ending::kException
-                              ? Runner::ExitStatus::Kind::kException
-                              : Runner::ExitStatus::Kind::kExited;
+            status.kind = StatusKind( ending );
             status.code = code;
-            return "the statement ended the process with " +
-                   status.Describe() +
-                   ( errors.empty() ? std::string{}
-                                    : "; it wrote to standard error:\n" +
-                                          errors );
+            return WithErrors( "the statement ended the process with " +
+                                   status.Describe(),
+                               "; it wrote to standard error:\n",
+                               errors );
         }
         case Kind::kReturned:
-            return "the statement returned instead of ending the process" +
-                   ( errors.empty() ? std::string{}
-                                    : "; it wrote to standard error:\n" +
-                                          errors );
+            return WithErrors(
+                "the statement returned instead of ending the process",
+                "; it wrote to standard error:\n",
+                errors );
         case Kind::kThrew:
             return "the statement threw an exception instead of ending the "
                    "process";
         case Kind::kNotReached:
-            return "the child process ran the test but did not reach the "
-                   "statement; the test must reach it the same way every "
-                   "time" +
-                   ( errors.empty() ? std::string{}
-                                    : "; standard error:\n" + errors );
+            return WithErrors(
+                "the child process ran the test but did not reach the "
+                "statement; the test must reach it the same way every time",
+                "; standard error:\n",
+                errors );
         case Kind::kNotStarted:
             return "the child process could not be started: " + errors;
         case Kind::kSkipped:

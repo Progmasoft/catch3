@@ -181,36 +181,60 @@ namespace Progmasoft::Catch3 {
                !( ending == Ending::kExited && code == 0 );
     }
 
+    namespace {
+
+        //! `text`, and what the child wrote to standard error after `lead`
+        //! when it wrote anything.
+        std::string WithErrors( std::string text,
+                                const char* lead,
+                                const std::string& errors ) {
+            if ( !errors.empty() ) {
+                text += lead;
+                text += errors;
+            }
+            return text;
+        }
+
+        //! How the runner names the way a child ended.
+        Runner::ExitStatus::Kind StatusKind( DeathResult::Ending ending ) {
+            switch ( ending ) {
+            case DeathResult::Ending::kSignaled:
+                return Runner::ExitStatus::Kind::kSignaled;
+            case DeathResult::Ending::kException:
+                return Runner::ExitStatus::Kind::kException;
+            case DeathResult::Ending::kExited:
+                break;
+            }
+            return Runner::ExitStatus::Kind::kExited;
+        }
+
+    } // namespace
+
     std::string DeathResult::Describe() const {
         switch ( kind ) {
         case Kind::kEnded: {
             Runner::ExitStatus status;
-            status.kind = ending == Ending::kSignaled
-                              ? Runner::ExitStatus::Kind::kSignaled
-                          : ending == Ending::kException
-                              ? Runner::ExitStatus::Kind::kException
-                              : Runner::ExitStatus::Kind::kExited;
+            status.kind = StatusKind( ending );
             status.code = code;
-            return "the statement ended the process with " +
-                   status.Describe() +
-                   ( errors.empty() ? std::string{}
-                                    : "; it wrote to standard error:\n" +
-                                          errors );
+            return WithErrors( "the statement ended the process with " +
+                                   status.Describe(),
+                               "; it wrote to standard error:\n",
+                               errors );
         }
         case Kind::kReturned:
-            return "the statement returned instead of ending the process" +
-                   ( errors.empty() ? std::string{}
-                                    : "; it wrote to standard error:\n" +
-                                          errors );
+            return WithErrors(
+                "the statement returned instead of ending the process",
+                "; it wrote to standard error:\n",
+                errors );
         case Kind::kThrew:
             return "the statement threw an exception instead of ending the "
                    "process";
         case Kind::kNotReached:
-            return "the child process ran the test but did not reach the "
-                   "statement; the test must reach it the same way every "
-                   "time" +
-                   ( errors.empty() ? std::string{}
-                                    : "; standard error:\n" + errors );
+            return WithErrors(
+                "the child process ran the test but did not reach the "
+                "statement; the test must reach it the same way every time",
+                "; standard error:\n",
+                errors );
         case Kind::kNotStarted:
             return "the child process could not be started: " + errors;
         case Kind::kSkipped:
