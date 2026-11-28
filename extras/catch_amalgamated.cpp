@@ -9039,13 +9039,14 @@ namespace Progmasoft::Catch3 {
             RestoreDefaultEndings();
             std::fflush( stdout );
             WriteError( kReached );
+            // Reaching the end means the statement did not end the process.
+            bool threw = false;
             CATCH_TRY {
                 statement();
             } CATCH_CATCH_ALL {
-                WriteError( kThrew );
-                std::_Exit( kChildSurvived );
+                threw = true;
             }
-            WriteError( kReturned );
+            WriteError( threw ? kThrew : kReturned );
             std::_Exit( kChildSurvived );
         }
 
