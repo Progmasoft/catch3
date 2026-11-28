@@ -3077,7 +3077,12 @@ namespace Catch {
                     sum_cubes += cube;
                 }
 
-                double accel = sum_cubes / ( 6 * std::pow( sum_squares, 1.5 ) );
+                // With no spread in the jackknife estimates there is nothing
+                // to estimate the acceleration from (and 0 / 0 would be NaN)
+                double accel =
+                    sum_squares > 0
+                        ? sum_cubes / ( 6 * std::pow( sum_squares, 1.5 ) )
+                        : 0.;
                 long n = static_cast<long>( resample.size() );
                 double prob_n = static_cast<double>(
                     std::count_if( resample.begin(),
@@ -3092,9 +3097,16 @@ namespace Catch {
                 double bias = normal_quantile( prob_n );
                 double z1 = normal_quantile( ( 1. - confidence_level ) / 2. );
 
-                auto cumn = [n]( double x ) -> long {
-                    return std::lround( normal_cdf( x ) *
-                                        static_cast<double>( n ) );
+                // a1 and a2 can still end up NaN or infinite for degenerate
+                // inputs, so make sure the index always stays inside resample
+                auto cumn = [n]( double x, long fallback ) -> size_t {
+                    if ( std::isnan( x ) ) {
+                        return static_cast<size_t>( fallback );
+                    }
+                    long idx = std::lround( normal_cdf( x ) *
+                                            static_cast<double>( n ) );
+                    return static_cast<size_t>(
+                        (std::min)( (std::max)( idx, 0l ), n - 1 ) );
                 };
                 auto a = [bias, accel]( double b ) {
                     return bias + b / ( 1. - accel * b );
@@ -3103,9 +3115,8 @@ namespace Catch {
                 double b2 = bias - z1;
                 double a1 = a( b1 );
                 double a2 = a( b2 );
-                auto lo = static_cast<size_t>( (std::max)( cumn( a1 ), 0l ) );
-                auto hi =
-                    static_cast<size_t>( (std::min)( cumn( a2 ), n - 1 ) );
+                auto lo = cumn( a1, 0 );
+                auto hi = cumn( a2, n - 1 );
 
                 return { point, resample[lo], resample[hi], confidence_level };
             }
@@ -6140,12 +6151,11 @@ namespace Catch {
         std::size_t start = 0;
         for(std::size_t pos = 0; pos < str.size(); ++pos ) {
             if( str[pos] == delimiter ) {
-                if( pos - start > 1 )
-                    subStrings.push_back( str.substr( start, pos-start ) );
+                subStrings.push_back( str.substr( start, pos-start ) );
                 start = pos+1;
             }
         }
-        if( start < str.size() )
+        if( !str.empty() )
             subStrings.push_back( str.substr( start, str.size()-start ) );
         return subStrings;
     }

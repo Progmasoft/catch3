@@ -11,6 +11,7 @@
 
 #include <Progmasoft/Catch3/Internal/MoveAndForward.hpp>
 
+#include <new>
 #include <type_traits>
 
 namespace Catch {
