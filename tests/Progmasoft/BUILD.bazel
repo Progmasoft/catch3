@@ -24,6 +24,7 @@ cc_test(
         "RunnerCoverage.tests.cpp",
         "RunnerOutput.tests.cpp",
         "Snapshot.tests.cpp",
+        "Death.tests.cpp",
         "Stateful.tests.cpp",
         "Strategy.tests.cpp",
     ],

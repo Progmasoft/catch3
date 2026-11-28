@@ -38,7 +38,8 @@ target("catch3")
         "src/Progmasoft/Mock.cpp",
         "src/Progmasoft/StrategyContext.cpp",
         "src/Progmasoft/PropertyEngine.cpp",
-        "src/Progmasoft/Snapshot.cpp"
+        "src/Progmasoft/Snapshot.cpp",
+        "src/Progmasoft/Death.cpp"
     )
     add_includedirs("src", {public = true})
     add_headerfiles("src/(Progmasoft/**.hpp)")
@@ -70,6 +71,7 @@ target("ProgmasoftPropertyTests")
         "tests/Progmasoft/RunnerCoverage.tests.cpp",
         "tests/Progmasoft/RunnerOutput.tests.cpp",
         "tests/Progmasoft/Snapshot.tests.cpp",
+        "tests/Progmasoft/Death.tests.cpp",
         "tests/Progmasoft/Stateful.tests.cpp",
         "tests/Progmasoft/Strategy.tests.cpp",
         "src/Progmasoft/Catch3/Internal/Main.cpp"

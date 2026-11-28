@@ -170,6 +170,7 @@ add_executable(ProgmasoftSelfTest
   Progmasoft/RunnerCoverage.tests.cpp
   Progmasoft/RunnerOutput.tests.cpp
   Progmasoft/Snapshot.tests.cpp
+  Progmasoft/Death.tests.cpp
   Progmasoft/Stateful.tests.cpp
   Progmasoft/Strategy.tests.cpp
 )
