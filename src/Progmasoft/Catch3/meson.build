@@ -311,6 +311,7 @@ runner_sources = files(
 # Property testing and snapshots.
 property_sources = files(
   '../ChoiceShrinker.cpp',
+  '../Death.cpp',
   '../StrategyContext.cpp',
   '../Mock.cpp',
   '../PropertyEngine.cpp',
