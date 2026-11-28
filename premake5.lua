@@ -1,6 +1,11 @@
 -- Copyright (c) 2026 Progmasoft.
 -- SPDX-License-Identifier: LGPL-3.0-or-later
 
+-- Deprecated: this Premake build is no longer tested, and APIs added to Catch3 from now on are not added to it.
+-- Use Bazel, CMake, Meson or Xmake.
+premake.warn("The Premake build of Catch3 is deprecated: it is not tested, and new APIs are not added to it. " ..
+    "Use Bazel, CMake, Meson or Xmake.")
+
 local repository_root = path.getabsolute(".")
 local generated_include = path.join(repository_root, "build", "premake", "generated")
 local configure_catch3 = dofile(path.join(repository_root, "buildsupport", "catch3_config.lua"))
