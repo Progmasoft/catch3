@@ -62,6 +62,12 @@ namespace Progmasoft::Catch3::Tools
         constexpr std::string_view kUserConfig
             = "Progmasoft/Catch3/UserConfig.hpp";
 
+        /// Progmasoft's own header that an engine header includes: it is put
+        /// in place of its include like an engine header, since the
+        /// amalgamation has no other copy of it.
+        constexpr std::string_view kComparisons
+            = "Progmasoft/Catch3/Comparisons.hpp";
+
         const std::map<std::string, std::string> &
         ThirdPartyFiles()
         {
@@ -326,7 +332,8 @@ namespace Progmasoft::Catch3::Tools
                     return std::nullopt;
                 }
                 if (upstream.count("src/" + include->Name) != 0
-                    || include->Name == kUserConfig)
+                    || include->Name == kUserConfig
+                    || include->Name == kComparisons)
                 {
                     return include->Name;
                 }

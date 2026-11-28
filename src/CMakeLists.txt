@@ -49,6 +49,7 @@ set(IMPL_HEADERS
   ${SOURCES_DIR}/AssertionInfo.hpp
   ${SOURCES_DIR}/AssertionResult.hpp
   ${SOURCES_DIR}/CaseSensitive.hpp
+  ${SOURCES_DIR}/Comparisons.hpp
   ${SOURCES_DIR}/Config.hpp
   ${SOURCES_DIR}/GetRandomSeed.hpp
   ${SOURCES_DIR}/Message.hpp

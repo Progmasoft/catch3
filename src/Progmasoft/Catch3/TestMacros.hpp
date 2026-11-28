@@ -239,3 +239,6 @@
 
 // end of user facing macros
 
+// Progmasoft Catch3: CHECK_EQ, REQUIRE_EQ and the other assertions that
+// compare two values.
+#include <Progmasoft/Catch3/Comparisons.hpp>
