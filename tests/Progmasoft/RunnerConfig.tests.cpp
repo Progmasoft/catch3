@@ -423,3 +423,24 @@ TEST_CASE("--config names the file, and some modes read none",
         Runner::ParseCommandLine({ "--no-config", "--config=broken.json" },
                                  scratch.Root()));
 }
+
+TEST_CASE("Declared inputs of incremental runs come from the file",
+          "[progmasoft][runner][config]")
+{
+    const fs::path directory = fs::path{ "project" } / "tests";
+    const auto options = Apply(R"({
+        "version": 1,
+        "incremental": true,
+        "incremental-input": ["data", "../fixtures/table.csv"],
+        "incremental-env": ["LANG", "TZ"]
+    })",
+                               directory);
+    CHECK(options.incremental);
+    REQUIRE(options.incrementalInputs.size() == 2);
+    CHECK(fs::path{ options.incrementalInputs[0] }
+          == (directory / "data").lexically_normal());
+    CHECK(fs::path{ options.incrementalInputs[1] }
+          == fs::path{ "project/fixtures/table.csv" }.lexically_normal());
+    CHECK(options.incrementalEnvironment
+          == std::vector<std::string>{ "LANG", "TZ" });
+}

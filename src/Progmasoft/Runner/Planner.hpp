@@ -70,6 +70,9 @@ namespace Progmasoft::Catch3::Runner
         const Changes *changes = nullptr;
         /// A digest of the test binary.
         std::string binaryFingerprint;
+        /// A digest of the declared inputs, DeclaredInputsDigest; empty when
+        /// none are declared.
+        std::string inputsFingerprint;
     };
 
     [[nodiscard]] Expected<Plan>

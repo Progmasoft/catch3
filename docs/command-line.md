@@ -59,6 +59,8 @@ Without a spec, every test runs except hidden ones, whose tags start with
 | `--select=WHICH` | `all` (default), `failed`, `changed`, `new` or `smart`; see [choosing tests](progmasoft-runner.md#choosing-and-ordering-tests) |
 | `--changes-since=REVISION` | the Git revision `changed` and `smart` compare with (default `HEAD`) |
 | `--incremental` | skip tests that passed last time and whose inputs did not change |
+| `--incremental-input=PATH` | a file or directory the tests read; `--incremental` reruns every test when its contents change (repeatable) |
+| `--incremental-env=NAME` | a variable the tests read; `--incremental` reruns every test when its value changes (repeatable) |
 | `--shard=INDEX/COUNT` | run one of COUNT shards, counting from 0 |
 | `--shard-durations=FILE` | balance shards by the durations in a JSON report or a history |
 | `-#`, `--filenames-as-tags` | tag every test with `#` and the name of its file, as `[#parser.tests]` |

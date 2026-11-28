@@ -419,8 +419,16 @@ namespace Progmasoft::Catch3::Runner
                 continue;
             }
             const TestEntry &entry = tests[index];
+            // The binary holds the test, Catch3 and everything linked
+            // statically; declared files and variables come next. Without
+            // declared inputs the fingerprint is the one of earlier releases,
+            // so their history keeps its results.
             const std::string fingerprint =
-                Sha256Hex(inputs.binaryFingerprint + "\n" + entry.key);
+                inputs.inputsFingerprint.empty()
+                    ? Sha256Hex(inputs.binaryFingerprint + "\n" + entry.key)
+                    : Sha256Hex(inputs.binaryFingerprint + "\n"
+                                + inputs.inputsFingerprint + "\n"
+                                + entry.key);
             plan.fingerprints[entry.key] = fingerprint;
             if (!options.incremental || options.replayFailures)
             {

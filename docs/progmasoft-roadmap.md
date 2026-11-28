@@ -41,6 +41,10 @@ Catch3 runner replaced Catch2's in every test binary:
   found by bisection;
 - a history of verdicts and durations drives quarantine, adaptive time
   limits, predictive ordering, incremental runs, replay and analytics;
+  an incremental run fingerprints the whole binary with the files and
+  variables declared as inputs; next is a fingerprint per test, from the
+  code and the files that test reaches, so that a change reruns only the
+  tests it touches;
 - tests are selected by change, by past failure or by prediction, and
   sharded by a stable hash or by duration;
 - tags declare dependencies, shared resources, serial tests, time limits and

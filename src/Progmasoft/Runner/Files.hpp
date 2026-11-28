@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace Progmasoft::Catch3::Runner
 {
@@ -55,4 +56,15 @@ namespace Progmasoft::Catch3::Runner
     /// A name for a temporary file that no other process or thread uses.
     [[nodiscard]] std::string
     UniqueName();
+
+    /// A digest of the inputs of the tests besides their binary: the
+    /// contents of every regular file under `paths`, a file or a directory
+    /// each, and the values of the variables `names`. A missing path, an
+    /// unreadable file and an unset variable each count as a value of their
+    /// own, so that a change between any two states changes the digest.
+    /// Empty when both lists are, so that fingerprints without declared
+    /// inputs stay as they were.
+    [[nodiscard]] std::string
+    DeclaredInputsDigest(std::vector<std::string> paths,
+                         std::vector<std::string> names);
 } // namespace Progmasoft::Catch3::Runner

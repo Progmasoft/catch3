@@ -37,6 +37,9 @@ namespace Progmasoft::Catch3::Runner
             kNumber,
             /// An array of strings, each given to the option.
             kWords,
+            /// An array of files or directories, each relative to the
+            /// file's directory and given to the option.
+            kPaths,
             /// A directory, or false for none.
             kPathOrFalse,
             /// "quiet", "normal" or "verbose".
@@ -62,6 +65,8 @@ namespace Progmasoft::Catch3::Runner
                 { "select", ValueKind::kWord },
                 { "changes-since", ValueKind::kWord },
                 { "incremental", ValueKind::kFlag },
+                { "incremental-input", ValueKind::kPaths },
+                { "incremental-env", ValueKind::kWords },
                 { "shard-durations", ValueKind::kPath },
                 { "filenames-as-tags", ValueKind::kFlag },
                 // Running.
@@ -312,6 +317,24 @@ namespace Progmasoft::Catch3::Runner
                             return wrong("an array of strings");
                         }
                         arguments.push_back(option + "=" + item.AsString());
+                    }
+                    return arguments;
+                }
+                case ValueKind::kPaths:
+                {
+                    if (!value.IsArray())
+                    {
+                        return wrong("an array of paths");
+                    }
+                    std::vector<std::string> arguments;
+                    for (const auto &item : value.Items())
+                    {
+                        if (!item.IsString() || item.AsString().empty())
+                        {
+                            return wrong("an array of paths");
+                        }
+                        arguments.push_back(
+                            option + "=" + PathText(item.AsString(), directory));
                     }
                     return arguments;
                 }

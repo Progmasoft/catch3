@@ -16,6 +16,7 @@
 #    include <unistd.h>
 #endif
 
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <fstream>
@@ -201,5 +202,119 @@ namespace Progmasoft::Catch3::Runner
              << std::chrono::steady_clock::now().time_since_epoch().count()
              << '-' << std::this_thread::get_id() << '-' << ++counter;
         return ToHex(Fnv1a64(text.str()));
+    }
+
+    namespace
+    {
+        /// Sorts the list and keeps each entry once.
+        void
+        SortUnique(std::vector<std::string> &list)
+        {
+            std::sort(list.begin(), list.end());
+            list.erase(std::unique(list.begin(), list.end()), list.end());
+        }
+
+        /// Adds one file, under the name it is listed by, to the digest.
+        void
+        DigestFile(Sha256 &digest,
+                   const std::string &label,
+                   const std::filesystem::path &path)
+        {
+            const auto contents = Sha256File(path);
+            digest.Update("file\n" + label + "\n"
+                          + (contents ? *contents : std::string{ "unreadable" })
+                          + "\n");
+        }
+
+        /// Adds every regular file below a directory, in a fixed order, by
+        /// its path relative to the directory. Links to directories are not
+        /// followed, so a loop cannot make the walk endless.
+        void
+        DigestDirectory(Sha256 &digest,
+                        const std::string &path,
+                        const std::filesystem::path &root)
+        {
+            std::error_code error;
+            std::vector<std::filesystem::path> found;
+            std::filesystem::recursive_directory_iterator walk{
+                root,
+                std::filesystem::directory_options::skip_permission_denied,
+                error
+            };
+            for (const std::filesystem::recursive_directory_iterator end;
+                 !error && walk != end;
+                 walk.increment(error))
+            {
+                if (walk->is_regular_file(error))
+                {
+                    found.push_back(walk->path());
+                }
+            }
+            std::sort(found.begin(), found.end());
+            digest.Update("directory\n" + path + "\n");
+            for (const auto &entry : found)
+            {
+                DigestFile(
+                    digest, entry.lexically_relative(root).generic_string(), entry);
+            }
+            if (error)
+            {
+                digest.Update("incomplete\n");
+            }
+        }
+
+        /// Adds a declared path: a file, a directory, or its absence.
+        void
+        DigestPath(Sha256 &digest, const std::string &path)
+        {
+            std::error_code error;
+            const std::filesystem::path root{ path };
+            if (std::filesystem::is_regular_file(root, error))
+            {
+                DigestFile(digest, path, root);
+            }
+            else if (std::filesystem::is_directory(root, error))
+            {
+                DigestDirectory(digest, path, root);
+            }
+            else
+            {
+                digest.Update("missing\n" + path + "\n");
+            }
+        }
+
+        /// Adds a declared variable: its value's digest, or that it is unset.
+        void
+        DigestVariable(Sha256 &digest, const std::string &name)
+        {
+            digest.Update(HasEnvironment(name.c_str())
+                              ? "variable\n" + name + "\n"
+                                    + Sha256Hex(ReadEnvironment(name.c_str()))
+                                    + "\n"
+                              : "unset\n" + name + "\n");
+        }
+    } // namespace
+
+    std::string
+    DeclaredInputsDigest(std::vector<std::string> paths,
+                         std::vector<std::string> names)
+    {
+        if (paths.empty() && names.empty())
+        {
+            return {};
+        }
+        SortUnique(paths);
+        SortUnique(names);
+
+        Sha256 digest;
+        for (const std::string &path : paths)
+        {
+            DigestPath(digest, path);
+        }
+        for (const std::string &name : names)
+        {
+            DigestVariable(digest, name);
+        }
+        return digest.HexDigest();
     }
 } // namespace Progmasoft::Catch3::Runner
