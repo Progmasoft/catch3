@@ -8,6 +8,7 @@
 
 #include <Progmasoft/Runner/Catalog.hpp>
 #include <Progmasoft/Runner/Files.hpp>
+#include <Progmasoft/Runner/Hash.hpp>
 #include <Progmasoft/Runner/History.hpp>
 #include <Progmasoft/Runner/Planner.hpp>
 
@@ -16,6 +17,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -595,5 +597,119 @@ TEST_CASE("Replay runs the last failures the way they happened",
         CHECK(plan.tests.empty());
         REQUIRE(plan.notes.size() == 1);
         CHECK_THAT(plan.notes.front(), ContainsSubstring("no failure"));
+    }
+}
+
+namespace
+{
+    void
+    WriteText(const std::filesystem::path &file, const std::string &text)
+    {
+        std::ofstream stream(file, std::ios::binary | std::ios::trunc);
+        stream << text;
+    }
+
+    void
+    SetVariable(const char *name, const char *value)
+    {
+#if defined(_WIN32)
+        REQUIRE(_putenv_s(name, value) == 0);
+#else
+        REQUIRE(setenv(name, value, 1) == 0);
+#endif
+    }
+
+    void
+    UnsetVariable(const char *name)
+    {
+#if defined(_WIN32)
+        CHECK(_putenv_s(name, "") == 0);
+#else
+        CHECK(unsetenv(name) == 0);
+#endif
+    }
+} // namespace
+
+TEST_CASE("The digest of declared inputs follows their contents",
+          "[progmasoft][runner][planner]")
+{
+    const Scratch scratch;
+    const auto data = scratch.Path() / "data.txt";
+    const auto directory = scratch.Path() / "fixtures";
+    std::filesystem::create_directories(directory / "nested");
+    WriteText(data, "one");
+    WriteText(directory / "nested" / "a.txt", "alpha");
+    const std::string dataPath = data.string();
+    const std::string directoryPath = directory.string();
+
+    CHECK(Runner::DeclaredInputsDigest({}, {}).empty());
+
+    const auto first =
+        Runner::DeclaredInputsDigest({dataPath, directoryPath}, {});
+    CHECK(first.size() == 64);
+    // The order in which inputs are named does not matter.
+    CHECK(Runner::DeclaredInputsDigest({directoryPath, dataPath}, {}) ==
+          first);
+
+    WriteText(data, "two");
+    const auto changedFile =
+        Runner::DeclaredInputsDigest({dataPath, directoryPath}, {});
+    CHECK(changedFile != first);
+
+    WriteText(directory / "nested" / "b.txt", "beta");
+    const auto addedFile =
+        Runner::DeclaredInputsDigest({dataPath, directoryPath}, {});
+    CHECK(addedFile != changedFile);
+
+    std::filesystem::remove(data);
+    CHECK(Runner::DeclaredInputsDigest({dataPath, directoryPath}, {}) !=
+          addedFile);
+}
+
+TEST_CASE("The digest of declared inputs follows variables",
+          "[progmasoft][runner][planner]")
+{
+    const char *name = "CATCH3_TEST_INCREMENTAL_INPUT";
+    UnsetVariable(name);
+    const auto unset = Runner::DeclaredInputsDigest({}, {name});
+    CHECK_FALSE(unset.empty());
+    SetVariable(name, "first");
+    const auto first = Runner::DeclaredInputsDigest({}, {name});
+    CHECK(first != unset);
+    SetVariable(name, "second");
+    CHECK(Runner::DeclaredInputsDigest({}, {name}) != first);
+    // A variable named twice counts once.
+    CHECK(Runner::DeclaredInputsDigest({}, {name, name}) ==
+          Runner::DeclaredInputsDigest({}, {name}));
+    UnsetVariable(name);
+}
+
+TEST_CASE("Declared inputs join the fingerprint of every test",
+          "[progmasoft][runner][planner]")
+{
+    const auto catalog =
+        Runner::Catalog::FromEntries({Entry("reads"), Entry("computes")});
+    Runner::PlanInputs inputs;
+    inputs.catalog = &catalog;
+    inputs.matched = All(catalog);
+    inputs.binaryFingerprint = "build 1";
+    Runner::Options options;
+    options.order = Runner::Order::kDeclared;
+
+    // Without declared inputs the fingerprint is the binary and the test.
+    const auto plain = PlanOf(options, inputs);
+    for (const auto &[key, fingerprint] : plain.fingerprints)
+    {
+        CHECK(fingerprint == Runner::Sha256Hex("build 1\n" + key));
+    }
+
+    inputs.inputsFingerprint = "inputs 1";
+    const auto declared = PlanOf(options, inputs);
+    inputs.inputsFingerprint = "inputs 2";
+    const auto changed = PlanOf(options, inputs);
+    for (const auto &[key, fingerprint] : plain.fingerprints)
+    {
+        CHECK(declared.fingerprints.at(key) != fingerprint);
+        CHECK(changed.fingerprints.at(key) != declared.fingerprints.at(key));
     }
 }

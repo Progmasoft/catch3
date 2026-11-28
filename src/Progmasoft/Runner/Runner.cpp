@@ -912,6 +912,18 @@ namespace Progmasoft::Catch3
             inputs.history = options.historyEnabled ? &history : nullptr;
             inputs.changes = changes ? &*changes : nullptr;
             inputs.binaryFingerprint = binaryFingerprint;
+            if (options.historyEnabled || options.incremental)
+            {
+                // The variables handed to the tests on purpose are inputs
+                // whether or not they were declared.
+                std::vector<std::string> variables =
+                    options.incrementalEnvironment;
+                variables.insert(variables.end(),
+                                 options.passedEnvironment.begin(),
+                                 options.passedEnvironment.end());
+                inputs.inputsFingerprint = Runner::DeclaredInputsDigest(
+                    options.incrementalInputs, std::move(variables));
+            }
             auto plan = Runner::MakePlan(options, inputs);
             if (!plan)
             {

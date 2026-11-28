@@ -130,6 +130,11 @@ namespace Progmasoft::Catch3::Runner
         Selection selection = Selection::kAll;
         std::string changesSince;
         bool incremental = false;
+        /// Files and directories the tests read: an incremental run keeps
+        /// a result only while their contents are unchanged.
+        std::vector<std::string> incrementalInputs;
+        /// Variables whose values an incremental run treats as inputs.
+        std::vector<std::string> incrementalEnvironment;
         Shard shard;
         std::string shardDurations;
         bool filenamesAsTags = false;

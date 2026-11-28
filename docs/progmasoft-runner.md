@@ -126,13 +126,52 @@ The history drives several features:
 * **Replay.** `--replay` runs the last failures again, each with the seed it
   failed with and after the same tests, in a fresh process.
 * **Incremental runs.** `--incremental` skips tests that passed last time
-  with the same fingerprint; they are reported as up to date.
+  with the same fingerprint; they are reported as up to date. See
+  [What an incremental run treats as inputs](#what-an-incremental-run-treats-as-inputs).
 * **Analytics.** `--analytics` prints what the history says: flaky tests,
   tests in quarantine, the tests that fail most often, the slowest tests and
   the tests getting slower. `--analytics=json` prints it as JSON.
 
 Under `bazel test` there is no history unless `CATCH3_HISTORY` names a
 directory that outlives the sandbox.
+
+### What an incremental run treats as inputs
+
+An incremental run keeps the result of a test only when all of these hold:
+
+* the test passed in its last run, was not flaky, and is not in quarantine
+  (unless `--quarantine=off`);
+* `--replay` is not given;
+* its fingerprint equals the one of that run.
+
+The fingerprint of a test is a SHA-256 over:
+
+* the test binary, byte for byte. The binary holds the test, Catch3 itself and
+  everything linked statically, so a change of code, of a compiler flag or of
+  the Catch3 version changes every fingerprint of the binary;
+* the name of the test;
+* the contents of every file named with `--incremental-input=PATH`, a file or
+  a directory whose regular files are read recursively; a missing path and an
+  unreadable file count as values of their own;
+* the values of the variables named with `--incremental-env=NAME` and of those
+  handed over with `--pass-env=NAME`; an unset variable counts as a value of
+  its own.
+
+Everything else is outside the fingerprint, and a test that depends on it
+must declare it or run without `--incremental`: files a test reads that are
+not declared, shared libraries loaded at run time, other variables of the
+environment, the working directory, the time, the network and other
+processes. A fingerprint covers the whole binary rather than the code a test
+reaches, so any change to the binary reruns all of its tests; finer,
+per-test dependencies are on the [roadmap](progmasoft-roadmap.md#top).
+
+```sh
+./tests --incremental --incremental-input=tests/data --incremental-env=TZ
+```
+
+In the project file the same inputs are `"incremental-input"`, paths relative
+to the file, and `"incremental-env"`. A history written without declared
+inputs keeps its fingerprints, so naming no input reruns nothing.
 
 
 ## Importing the results of other frameworks
@@ -452,7 +491,8 @@ as on the command line, with the key named in the message:
 | a whole number or a string | `retries` (`"auto"`, `"off"`), `seed` (`"random"`) |
 | a number | `timeout` (seconds), `benchmark-confidence-interval` |
 | a path, relative to the file | `junit`, `json`, `trace`, `shard-durations`; `history`, or `false` for none |
-| an array of strings | `tests` (test specs), `warn`, `pass-env` |
+| an array of paths, each relative to the file | `incremental-input` |
+| an array of strings | `tests` (test specs), `warn`, `pass-env`, `incremental-env` |
 | `"quiet"`, `"normal"` or `"verbose"` | `verbosity` |
 
 `"version": 1` is required; `"$schema"` may name a schema for editors.

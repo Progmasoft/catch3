@@ -281,6 +281,28 @@ namespace Progmasoft::Catch3::Runner
                      options.incremental = true;
                      return Status::Ok();
                  }},
+                {"incremental-input",
+                 '\0',
+                 Takes::kValue,
+                 "PATH",
+                 "Selecting tests",
+                 "a file or directory the tests read; --incremental reruns "
+                 "every test when its contents change (repeatable)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.incrementalInputs.push_back(*value);
+                     return Status::Ok();
+                 }},
+                {"incremental-env",
+                 '\0',
+                 Takes::kValue,
+                 "NAME",
+                 "Selecting tests",
+                 "a variable the tests read; --incremental reruns every test "
+                 "when its value changes (repeatable)",
+                 [](Options &options, const std::optional<std::string> &value) {
+                     options.incrementalEnvironment.push_back(*value);
+                     return Status::Ok();
+                 }},
                 {"shard",
                  '\0',
                  Takes::kValue,
