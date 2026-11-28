@@ -10,6 +10,7 @@
 #include <Progmasoft/Catch3/Internal/MoveAndForward.hpp>
 
 #include <cassert>
+#include <new>
 
 namespace Catch {
 

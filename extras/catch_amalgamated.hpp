@@ -3273,6 +3273,7 @@ namespace Catch {
 
 
 
+#include <new>
 #include <type_traits>
 
 namespace Catch {
@@ -3495,6 +3496,7 @@ namespace Catch {
 
 
 #include <cassert>
+#include <new>
 
 namespace Catch {
 
