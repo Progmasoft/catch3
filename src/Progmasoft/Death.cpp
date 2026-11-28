@@ -143,16 +143,34 @@ namespace Progmasoft::Catch3 {
             return DeathResult::Ending::kExited;
         }
 
+        /// What the child wrote, with every CR LF as LF: on Windows the
+        /// standard error of the child is in text mode, so each LF it wrote
+        /// arrives as CR LF, and neither the markers nor a matcher would
+        /// find the text the statement wrote.
+        std::string WithLineFeeds( const std::string& text ) {
+            std::string result;
+            result.reserve( text.size() );
+            for ( std::size_t i = 0; i < text.size(); ++i ) {
+                if ( text[i] == '\r' && i + 1 < text.size() &&
+                     text[i + 1] == '\n' ) {
+                    continue;
+                }
+                result.push_back( text[i] );
+            }
+            return result;
+        }
+
         /// The parent's side: read what the child wrote and how it ended.
         DeathResult Interpret( const Runner::CapturedRun& run ) {
             DeathResult result;
-            const std::size_t reached = run.errors.find( kReached );
+            const std::string errors = WithLineFeeds( run.errors );
+            const std::size_t reached = errors.find( kReached );
             if ( reached == std::string::npos ) {
                 result.kind = DeathResult::Kind::kNotReached;
-                result.errors = run.errors;
+                result.errors = errors;
                 return result;
             }
-            std::string after = run.errors.substr( reached + kReached.size() );
+            std::string after = errors.substr( reached + kReached.size() );
             const auto endsWith = [&after]( std::string_view marker ) {
                 return after.size() >= marker.size() &&
                        std::string_view( after ).substr(
