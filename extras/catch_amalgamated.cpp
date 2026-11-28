@@ -9039,9 +9039,9 @@ namespace Progmasoft::Catch3 {
             RestoreDefaultEndings();
             std::fflush( stdout );
             WriteError( kReached );
-            try {
+            CATCH_TRY {
                 statement();
-            } catch ( ... ) {
+            } CATCH_CATCH_ALL {
                 WriteError( kThrew );
                 std::_Exit( kChildSurvived );
             }

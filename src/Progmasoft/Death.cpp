@@ -3,6 +3,7 @@
 #include <Progmasoft/Catch3/Death.hpp>
 
 #include <Progmasoft/Catch3/Interfaces/IResultCapture.hpp>
+#include <Progmasoft/Catch3/Internal/CompilerCapabilities.hpp>
 #include <Progmasoft/Runner/Hash.hpp>
 #include <Progmasoft/Runner/Process.hpp>
 
@@ -119,9 +120,9 @@ namespace Progmasoft::Catch3 {
             RestoreDefaultEndings();
             std::fflush( stdout );
             WriteError( kReached );
-            try {
+            CATCH_TRY {
                 statement();
-            } catch ( ... ) {
+            } CATCH_CATCH_ALL {
                 WriteError( kThrew );
                 std::_Exit( kChildSurvived );
             }
