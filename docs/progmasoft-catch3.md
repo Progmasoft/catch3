@@ -79,8 +79,9 @@ Progmasoft::Catch3::PropertyOptions{ .ReplayTrialSeed = 1234567890123456789ULL }
 
 ### Composite generators
 
-A property still receives one generated value. Several arguments are passed
-as one tuple:
+A property of this API receives one generated value, so several arguments
+are passed as one tuple ([`ForAll`](progmasoft-properties.md#top) takes any
+number of strategies instead and passes each value as its own argument):
 
 ```cpp
 using namespace Progmasoft::Catch3;
