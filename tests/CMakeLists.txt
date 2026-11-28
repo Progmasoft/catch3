@@ -154,6 +154,7 @@ target_link_libraries(SelfTest PRIVATE Catch3WithMain)
 
 # Exercise the Progmasoft layer independently of the upstream Catch2 SelfTest.
 add_executable(ProgmasoftSelfTest
+  Progmasoft/Comparisons.tests.cpp
   Progmasoft/Generators.tests.cpp
   Progmasoft/Mock.tests.cpp
   Progmasoft/Property.tests.cpp

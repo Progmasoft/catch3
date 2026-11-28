@@ -167,6 +167,7 @@ internal_headers = [
   'AssertionInfo.hpp',
   'AssertionResult.hpp',
   'CaseSensitive.hpp',
+  'Comparisons.hpp',
   'Config.hpp',
   'GetRandomSeed.hpp',
   'Message.hpp',

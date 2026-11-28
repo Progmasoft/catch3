@@ -6,6 +6,7 @@
 
 **Contents**<br>
 [Natural Expressions](#natural-expressions)<br>
+[Comparison macros](#comparison-macros)<br>
 [Floating point comparisons](#floating-point-comparisons)<br>
 [Exceptions](#exceptions)<br>
 [Matcher expressions](#matcher-expressions)<br>
@@ -81,6 +82,33 @@ options.
    instead. There is no simple rewrite rule for `||`, but I generally
    believe that if you have `||` in your test expression, you should rethink
    your tests.
+
+
+## Comparison macros
+
+Progmasoft Catch3 also has a macro for each comparison operator, for code
+that reads better with the two values apart, or that comes from a framework
+written that way:
+
+| Macro | Holds when |
+| --- | --- |
+| `CHECK_EQ( a, b )`, `REQUIRE_EQ( a, b )` | `a == b` |
+| `CHECK_NE( a, b )`, `REQUIRE_NE( a, b )` | `a != b` |
+| `CHECK_LT( a, b )`, `REQUIRE_LT( a, b )` | `a < b` |
+| `CHECK_LE( a, b )`, `REQUIRE_LE( a, b )` | `a <= b` |
+| `CHECK_GT( a, b )`, `REQUIRE_GT( a, b )` | `a > b` |
+| `CHECK_GE( a, b )`, `REQUIRE_GE( a, b )` | `a >= b` |
+
+`REQUIRE_EQ( a, b )` is `REQUIRE( a == b )` with each side in parentheses:
+both values are shown when it fails, each argument is evaluated once, and
+the assertion is reported as written. An argument that holds a comma
+outside parentheses, such as `std::pair<int, int>{ 1, 2 }`, goes in
+parentheses: `REQUIRE_EQ( ( std::pair<int, int>{ 1, 2 } ), p )`.
+
+They follow the configuration of the other assertions: with
+`CATCH_CONFIG_PREFIX_ALL` they are `CATCH_CHECK_EQ`, `CATCH_REQUIRE_EQ` and
+so on, and with `CATCH_CONFIG_DISABLE` they do nothing. They come with
+`<Progmasoft/Catch3/TestMacros.hpp>`.
 
 
 ## Floating point comparisons
