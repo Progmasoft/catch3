@@ -199,7 +199,7 @@ c++ -std=c++17 tests.cpp $(pkg-config --cflags --libs catch3-with-main)
 ```
 
 The pkg-config modules are `catch3` and `catch3-with-main`. CMake, Meson,
-Xmake and Premake build the files under the same names.
+Xmake and the deprecated Premake build make the files under the same names.
 
 In the Bazel Central Registry, from 0.5.0 on, the module is
 `progmasoft_catch3`, for Bazel 8 and later:
@@ -217,10 +217,11 @@ to C++14).
 In this repository the Bazel target is `//:catch3`; its tests are
 `//tests/Progmasoft:property_tests`, and `tests/Progmasoft/BazelModule` is a
 module that depends on Catch3 as a user's does. Bazel is the primary
-build path; CMake, Meson, Xmake, and Premake are also maintained as alternate
-ways to build the same engine and property tests. Their root files are
-`CMakeLists.txt`, `meson.build`, `xmake.lua`, and `premake5.lua`. Xmake and
-Premake materialize the default generated configuration header,
+build path; CMake, Meson and Xmake are also maintained as alternate ways to
+build the same engine and property tests. Their root files are
+`CMakeLists.txt`, `meson.build` and `xmake.lua`. `premake5.lua` remains but is
+deprecated: it is not tested, and APIs added from now on are not added to it.
+Xmake and Premake materialize the default generated configuration header,
 `Progmasoft/Catch3/UserConfig.hpp`, from the checked-in template. Meson 1.1.0 or newer is required for the Clang-CL
 C++17 test target.
 
@@ -253,13 +254,15 @@ meson setup build/meson --vsenv -Dtests=true -Dinstall=false
 meson compile -C build/meson
 meson test -C build/meson --print-errorlogs
 
-# Premake (choose an action supported by the host)
+# Premake, deprecated: not tested, and without the APIs added from now on
 premake5 vs2022
 ```
 
 Premake generates projects rather than compiling directly; build the generated
 solution with the corresponding host toolchain. On macOS, use
-`premake5 gmake`, then build the generated makefiles with `make`. Meson users on
+`premake5 gmake`, then build the generated makefiles with `make`. The Premake
+build is deprecated: it is not tested, it warns when it runs, and APIs added
+from now on are not added to it. Meson users on
 macOS can select Apple Clang with `CC=clang CXX=clang++` before configuration.
 
 ## Compatibility and licensing boundary

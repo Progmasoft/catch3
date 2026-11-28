@@ -16,7 +16,7 @@ upstream code and its original license separately from new Progmasoft code.
 ## Verification
 
 - [ ] SelfTest and relevant Progmasoft property/snapshot/XML tests were run.
-- [ ] The affected Bazel, CMake, Meson, Xmake, or Premake build path was checked.
+- [ ] The affected Bazel, CMake, Meson or Xmake build path was checked (Premake is deprecated and not checked).
 - [ ] Public headers and compiled-library behavior were considered; this PR does not accidentally make Catch3 header-only.
 - [ ] I checked formatting, licenses, generated files, and `git diff --check`.
 

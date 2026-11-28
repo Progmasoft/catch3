@@ -98,9 +98,11 @@ Bazel is the primary build and validation path. From the repository root:
 bazel test //tests/Progmasoft:property_tests
 ```
 
-The same suite is also available through the maintained CMake, Meson, Xmake,
-and Premake project files. Their setup details and toolchain requirements are
-in the [build guide](https://catch3.uk/docs/progmasoft-catch3/#build-quick-start).
+The same suite is also available through the maintained CMake, Meson and
+Xmake project files. Their setup details and toolchain requirements are in the
+[build guide](https://catch3.uk/docs/progmasoft-catch3/#build-quick-start).
+The Premake project files are deprecated: they are not tested, and APIs added
+from now on are not added to them.
 
 For a CMake consumer of the installed library:
 

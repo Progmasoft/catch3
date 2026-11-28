@@ -36,7 +36,7 @@ Provide a small C++17 test, the command used to build and run it, and the test-r
 - Catch3 commit or release:
 - OS and architecture:
 - Compiler and version:
-- Build system and version (Bazel, CMake, Meson, Xmake, or Premake):
+- Build system and version (Bazel, CMake, Meson, Xmake, or the deprecated Premake):
 - Relevant flags or configuration:
 
 ### Additional context

@@ -44,7 +44,9 @@ cmake --build build
 ctest --test-dir build -j
 ```
 
-Meson, Xmake and Premake builds exist as well and are checked in CI.
+Meson and Xmake builds exist as well and are checked in CI. The Premake build is
+deprecated: it is not tested, and new APIs are not added to it, so a change does
+not need to touch `premake5.lua`.
 
 Before you push, run the repository checks:
 
